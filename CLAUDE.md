@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Current Progress
+
+- [x] Phase 1: Discovery & Analysis — Complete (see `docs/plans/2026-01-29-loomio-discovery-report.md`)
+- [ ] Phase 2: Planning Framework — Next
+- [ ] Phase 3: Detailed Plan Creation
+- [ ] Phase 4-7: Execution phases
+
 ## Project Overview
 
 This repository contains **meta-planning documentation** for rewriting Loomio (a collaborative decision-making tool) from Ruby on Rails to Go. This is NOT an implementation repository—it's a strategic planning framework.
