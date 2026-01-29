@@ -1,0 +1,10 @@
+[tools]
+go = "latest"
+node = "lts"
+ruby = "3.4.7"
+"pipx:git+https://github.com/oraios/serena.git" = "latest"
+
+[env]
+_.path = ['{{config_root}}/node_modules/.bin']
+_.file = { path = '.env.secrets', redact = true}
+ENABLE_TOOL_SEARCH = true
