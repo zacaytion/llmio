@@ -86,6 +86,8 @@ All documents reference this core structure from `META_PLAN.md`:
 1. **Phase 1: Discovery & Analysis** (3-4 weeks) - Repository analysis, database mapping, feature inventory
 2. **Phase 2: Planning Framework** (1-2 weeks) - Migration strategy, team planning, risk assessment
 3. **Phase 3: Detailed Plan Creation** (2-3 weeks) - Work breakdown, sprint planning, timeline
+   - **Inputs:** Use ADRs (001-003), risk register, and testing strategy from Phase 2
+   - **Outputs:** WBS with effort estimates, sprint backlog, milestone definitions
 4. **Phase 4: Quality Assurance** (ongoing) - Testing strategy and monitoring
 5. **Phase 5: Documentation** (ongoing) - ADRs, API docs, runbooks
 6. **Phase 6: Progress Tracking** (ongoing) - Metrics and reporting
