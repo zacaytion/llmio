@@ -119,6 +119,8 @@ Create ADRs for:
 
 ## Phase 2: Planning Framework
 
+> **Phase 2 Documents:** See `docs/plans/2026-01-29-*.md` for ADRs, risk register, testing strategy, team plan, and deployment plan created during this phase.
+
 ### 2.1 Migration Strategy Selection
 
 **Options to evaluate:**

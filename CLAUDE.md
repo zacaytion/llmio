@@ -5,8 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Current Progress
 
 - [x] Phase 1: Discovery & Analysis — Complete (see `docs/plans/2026-01-29-loomio-discovery-report.md`)
-- [ ] Phase 2: Planning Framework — Next
-- [ ] Phase 3: Detailed Plan Creation
+- [x] Phase 2: Planning Framework — Complete
+  - ADR-001: Migration Strategy (`docs/plans/2026-01-29-adr-001-migration-strategy.md`)
+  - ADR-002: Channel Server (`docs/plans/2026-01-29-adr-002-channel-server-migration.md`)
+  - ADR-003: Go Stack (`docs/plans/2026-01-29-adr-003-go-stack-selection.md`)
+  - Risk Register (`docs/plans/2026-01-29-risk-register.md`)
+  - Testing Strategy (`docs/plans/2026-01-29-testing-strategy.md`)
+  - Team Resource Plan (`docs/plans/2026-01-29-team-resource-plan.md`)
+  - Deployment Plan (`docs/plans/2026-01-29-deployment-rollout-plan.md`)
+- [ ] Phase 3: Detailed Plan Creation — Next
 - [ ] Phase 4-7: Execution phases
 
 ## Project Overview
