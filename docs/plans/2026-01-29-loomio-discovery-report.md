@@ -1,7 +1,10 @@
 # Loomio Codebase Discovery Report
 
 **Date:** 2026-01-29
-**Source:** github.com/loomio/loomio (shallow clone at `orig/loomio`)
+**Source:**
+- github.com/loomio/loomio (shallow clone at `orig/loomio`)
+- github.com/loomio/loomio_channel_server (shallow clone at `orig/loomio_channel_server`)
+
 **Purpose:** Phase 1 Discovery for Rails → Go rewrite planning
 
 ---
@@ -18,8 +21,11 @@ Loomio is a mature, actively-maintained Rails 8 application for collaborative de
 | Migrations | 941 | 10+ years of evolution |
 | Background workers | 38 | Job system needed |
 | API controllers | 30+ | Contract preservation critical |
+| Channel server | ~150 LOC Node.js | Real-time infrastructure |
 
 **Key Finding:** The frontend (Vue 3) is well-decoupled via API. The rewrite can preserve the frontend entirely if API contracts are maintained.
+
+**Architecture Note:** Loomio is a **two-service system**: the Rails app + a separate Node.js channel server for real-time features. Both must be understood for a complete migration.
 
 ---
 
@@ -155,26 +161,161 @@ end
 
 ---
 
-## 5. Real-Time Features
+## 5. Real-Time Features & Channel Server
 
-### Collaborative Editing
+Loomio's real-time features are provided by a **separate Node.js service**: `loomio_channel_server`. This is critical infrastructure that must be migrated or preserved.
 
-Uses **Hocuspocus** (Y.js protocol server) for real-time collaborative text editing:
+### Channel Server Architecture
 
 ```
-Frontend (TipTap + Yjs) ←→ Hocuspocus Server ←→ Rails (auth only)
+┌─────────────────────────────────────────────────────────────────────┐
+│                        loomio_channel_server                        │
+│                         (~150 lines Node.js)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────┐  │
+│  │  records.js │    │   bots.js   │    │    hocuspocus.mjs       │  │
+│  │  Socket.io  │    │ Matrix Bot  │    │  Collaborative Editing  │  │
+│  │  Port 5000  │    │             │    │   Port 5000/4444        │  │
+│  └──────┬──────┘    └──────┬──────┘    └───────────┬─────────────┘  │
+│         │                  │                       │                │
+│         └────────┬─────────┘                       │                │
+│                  │                                 │                │
+│           ┌──────▼──────┐                   ┌──────▼──────┐         │
+│           │    Redis    │                   │    Rails    │         │
+│           │  Pub/Sub    │                   │  /api/hocus │         │
+│           └──────┬──────┘                   │   pocus     │         │
+│                  │                          │  (auth only)│         │
+└──────────────────│──────────────────────────└─────────────┘─────────┘
+                   │
+            ┌──────▼──────┐
+            │  Rails App  │
+            │  (publishes │
+            │   events)   │
+            └─────────────┘
 ```
 
-- Tiptap editor with 25+ extensions
-- Y-IndexedDB for offline support
-- Socket.io client for connections
-- Rails provides authentication endpoint only
+### Component 1: Live Updates (records.js)
 
-**Migration Note:** The Hocuspocus server is likely a separate Node.js process. This architecture could be preserved or replaced with a Go WebSocket implementation.
+**Purpose:** Push real-time updates when content changes (new comments, votes, etc.)
 
-### Event Broadcasting
+**Technology:** Socket.io server listening on port 5000
 
-The `MessageChannel` concern suggests Socket.io or similar for real-time updates to discussions/polls.
+**Data Flow:**
+1. Rails app publishes to Redis channel `/records`
+2. Channel server receives via Redis subscription
+3. Server broadcasts to appropriate Socket.io rooms (`user-{id}`, `group-{id}`)
+
+```javascript
+// Key patterns from records.js
+await redisSub.subscribe('/records', (json, channel) => {
+  let data = JSON.parse(json)
+  io.to(data.room).emit('records', data)  // Broadcast to room
+})
+
+// User authentication via Redis lookup
+let user = await redis.get("/current_users/"+channel_token)
+socket.join("user-"+user.id)
+user.group_ids.forEach(groupId => { socket.join("group-"+groupId) })
+```
+
+**Go Migration Path:**
+- gorilla/websocket or nhooyr.io/websocket for WebSocket server
+- go-redis for pub/sub subscription
+- Room-based broadcasting is straightforward
+
+### Component 2: Matrix Bot Integration (bots.js)
+
+**Purpose:** Send notifications to Matrix chat rooms when events occur in Loomio
+
+**Technology:** matrix-bot-sdk + Redis pub/sub
+
+**Data Flow:**
+1. Rails publishes to Redis channel `chatbot/publish` or `chatbot/test`
+2. Bot receives message, sends to Matrix room via Matrix API
+
+```javascript
+// Key patterns from bots.js
+await subscriber.pSubscribe('chatbot/*', (json, channel) => {
+  if (channel == 'chatbot/publish') {
+    bots[key].resolveRoom(params.config.channel).then((roomId) => {
+      bots[key].sendHtmlText(roomId, params.payload.html);
+    })
+  }
+})
+```
+
+**Go Migration Path:**
+- mautrix/go (Matrix SDK for Go)
+- Simple Redis subscription pattern
+
+### Component 3: Collaborative Editing (hocuspocus.mjs)
+
+**Purpose:** Real-time collaborative text editing (Google Docs-style)
+
+**Technology:** Hocuspocus server (Y.js protocol) + SQLite for document storage
+
+**Data Flow:**
+1. Browser connects to Hocuspocus with auth token
+2. Hocuspocus calls Rails `/api/hocuspocus` to verify permission
+3. Y.js CRDT sync handles collaborative editing
+4. Documents stored in anonymous SQLite database
+
+```javascript
+// Key patterns from hocuspocus.mjs
+async onAuthenticate(data) {
+  const { token, documentName } = data;
+  const response = await fetch(authUrl, {
+    method: 'POST',
+    body: JSON.stringify({ user_secret: token, document_name: documentName }),
+  })
+  if (response.status != 200) throw new Error("Not authorized!");
+}
+```
+
+**Supported Document Types:** comment, discussion, poll, stance, outcome, pollTemplate, discussionTemplate, group, user
+
+**Go Migration Options:**
+1. **Keep Node.js:** Hocuspocus is mature, Y.js ecosystem is JavaScript-native
+2. **Go alternative:** y-crdt/y-rb has Rust bindings, could wrap for Go
+3. **Replace with custom:** Build simpler OT/CRDT system if full Y.js compatibility not needed
+
+### Redis Channels Summary
+
+| Channel | Direction | Purpose |
+|---------|-----------|---------|
+| `/records` | Rails → Channel Server | Content updates |
+| `/system_notice` | Rails → Channel Server | Global announcements |
+| `/current_users/{token}` | Rails → Redis (GET) | User session data |
+| `chatbot/publish` | Rails → Channel Server | Matrix notifications |
+| `chatbot/test` | Rails → Channel Server | Bot testing |
+
+### Frontend Integration
+
+The Vue frontend connects to the channel server:
+
+```javascript
+// From vue/package.json dependencies
+"socket.io-client": "^4.7.5",      // For records.js connection
+"@hocuspocus/provider": "^3.4.0",  // For hocuspocus.mjs connection
+"yjs": "^13.6.29",                 // CRDT library
+```
+
+### Migration Decision Required
+
+**Option A: Keep Channel Server as Node.js**
+- Pros: Minimal risk, Hocuspocus is mature, Y.js ecosystem is JS-native
+- Cons: Two languages in production, separate deployment
+
+**Option B: Rewrite in Go**
+- Pros: Single language, unified deployment
+- Cons: Y.js/CRDT implementation is complex, higher risk
+
+**Option C: Hybrid**
+- Rewrite records.js + bots.js in Go (simple, ~100 lines)
+- Keep hocuspocus.mjs as Node.js (complex, well-tested)
+
+**Recommendation:** Option C (Hybrid) balances risk and simplification
 
 ---
 
@@ -324,9 +465,10 @@ Based on this analysis:
 ### Recommended: Hybrid Approach
 
 1. **Preserve:** Vue frontend (entirely)
-2. **Preserve/Evaluate:** Hocuspocus real-time server (Node.js)
+2. **Preserve:** Hocuspocus collaborative editing (Node.js) — Y.js ecosystem is JS-native
 3. **Rewrite:** Rails backend → Go
-4. **Migrate:** PostgreSQL schema (with transformations)
+4. **Rewrite:** records.js + bots.js → Go (simple, ~100 lines each)
+5. **Migrate:** PostgreSQL schema (with transformations)
 
 ### Critical Success Factors
 
@@ -347,6 +489,8 @@ Based on this analysis:
 
 ## Appendix A: Key Files Reference
 
+### Rails App (loomio/)
+
 | Purpose | Path |
 |---------|------|
 | Routes | `config/routes.rb` |
@@ -354,9 +498,20 @@ Based on this analysis:
 | User model | `app/models/user.rb` |
 | Abilities | `app/models/ability/*.rb` |
 | API base | `app/controllers/api/v1/` |
+| Hocuspocus auth | `app/controllers/api/hocuspocus_controller.rb` |
 | Serializers | `app/serializers/` |
 | Workers | `app/workers/` |
 | Vue entry | `vue/src/main.js` |
+
+### Channel Server (loomio_channel_server/)
+
+| Purpose | Path |
+|---------|------|
+| Entry point | `index.js` |
+| Live updates (Socket.io) | `records.js` |
+| Matrix bot | `bots.js` |
+| Collaborative editing | `hocuspocus.mjs` |
+| Error handling | `bugs.js` |
 
 ## Appendix B: Gem → Go Mapping
 
@@ -370,6 +525,16 @@ Based on this analysis:
 | pg_search | PostgreSQL FTS | Native support |
 | active_model_serializers | Custom or go-json | Manual mapping likely |
 
+## Appendix C: Node.js → Go Mapping (Channel Server)
+
+| Node.js Package | Go Equivalent | Notes |
+|-----------------|---------------|-------|
+| socket.io | gorilla/websocket | Room broadcasting needs custom impl |
+| redis (node-redis) | go-redis/redis | Direct equivalent |
+| matrix-bot-sdk | mautrix/go | Matrix protocol SDK |
+| @hocuspocus/server | Keep as Node.js | Y.js ecosystem is JS-native |
+| @sentry/node | sentry-go | Direct equivalent |
+
 ---
 
-*Report generated from Loomio commit at 2026-01-29 (shallow clone)*
+*Report generated from Loomio + loomio_channel_server at 2026-01-29 (shallow clones)*
