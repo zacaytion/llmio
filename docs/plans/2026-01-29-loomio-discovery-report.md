@@ -4,6 +4,7 @@
 **Source:**
 - github.com/loomio/loomio (shallow clone at `orig/loomio`)
 - github.com/loomio/loomio_channel_server (shallow clone at `orig/loomio_channel_server`)
+- github.com/loomio/loomio-deploy (shallow clone at `orig/loomio-deploy`)
 
 **Purpose:** Phase 1 Discovery for Rails → Go rewrite planning
 
@@ -487,6 +488,132 @@ Based on this analysis:
 
 ---
 
+## 12. Deployment Architecture (loomio-deploy)
+
+Loomio uses a **single-host Docker Compose deployment** with 10 services. Understanding this is essential for planning the Go migration's deployment story.
+
+### Service Topology
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Host Server (1GB+ RAM)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Port 80/443          Port 25                                              │
+│       │                   │                                                 │
+│   ┌───▼───┐          ┌────▼────┐                                            │
+│   │ nginx │          │ haraka  │ ◄── Inbound email (reply-by-email)         │
+│   │ proxy │          │  SMTP   │                                            │
+│   └───┬───┘          └────┬────┘                                            │
+│       │                   │                                                 │
+│       ├───────────────────┼─────────────────────────────────┐               │
+│       │                   │                                 │               │
+│       ▼                   ▼                                 ▼               │
+│  ┌─────────┐        ┌──────────┐                    ┌─────────────┐         │
+│  │   app   │◄──────►│  worker  │                    │  channels   │         │
+│  │ Rails   │        │ Sidekiq  │                    │  Socket.io  │         │
+│  │ :3000   │        │          │                    │ :5000       │         │
+│  └────┬────┘        └────┬─────┘                    └──────┬──────┘         │
+│       │                  │                                 │               │
+│       │                  │           ┌─────────────┐       │               │
+│       │                  │           │ hocuspocus  │       │               │
+│       │                  │           │   Y.js      │       │               │
+│       │                  │           │ :5000/4444  │       │               │
+│       │                  │           └──────┬──────┘       │               │
+│       │                  │                  │              │               │
+│       ▼                  ▼                  ▼              ▼               │
+│   ┌───────┐         ┌────────┐         ┌────────┐                          │
+│   │  db   │         │ redis  │◄────────┤        │                          │
+│   │ PG 17 │         │  8.4   │         │ pub/sub│                          │
+│   └───────┘         └────────┘         └────────┘                          │
+│       │                                                                     │
+│   ┌───▼─────┐                                                               │
+│   │pgbackups│ ◄── Daily automated backups                                   │
+│   └─────────┘                                                               │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Services Summary
+
+| Service | Image | Purpose | Port |
+|---------|-------|---------|------|
+| nginx-proxy | nginxproxy/nginx-proxy | Reverse proxy + SSL termination | 80, 443 |
+| nginx-proxy-acme | nginxproxy/acme-companion | Let's Encrypt certificates | - |
+| app | loomio/loomio | Rails web server (Puma) | 3000 |
+| worker | loomio/loomio | Sidekiq background jobs | - |
+| db | postgres:17 | PostgreSQL database | - |
+| redis | redis:8.4 | Cache + pub/sub | 6379 |
+| haraka | loomio/haraka-rails-docker | Inbound email server | 25 |
+| channels | loomio/loomio_channel_server | Socket.io live updates | 5000 |
+| hocuspocus | loomio/loomio_channel_server | Y.js collaborative editing | 5000 |
+| pgbackups | prodrigestivill/postgres-backup-local | Daily database backups | - |
+
+### DNS Requirements
+
+```
+A     loomio.example.com          → server IP
+MX    loomio.example.com          → loomio.example.com (for reply-by-email)
+CNAME channels.loomio.example.com → loomio.example.com
+CNAME hocuspocus.loomio.example.com → loomio.example.com
+```
+
+### Configuration (env_template)
+
+The deployment is configured via ~230 lines of environment variables:
+
+| Category | Variables | Examples |
+|----------|-----------|----------|
+| **Core** | 8 | CANONICAL_HOST, PUBLIC_APP_URL, SITE_NAME |
+| **Database** | 3 | DATABASE_URL, POSTGRES_PASSWORD |
+| **Redis** | 1 | REDIS_URL |
+| **SMTP** | 7 | SMTP_SERVER, SMTP_PORT, SMTP_USERNAME |
+| **Storage** | 10 | ACTIVE_STORAGE_SERVICE, AWS_* or DO_* |
+| **Auth (SSO)** | 20+ | SAML_*, OAUTH_*, GOOGLE_*, FACEBOOK_* |
+| **Features** | 6 | FEATURES_DISABLE_*, ALLOW_ROBOTS |
+| **Theming** | 25+ | THEME_*, colors, logos |
+| **Security** | 4 | DEVISE_SECRET, SECRET_COOKIE_TOKEN |
+| **Integrations** | 5 | SENTRY_*, OPENAI_API_KEY, TRANSLATE_* |
+
+### Operational Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `create_env.sh` | Generate .env from template |
+| `create_swapfile.sh` | Create 4GB swap (for <2GB RAM servers) |
+| `create_backup.sh` | Manual backup (db + uploads + config) |
+| `update.sh` | Pull latest images, migrate, restart |
+
+### Deployment Constraints
+
+**Current Design Assumptions:**
+1. **Single host** — No horizontal scaling, all services on one server
+2. **1GB+ RAM** — Minimum requirement, swap recommended
+3. **Docker Compose** — Not Kubernetes or Swarm
+4. **Let's Encrypt** — Assumes direct internet access for ACME
+5. **Self-managed** — No managed database or Redis services
+
+**Go Migration Implications:**
+1. Could maintain same single-host simplicity
+2. Could add horizontal scaling capability
+3. Container images would change from `loomio/loomio` to new Go image
+4. Redis pub/sub pattern must be preserved for channel server
+5. Same PostgreSQL database can be retained
+
+### Persistence Volumes
+
+```yaml
+volumes:
+  ./uploads:/loomio/public/system    # User-uploaded files
+  ./storage:/loomio/storage          # ActiveStorage files
+  ./files:/loomio/public/files       # Static files
+  ./plugins:/loomio/plugins/docker   # Custom plugins
+  ./pgdata:/pgdata                   # PostgreSQL data
+  ./pgdumps:/pgdumps                 # Database backups
+```
+
+---
+
 ## Appendix A: Key Files Reference
 
 ### Rails App (loomio/)
@@ -513,6 +640,16 @@ Based on this analysis:
 | Collaborative editing | `hocuspocus.mjs` |
 | Error handling | `bugs.js` |
 
+### Deployment (loomio-deploy/)
+
+| Purpose | Path |
+|---------|------|
+| Service orchestration | `docker-compose.yml` |
+| Environment template | `env_template` |
+| Update script | `update.sh` |
+| Backup script | `create_backup.sh` |
+| Setup instructions | `README.md` |
+
 ## Appendix B: Gem → Go Mapping
 
 | Gem | Go Equivalent | Notes |
@@ -537,4 +674,4 @@ Based on this analysis:
 
 ---
 
-*Report generated from Loomio + loomio_channel_server at 2026-01-29 (shallow clones)*
+*Report generated from Loomio + loomio_channel_server + loomio-deploy at 2026-01-29 (shallow clones)*
