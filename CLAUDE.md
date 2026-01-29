@@ -23,6 +23,29 @@ llmio/
 └── GLOSSARY_AND_FAQ.md          # Terms, FAQs, Rails→Go comparisons
 ```
 
+## Source Analysis Setup
+
+The `orig/` directory (gitignored) contains shallow clones of Loomio repositories for analysis:
+
+```
+orig/
+├── loomio/                 # Main Rails app (github.com/loomio/loomio)
+├── loomio_channel_server/  # Real-time Node.js server (github.com/loomio/loomio_channel_server)
+└── loomio-deploy/          # Docker Compose deployment (github.com/loomio/loomio-deploy)
+```
+
+Clone commands (shallow to save space):
+- `git clone --depth 1 https://github.com/loomio/loomio.git orig/loomio`
+- `git clone --depth 1 https://github.com/loomio/loomio_channel_server.git orig/loomio_channel_server`
+- `git clone --depth 1 https://github.com/loomio/loomio-deploy.git orig/loomio-deploy`
+
+## Analysis Outputs
+
+Discovery reports and plans go in `docs/plans/` with date-prefixed filenames:
+- `docs/plans/YYYY-MM-DD-<topic>-design.md`
+
+Example: `docs/plans/2026-01-29-loomio-discovery-report.md`
+
 ## Document Hierarchy & Reading Order
 
 **For new readers:**
