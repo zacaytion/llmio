@@ -1,0 +1,9 @@
+[submodule "orig/loomio"]
+	path = orig/loomio
+	url = git@github.com:loomio/loomio.git
+[submodule "orig/loomio_channel_server"]
+	path = orig/loomio_channel_server
+	url = git@github.com:loomio/loomio_channel_server.git
+[submodule "orig/loomio-deploy"]
+	path = orig/loomio-deploy
+	url = git@github.com:loomio/loomio-deploy.git
