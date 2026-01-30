@@ -9,12 +9,15 @@ config_roots = [
 [tools]
 go = "latest"
 "pipx:git+https://github.com/oraios/serena.git" = "latest"
+"pipx:git+https://github.com/github/spec-kit.git" = "latest"
 pnpm = "latest"
 
 [env]
 _.file = { path = '.env.secrets', redact = true}
 ENABLE_TOOL_SEARCH = true
 MISE_EXPERIMENTAL = 1
+OPENSPEC_TELEMETRY = 0
+DO_NOT_TRACK = 1
 
 [settings]
 # This must be enabled to make the hooks work
