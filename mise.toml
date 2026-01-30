@@ -8,9 +8,10 @@ config_roots = [
 
 [tools]
 go = "latest"
-"pipx:git+https://github.com/oraios/serena.git" = "latest"
 "pipx:git+https://github.com/github/spec-kit.git" = "latest"
 pnpm = "latest"
+ruby = "3.4.7"
+"gem:ruby-lsp" = "latest"
 
 [env]
 _.file = { path = '.env.secrets', redact = true}
