@@ -1,0 +1,54 @@
+version: "2"
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - godot
+    - gosec
+    - canonicalheader
+    - copyloopvar
+    - usestdlibvars
+    - embeddedstructfieldcheck
+    - gocyclo
+    - nolintlint
+    - predeclared
+  settings:
+    embeddedstructfieldcheck:
+      forbid-mutex: true
+    gocyclo:
+      min-complexity: 20
+    godot:
+      exclude:
+        # Exclude todo and fixme comments.
+        - "^fixme:"
+        - "^todo:"
+  exclusions:
+    generated: lax
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      rewrite-rules:
+        - pattern: "interface{}"
+          replacement: "any"
+        - pattern: "a[b:len(a)]"
+          replacement: "a[b:]"
+    goimports:
+      local-prefixes:
+        - github.com/zacaytion/llmio
+output:
+  formats:
+    tab:
+      path: .var/log/golangci-lint.log
+      print-linter-name: true
+      colors: false
+run:
+  allow-parallel-runners: true
+  timeout: 2m
+severity:
+  default: "@linter"
