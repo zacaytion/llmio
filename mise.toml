@@ -9,6 +9,9 @@ config_roots = [
 [tools]
 go = "latest"
 "pipx:git+https://github.com/oraios/serena.git" = "latest"
+"npm:@commitlint/cli" = "latest"
+"npm:@commitlint/config-conventional" = "latest"
+pnpm = "latest"
 
 [env]
 _.file = { path = '.env.secrets', redact = true}
