@@ -1,0 +1,1547 @@
+openapi: 3.0.3
+info:
+  title: Loomio API
+  description: |
+    Loomio is a collaborative decision-making tool. This API specification covers
+    the primary internal API (v1) used by the Vue SPA frontend.
+
+    The API follows RESTful conventions with JSON request/response bodies.
+    All mutations go through service classes which handle authorization,
+    business logic, and event publishing.
+  version: 1.0.0
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+
+servers:
+  - url: /api/v1
+    description: Primary API (internal, used by Vue SPA)
+  - url: /api/b2
+    description: External Bot API v2
+  - url: /api/b3
+    description: External Bot API v3 (user management)
+
+tags:
+  - name: auth
+    description: Authentication and session management
+  - name: groups
+    description: Group/organization management
+  - name: memberships
+    description: Group membership management
+  - name: discussions
+    description: Discussion thread management
+  - name: comments
+    description: Comment management within discussions
+  - name: polls
+    description: Poll/voting management
+  - name: stances
+    description: Voting/stance management
+  - name: events
+    description: Activity event timeline
+  - name: documents
+    description: File/document management
+  - name: search
+    description: Full-text search
+  - name: templates
+    description: Discussion and poll templates
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: _loomio_session
+      description: Devise session cookie authentication
+    apiKey:
+      type: apiKey
+      in: query
+      name: api_key
+      description: User API key for bot/integration access (B2 API)
+    b3ApiKey:
+      type: apiKey
+      in: query
+      name: b3_api_key
+      description: Server-side API key for admin operations (B3 API)
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        username:
+          type: string
+        avatar_initials:
+          type: string
+        avatar_kind:
+          type: string
+          enum: [initials, uploaded, gravatar]
+        locale:
+          type: string
+        time_zone:
+          type: string
+        email_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        name:
+          type: string
+        handle:
+          type: string
+        description:
+          type: string
+        group_privacy:
+          type: string
+          enum: [open, closed, secret]
+        memberships_count:
+          type: integer
+        discussions_count:
+          type: integer
+        polls_count:
+          type: integer
+        parent_id:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Membership:
+      type: object
+      properties:
+        id:
+          type: integer
+        group_id:
+          type: integer
+        user_id:
+          type: integer
+        admin:
+          type: boolean
+        delegate:
+          type: boolean
+        volume:
+          type: string
+          enum: [mute, quiet, normal, loud]
+        accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Discussion:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        description_format:
+          type: string
+          enum: [html, md]
+        group_id:
+          type: integer
+          nullable: true
+        author_id:
+          type: integer
+        private:
+          type: boolean
+        pinned:
+          type: boolean
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_activity_at:
+          type: string
+          format: date-time
+        items_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        discussion_id:
+          type: integer
+        author_id:
+          type: integer
+        body:
+          type: string
+        body_format:
+          type: string
+          enum: [html, md]
+        parent_id:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Poll:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        title:
+          type: string
+        details:
+          type: string
+        poll_type:
+          type: string
+          enum: [proposal, count, check, question, poll, ranked_choice, score, meeting, dot_vote]
+        group_id:
+          type: integer
+          nullable: true
+        discussion_id:
+          type: integer
+          nullable: true
+        author_id:
+          type: integer
+        closing_at:
+          type: string
+          format: date-time
+          nullable: true
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        anonymous:
+          type: boolean
+        hide_results:
+          type: string
+          enum: [off, until_vote, until_closed]
+        voters_count:
+          type: integer
+        undecided_voters_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    PollOption:
+      type: object
+      properties:
+        id:
+          type: integer
+        poll_id:
+          type: integer
+        name:
+          type: string
+        meaning:
+          type: string
+        prompt:
+          type: string
+        icon:
+          type: string
+        priority:
+          type: integer
+
+    Stance:
+      type: object
+      properties:
+        id:
+          type: integer
+        poll_id:
+          type: integer
+        participant_id:
+          type: integer
+        reason:
+          type: string
+        option_scores:
+          type: object
+          additionalProperties:
+            type: number
+        cast_at:
+          type: string
+          format: date-time
+          nullable: true
+        latest:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+        kind:
+          type: string
+        discussion_id:
+          type: integer
+          nullable: true
+        eventable_type:
+          type: string
+        eventable_id:
+          type: integer
+        user_id:
+          type: integer
+        sequence_id:
+          type: integer
+        position:
+          type: integer
+        position_key:
+          type: string
+        depth:
+          type: integer
+        child_count:
+          type: integer
+        pinned:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        url:
+          type: string
+        icon:
+          type: string
+        color:
+          type: string
+        model_type:
+          type: string
+        model_id:
+          type: integer
+        group_id:
+          type: integer
+        author_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    SearchResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        searchable_type:
+          type: string
+          enum: [Discussion, Comment, Poll, Stance, Outcome]
+        searchable_id:
+          type: integer
+        discussion_title:
+          type: string
+        discussion_key:
+          type: string
+        poll_title:
+          type: string
+          nullable: true
+        poll_key:
+          type: string
+          nullable: true
+        highlight:
+          type: string
+        group_name:
+          type: string
+        group_key:
+          type: string
+        author_name:
+          type: string
+        authored_at:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+
+    DiscussionTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        group_id:
+          type: integer
+        author_id:
+          type: integer
+        process_name:
+          type: string
+        process_subtitle:
+          type: string
+        process_introduction:
+          type: string
+        title_placeholder:
+          type: string
+        description_format:
+          type: string
+        public:
+          type: boolean
+        position:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    PollTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        group_id:
+          type: integer
+        author_id:
+          type: integer
+        process_name:
+          type: string
+        process_subtitle:
+          type: string
+        poll_type:
+          type: string
+        poll_options_attributes:
+          type: array
+          items:
+            type: object
+        position:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Access denied
+    NotFound:
+      description: Resource not found
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+security:
+  - sessionCookie: []
+
+paths:
+  # ============ AUTH ============
+  /sessions:
+    post:
+      tags: [auth]
+      summary: Sign in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                    password:
+                      type: string
+                    code:
+                      type: integer
+                      description: 6-digit login code from email
+      responses:
+        '200':
+          description: Sign in successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_user_id:
+                    type: integer
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Membership'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Group'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags: [auth]
+      summary: Sign out
+      responses:
+        '200':
+          description: Sign out successful
+
+  /registrations:
+    post:
+      tags: [auth]
+      summary: Create user account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user]
+              properties:
+                user:
+                  type: object
+                  required: [name, email]
+                  properties:
+                    name:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    legal_accepted:
+                      type: boolean
+      responses:
+        '200':
+          description: Registration successful
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /login_tokens:
+    post:
+      tags: [auth]
+      summary: Request magic link login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Login token sent
+
+  /profile/me:
+    get:
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+  # ============ GROUPS ============
+  /groups:
+    get:
+      tags: [groups]
+      summary: List groups (explore)
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search query
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [memberships_count, created_at]
+      responses:
+        '200':
+          description: Group list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Group'
+    post:
+      tags: [groups]
+      summary: Create group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group:
+                  type: object
+                  required: [name]
+                  properties:
+                    name:
+                      type: string
+                    handle:
+                      type: string
+                    description:
+                      type: string
+                    group_privacy:
+                      type: string
+                      enum: [open, closed, secret]
+                    parent_id:
+                      type: integer
+      responses:
+        '200':
+          description: Group created
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /groups/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [groups]
+      summary: Get group
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Group'
+    patch:
+      tags: [groups]
+      summary: Update group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group:
+                  type: object
+      responses:
+        '200':
+          description: Group updated
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /groups/{id}/export:
+    post:
+      tags: [groups]
+      summary: Export group data (async JSON)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Export initiated (delivered via email)
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============ MEMBERSHIPS ============
+  /memberships:
+    get:
+      tags: [memberships]
+      summary: List memberships
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [admin, delegate, pending, accepted]
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search by name/email
+      responses:
+        '200':
+          description: Membership list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Membership'
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+  /memberships/join_group:
+    post:
+      tags: [memberships]
+      summary: Join open group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+      responses:
+        '200':
+          description: Joined group
+
+  /memberships/{id}/set_volume:
+    patch:
+      tags: [memberships]
+      summary: Set notification volume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                volume:
+                  type: string
+                  enum: [mute, quiet, normal, loud]
+      responses:
+        '200':
+          description: Volume updated
+
+  # ============ DISCUSSIONS ============
+  /discussions:
+    get:
+      tags: [discussions]
+      summary: List discussions
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: filter
+          in: query
+          schema:
+            type: string
+            enum: [open, closed, all]
+        - name: tags
+          in: query
+          schema:
+            type: string
+          description: Filter by tags
+      responses:
+        '200':
+          description: Discussion list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Discussion'
+    post:
+      tags: [discussions]
+      summary: Create discussion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion:
+                  type: object
+                  required: [title]
+                  properties:
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    description_format:
+                      type: string
+                      enum: [html, md]
+                    group_id:
+                      type: integer
+                    private:
+                      type: boolean
+                    recipient_user_ids:
+                      type: array
+                      items:
+                        type: integer
+                    recipient_emails:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '200':
+          description: Discussion created
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /discussions/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [discussions]
+      summary: Get discussion
+      responses:
+        '200':
+          description: Discussion details
+    patch:
+      tags: [discussions]
+      summary: Update discussion
+      responses:
+        '200':
+          description: Discussion updated
+
+  /discussions/{key}/mark_as_read:
+    patch:
+      tags: [discussions]
+      summary: Mark events as read
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ranges:
+                  type: string
+                  description: Range format "1-5,8-10"
+      responses:
+        '200':
+          description: Marked as read
+
+  /discussions/{key}/close:
+    post:
+      tags: [discussions]
+      summary: Close discussion
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Discussion closed
+
+  /discussions/dashboard:
+    get:
+      tags: [discussions]
+      summary: Get dashboard discussions
+      responses:
+        '200':
+          description: Dashboard discussions
+
+  /discussions/inbox:
+    get:
+      tags: [discussions]
+      summary: Get unread discussions
+      responses:
+        '200':
+          description: Inbox discussions
+
+  # ============ COMMENTS ============
+  /comments:
+    post:
+      tags: [comments]
+      summary: Create comment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: object
+                  required: [discussion_id, body]
+                  properties:
+                    discussion_id:
+                      type: integer
+                    body:
+                      type: string
+                    body_format:
+                      type: string
+                      enum: [html, md]
+                    parent_id:
+                      type: integer
+      responses:
+        '200':
+          description: Comment created
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /comments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    patch:
+      tags: [comments]
+      summary: Update comment
+      responses:
+        '200':
+          description: Comment updated
+    delete:
+      tags: [comments]
+      summary: Delete comment
+      responses:
+        '200':
+          description: Comment deleted
+
+  /comments/{id}/discard:
+    post:
+      tags: [comments]
+      summary: Soft-delete comment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment discarded
+
+  # ============ POLLS ============
+  /polls:
+    get:
+      tags: [polls]
+      summary: List polls
+      parameters:
+        - name: group_key
+          in: query
+          schema:
+            type: string
+        - name: discussion_key
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, closed, recent, vote]
+        - name: poll_type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Poll list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Poll'
+    post:
+      tags: [polls]
+      summary: Create poll
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll:
+                  type: object
+                  required: [title, poll_type]
+                  properties:
+                    title:
+                      type: string
+                    details:
+                      type: string
+                    poll_type:
+                      type: string
+                    group_id:
+                      type: integer
+                    discussion_id:
+                      type: integer
+                    closing_at:
+                      type: string
+                      format: date-time
+                    anonymous:
+                      type: boolean
+                    poll_options_attributes:
+                      type: array
+                      items:
+                        type: object
+      responses:
+        '200':
+          description: Poll created
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /polls/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [polls]
+      summary: Get poll
+      responses:
+        '200':
+          description: Poll details
+    patch:
+      tags: [polls]
+      summary: Update poll
+      responses:
+        '200':
+          description: Poll updated
+
+  /polls/{key}/close:
+    post:
+      tags: [polls]
+      summary: Close poll early
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Poll closed
+
+  /polls/{key}/reopen:
+    post:
+      tags: [polls]
+      summary: Reopen closed poll
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll:
+                  type: object
+                  properties:
+                    closing_at:
+                      type: string
+                      format: date-time
+      responses:
+        '200':
+          description: Poll reopened
+
+  /polls/{key}/remind:
+    post:
+      tags: [polls]
+      summary: Send reminder to voters
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient_user_ids:
+                  type: array
+                  items:
+                    type: integer
+                recipient_audience:
+                  type: string
+                  enum: [undecided, voters]
+      responses:
+        '200':
+          description: Reminders sent
+
+  # ============ STANCES ============
+  /stances:
+    get:
+      tags: [stances]
+      summary: List stances for poll
+      parameters:
+        - name: poll_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Stance list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stances:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Stance'
+    post:
+      tags: [stances]
+      summary: Cast vote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stance:
+                  type: object
+                  required: [poll_id]
+                  properties:
+                    poll_id:
+                      type: integer
+                    reason:
+                      type: string
+                    stance_choices_attributes:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          poll_option_id:
+                            type: integer
+                          score:
+                            type: integer
+      responses:
+        '200':
+          description: Vote cast
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /stances/{id}:
+    patch:
+      tags: [stances]
+      summary: Update vote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vote updated
+
+  /stances/{id}/uncast:
+    post:
+      tags: [stances]
+      summary: Remove vote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vote removed
+
+  # ============ EVENTS ============
+  /events:
+    get:
+      tags: [events]
+      summary: List events in discussion
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: from
+          in: query
+          schema:
+            type: integer
+          description: Starting sequence_id
+        - name: per
+          in: query
+          schema:
+            type: integer
+            default: 30
+        - name: pinned
+          in: query
+          schema:
+            type: boolean
+        - name: kind
+          in: query
+          schema:
+            type: string
+          description: Comma-separated event kinds
+      responses:
+        '200':
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Discussion'
+
+  /events/timeline:
+    get:
+      tags: [events]
+      summary: Get lightweight timeline data
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Timeline data
+
+  /events/{id}/pin:
+    patch:
+      tags: [events]
+      summary: Pin event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pinned_title:
+                  type: string
+      responses:
+        '200':
+          description: Event pinned
+
+  # ============ DOCUMENTS ============
+  /documents:
+    get:
+      tags: [documents]
+      summary: List documents
+      responses:
+        '200':
+          description: Document list
+    post:
+      tags: [documents]
+      summary: Create document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    url:
+                      type: string
+                    model_type:
+                      type: string
+                    model_id:
+                      type: integer
+      responses:
+        '200':
+          description: Document created
+
+  /documents/for_group:
+    get:
+      tags: [documents]
+      summary: List documents for group
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Group documents
+
+  /documents/for_discussion:
+    get:
+      tags: [documents]
+      summary: List documents for discussion
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion documents
+
+  # ============ SEARCH ============
+  /search:
+    get:
+      tags: [search]
+      summary: Search content
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: org_id
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [Discussion, Comment, Poll, Stance, Outcome]
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [authored_at_desc, authored_at_asc]
+        - name: tag
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  search_results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+
+  # ============ TEMPLATES ============
+  /discussion_templates:
+    get:
+      tags: [templates]
+      summary: List discussion templates
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template list
+    post:
+      tags: [templates]
+      summary: Create discussion template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion_template:
+                  type: object
+                  properties:
+                    process_name:
+                      type: string
+                    process_subtitle:
+                      type: string
+                    group_id:
+                      type: integer
+      responses:
+        '200':
+          description: Template created
+
+  /discussion_templates/browse:
+    get:
+      tags: [templates]
+      summary: Browse public templates
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public templates
+
+  /poll_templates:
+    get:
+      tags: [templates]
+      summary: List poll templates
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template list
+    post:
+      tags: [templates]
+      summary: Create poll template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll_template:
+                  type: object
+                  properties:
+                    process_name:
+                      type: string
+                    poll_type:
+                      type: string
+                    group_id:
+                      type: integer
+      responses:
+        '200':
+          description: Template created
+
+  /poll_templates/positions:
+    post:
+      tags: [templates]
+      summary: Update template ordering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                ids:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+      responses:
+        '200':
+          description: Positions updated
