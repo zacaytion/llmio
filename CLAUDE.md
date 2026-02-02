@@ -74,9 +74,14 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### PostgreSQL Access
 
-- Use `psql-18` (not `psql`) with `-h localhost -U z` and `PGPASSWORD=password`
-- Example: `PGPASSWORD=password psql-18 -h localhost -U z -d loomio_development -c "SELECT 1;"`
-- Server env vars: `DB_USER=z DB_PASSWORD=password DB_HOST=localhost`
+**Via container (recommended):**
+- Use `psql-18` (not `psql`) with `-h localhost -U postgres` and `PGPASSWORD=postgres`
+- Example: `PGPASSWORD=postgres psql-18 -h localhost -U postgres -d loomio_development -c "SELECT 1;"`
+- Credentials match `.env.example` defaults: `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=postgres`
+
+**Go app connection:**
+- Uses `LOOMIO_DATABASE_*` env vars (Viper prefix), not `POSTGRES_*`
+- Example: `LOOMIO_DATABASE_USER=postgres LOOMIO_DATABASE_PASSWORD=postgres make server`
 
 ### Version Management (mise)
 

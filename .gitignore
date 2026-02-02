@@ -44,6 +44,9 @@ vendor/
 bin/*
 !bin/.gitkeep
 
+# Local artifacts (coverage, logs)
+.var/
+
 # IDE
 .idea/
 *.iml
