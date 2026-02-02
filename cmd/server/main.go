@@ -79,7 +79,9 @@ func main() {
 	rootCmd.Flags().String("log-format", "json", "log format (json, text)")
 	rootCmd.Flags().String("log-output", "stdout", "log output (stdout, stderr, or file path)")
 
-	// Bind flags to viper for priority override
+	// Bind flags to viper for priority override.
+	// Note: We use fmt.Fprintln to stderr for errors here because logging
+	// isn't configured yet - config must be loaded first to know log settings.
 	if err := bindFlags(rootCmd); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

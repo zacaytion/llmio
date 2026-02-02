@@ -41,6 +41,9 @@ type DatabaseConfig struct {
 }
 
 // SSLMode represents valid PostgreSQL SSL modes.
+// Note: This type is defined for documentation and type-safe usage in code,
+// but DatabaseConfig uses string for SSLMode to simplify Viper unmarshaling.
+// Validation is handled by the "sslmode" custom validator in internal/validation.
 type SSLMode string
 
 // Valid SSL modes for PostgreSQL connections.
@@ -69,8 +72,8 @@ func (m SSLMode) String() string {
 }
 
 // DSN returns the PostgreSQL connection string.
-// Passwords are single-quoted and escaped to handle special characters
-// (spaces, single quotes, backslashes, equals signs).
+// Passwords are single-quoted to handle special characters (spaces, equals signs).
+// Backslashes and single quotes within the password are escaped.
 func (c DatabaseConfig) DSN() string {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Name, c.SSLMode)
@@ -105,6 +108,9 @@ type SessionConfig struct {
 }
 
 // LogLevel represents valid log levels.
+// Note: This type is defined for documentation and type-safe usage in code,
+// but LoggingConfig uses string for Level to simplify Viper unmarshaling.
+// Validation is handled by the "loglevel" custom validator in internal/validation.
 type LogLevel string
 
 // Valid log levels.
@@ -131,6 +137,9 @@ func (l LogLevel) String() string {
 }
 
 // LogFormat represents valid log formats.
+// Note: This type is defined for documentation and type-safe usage in code,
+// but LoggingConfig uses string for Format to simplify Viper unmarshaling.
+// Validation is handled by the "logformat" custom validator in internal/validation.
 type LogFormat string
 
 // Valid log formats.
@@ -180,7 +189,6 @@ func Load(configPath string) (*Config, error) {
 // This allows CLI flags to be bound to Viper before loading.
 // Priority: explicitly set values > env vars > config file > defaults.
 func LoadWithViper(v *viper.Viper, configPath string) (*Config, error) {
-	// Config file settings
 	if configPath != "" {
 		v.SetConfigFile(configPath)
 	} else {
@@ -199,12 +207,10 @@ func LoadWithViper(v *viper.Viper, configPath string) (*Config, error) {
 		}
 	}
 
-	// Environment variable binding
 	v.SetEnvPrefix("LOOMIO")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	// Unmarshal into struct
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)

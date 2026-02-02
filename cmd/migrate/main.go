@@ -134,7 +134,10 @@ func createCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("cannot locate migrations: %w", err)
 			}
-			return goose.Create(nil, migrationsDir, args[0], "sql")
+			if err := goose.Create(nil, migrationsDir, args[0], "sql"); err != nil {
+				return fmt.Errorf("failed to create migration: %w", err)
+			}
+			return nil
 		},
 	}
 }
@@ -202,12 +205,6 @@ func findMigrationsDir() (string, error) {
 
 	return "", fmt.Errorf("migrations directory not found (tried: %v)", candidates)
 }
-
-// These functions wrap os package functions to enable testing.
-var (
-	getwd = os.Getwd
-	chdir = os.Chdir
-)
 
 func bindFlags(cmd *cobra.Command) error {
 	// flagBinder collects BindPFlag errors to catch flag name typos at startup

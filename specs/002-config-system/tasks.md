@@ -721,3 +721,203 @@ func New() *validator.Validate {
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 - Phase 9 tasks (T055-T069) are code review fixes - minor improvements (Phase 9.2) can be deferred to follow-up PR
+- Phase 13 tasks (T130-T149) are comprehensive PR review findings from multi-agent analysis
+
+---
+
+## Phase 13: Comprehensive PR Review Findings
+
+**Input**: Multi-agent PR review (code-reviewer, pr-test-analyzer, silent-failure-hunter, comment-analyzer, type-design-analyzer)
+
+**Purpose**: Address critical, important, and suggested issues from comprehensive PR review before merge
+
+### Phase 13.1: Critical Fixes (Must Fix Before Merge)
+
+#### Issue 1: Validator Registration Errors Silently Discarded
+
+**Problem**: `registerCustomValidators()` uses blank identifier `_` to discard errors from `RegisterValidation()`. If registration fails, subsequent validations fail with cryptic "unknown validator" errors.
+
+**File**: `internal/validation/validator.go:36-38`
+
+**Agent**: silent-failure-hunter
+
+- [x] T130 Write test for validator registration failure handling in `internal/validation/validator_test.go`
+- [x] T131 Change `registerCustomValidators()` to panic on registration failure (startup-time safety) in `internal/validation/validator.go`
+
+**Checkpoint**: Critical validator registration issue resolved
+
+---
+
+### Phase 13.2: Important Fixes (Should Fix Before Merge)
+
+#### Issue 2: Enum Types Defined But Not Used in Config Structs
+
+**Problem**: `SSLMode`, `LogLevel`, `LogFormat` types defined with `Valid()` methods but config structs use plain `string`. Creates duplicate validation logic (in type methods AND in validator.go) and no compile-time type safety.
+
+**File**: `internal/config/config.go:35,45,47`
+
+**Agent**: type-design-analyzer
+
+- [x] T132 [P] Evaluate trade-off: Use enum types in structs vs keep string with custom validators (document decision)
+- [x] T133 If using enum types: Update `DatabaseConfig.SSLMode` from `string` to `SSLMode` type (N/A - keeping strings)
+- [x] T134 If using enum types: Update `LoggingConfig.Level` from `string` to `LogLevel` type (N/A - keeping strings)
+- [x] T135 If using enum types: Update `LoggingConfig.Format` from `string` to `LogFormat` type (N/A - keeping strings)
+- [x] T136 Consolidate validation: Have custom validators call `Type.Valid()` instead of duplicating switch statements (N/A - import cycle)
+
+#### Issue 3: Missing Integration Test for Database Pool
+
+**Problem**: `TestNewPoolFromConfig` only tests DSN construction, not actual database connection behavior or error handling.
+
+**File**: `internal/db/pool_test.go`
+
+**Agent**: pr-test-analyzer
+
+- [x] T137 [P] Write integration test `TestNewPoolFromConfig_ConnectionError` for invalid host in `internal/db/pool_test.go`
+
+#### Issue 4: Missing Test for Viper Unmarshal Error Path
+
+**Problem**: `v.Unmarshal(&cfg)` error path at line 209 not tested. Type coercion failures (e.g., `port: "not_a_number"`) would hit this path.
+
+**File**: `internal/config/config.go:209`
+
+**Agent**: pr-test-analyzer
+
+- [x] T138 [P] Write test `TestLoad_UnmarshalError` for invalid type in YAML in `internal/config/config_test.go`
+
+#### Issue 5: Inaccurate DSN Comment
+
+**Problem**: Comment claims escaping "spaces, single quotes, backslashes, equals signs" but code only escapes backslashes and quotes; spaces and equals are handled by quoting, not escaping.
+
+**File**: `internal/config/config.go:72-73`
+
+**Agent**: comment-analyzer
+
+- [x] T139 [P] Fix comment to accurately describe DSN password handling in `internal/config/config.go`
+
+#### Issue 6: Inaccurate parseLevel/createHandler Comments
+
+**Problem**: Comments say "Invalid levels default to info with a warning logged" but empty string silently defaults without warning.
+
+**File**: `internal/logging/logging.go:86-87,179-180`
+
+**Agent**: comment-analyzer
+
+- [x] T140 [P] Fix parseLevel comment to clarify empty vs invalid string behavior in `internal/logging/logging.go`
+- [x] T141 [P] Fix createHandler comment to clarify empty vs invalid string behavior in `internal/logging/logging.go`
+
+**Checkpoint**: Important issues resolved
+
+---
+
+### Phase 13.3: Suggestions (Required)
+
+#### Suggestion 1: Add Deprecation Notice to Legacy Setup()
+
+**Problem**: Legacy `Setup()` silently falls back to stdout when file can't be opened. New `SetupWithCleanup()` exists but maintaining both patterns creates confusion.
+
+**File**: `internal/logging/logging.go:41-71`
+
+**Agent**: silent-failure-hunter
+
+- [x] T142 [P] Add deprecation comment to `Setup()` recommending `SetupWithCleanup()` in `internal/logging/logging.go`
+
+#### Suggestion 2: Document Pre-Config Error Handling
+
+**Problem**: `fmt.Fprintln(os.Stderr, err)` used instead of slog in startup error paths because logging isn't configured yet. Not obvious why.
+
+**File**: `cmd/server/main.go:83-91`
+
+**Agent**: silent-failure-hunter
+
+- [x] T143 [P] Add comment explaining why slog isn't used for pre-config errors in `cmd/server/main.go`
+
+#### Suggestion 3: Wrap goose.Create Error for Consistency
+
+**Problem**: `goose.Create` error returned directly while other goose operations wrap with `fmt.Errorf("migration failed: %w", err)`.
+
+**File**: `cmd/migrate/main.go:137`
+
+**Agent**: silent-failure-hunter
+
+- [x] T144 [P] Wrap `goose.Create` error for consistency in `cmd/migrate/main.go`
+
+#### Suggestion 4: Missing Tests for SetupDefault Functions
+
+**Problem**: `SetupDefault()` and `SetupDefaultWithCleanup()` have 0% test coverage.
+
+**File**: `internal/logging/logging.go:68-85`
+
+**Agent**: pr-test-analyzer
+
+- [x] T145 [P] Write test `TestSetupDefault_SetsGlobalLogger` in `internal/logging/logging_test.go`
+- [x] T146 [P] Write test `TestSetupDefaultWithCleanup_ReturnsCleanupFunc` in `internal/logging/logging_test.go`
+
+#### Suggestion 5: Missing Test for stderr Output Path
+
+**Problem**: The `"stderr"` case in `getWriterWithCleanup` is not tested, only stdout and file paths.
+
+**File**: `internal/logging/logging.go`
+
+**Agent**: pr-test-analyzer
+
+- [x] T147 [P] Write test `TestSetup_StderrOutput` in `internal/logging/logging_test.go`
+
+#### Suggestion 6: Remove "What" Comments
+
+**Problem**: Comments like `// Config file settings` and `// Unmarshal into struct` restate obvious code.
+
+**File**: `internal/config/config.go:183,207`
+
+**Agent**: comment-analyzer
+
+- [x] T148 [P] Remove redundant "what" comments in `internal/config/config.go`
+
+#### Suggestion 7: Remove Dead Variables
+
+**Problem**: `getwd` and `chdir` variables declared with comment about testing but never used.
+
+**File**: `cmd/migrate/main.go:206-209`
+
+**Agent**: comment-analyzer
+
+- [x] T149 [P] Remove unused `getwd` and `chdir` variables or implement test usage in `cmd/migrate/main.go`
+
+**Checkpoint**: Suggestions addressed
+
+---
+
+### Phase 13.4: Verification
+
+- [x] T150 Run full test suite: `go test ./... -v`
+- [x] T151 Run linter: `golangci-lint run ./...`
+- [x] T152 Verify server starts with defaults: `go run ./cmd/server`
+- [x] T153 Commit fixes with message: `fix(config): address comprehensive PR review findings`
+
+**Checkpoint**: All Phase 13 fixes complete
+
+---
+
+### Phase 13 Dependencies
+
+- **Phase 13.1 (Critical)**: No dependencies - must complete before merge
+- **Phase 13.2 (Important)**: Can run in parallel with 13.1 (different files)
+- **Phase 13.3 (Suggestions)**: Required - complete before merge
+- **Phase 13.4 (Verification)**: Depends on 13.1 completion at minimum
+
+### Phase 13 Parallel Opportunities
+
+- T130, T132, T137, T138, T139, T140, T141, T142, T143, T144, T145, T146, T147, T148, T149 can run in parallel (different files)
+- T131 depends on T130 (test first)
+- T133, T134, T135 depend on T132 decision
+- T136 depends on T133-T135 if using enum types
+
+### Phase 13 Implementation Strategy
+
+**Recommended Order**:
+
+1. **Critical (must fix)**: T130-T131 - Fix validator registration error handling
+2. **Important (should fix)**: T132-T141 - Enum types, tests, and comment fixes
+3. **Required suggestions**: T142-T149 - Documentation, test coverage, cleanup
+4. **Verify**: T150-T153 - Run tests and commit
+
+**All tasks T130-T153 are required before merge.**

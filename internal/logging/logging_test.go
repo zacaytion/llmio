@@ -322,6 +322,86 @@ func TestCreateHandler_InvalidFormat_DefaultsToJSON(t *testing.T) {
 	}
 }
 
+// T145: Test SetupDefault sets the global logger.
+func TestSetupDefault_SetsGlobalLogger(t *testing.T) {
+	// Save the current default logger to restore later
+	originalLogger := slog.Default()
+	defer slog.SetDefault(originalLogger)
+
+	cfg := config.LoggingConfig{
+		Level:  "debug",
+		Format: "json",
+		Output: "stdout",
+	}
+
+	SetupDefault(cfg)
+
+	// Verify the default logger was changed
+	newLogger := slog.Default()
+	if newLogger == originalLogger {
+		t.Error("SetupDefault should have changed the default logger")
+	}
+}
+
+// T146: Test SetupDefaultWithCleanup returns cleanup function.
+func TestSetupDefaultWithCleanup_ReturnsCleanupFunc(t *testing.T) {
+	// Save the current default logger to restore later
+	originalLogger := slog.Default()
+	defer slog.SetDefault(originalLogger)
+
+	cfg := config.LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: "stdout",
+	}
+
+	cleanup, err := SetupDefaultWithCleanup(cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify cleanup function is returned (should be no-op for stdout)
+	if cleanup == nil {
+		t.Fatal("cleanup function should not be nil")
+	}
+
+	// Verify calling cleanup doesn't error
+	if err := cleanup(); err != nil {
+		t.Errorf("cleanup should not error for stdout: %v", err)
+	}
+
+	// Verify the default logger was changed
+	if slog.Default() == originalLogger {
+		t.Error("SetupDefaultWithCleanup should have changed the default logger")
+	}
+}
+
+// T147: Test stderr output path.
+func TestSetup_StderrOutput(t *testing.T) {
+	cfg := config.LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: "stderr",
+	}
+
+	// Use a buffer to capture output (simulating stderr)
+	var buf bytes.Buffer
+	logger := Setup(cfg, &buf)
+
+	logger.Info("stderr test message")
+
+	// Verify output was captured
+	if buf.Len() == 0 {
+		t.Error("expected log output to stderr, got nothing")
+	}
+
+	// Verify it's valid JSON
+	var logEntry map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
+		t.Errorf("expected valid JSON, got: %s, error: %v", buf.String(), err)
+	}
+}
+
 // T098: Test verifying file handle is actually closed after cleanup.
 func TestSetupWithCleanup_FileHandleClosedAfterCleanup(t *testing.T) {
 	tmpFile := t.TempDir() + "/test_close_verify.log"

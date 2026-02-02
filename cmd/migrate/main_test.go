@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -46,7 +47,7 @@ func TestFindMigrationsDir_Found(t *testing.T) {
 // Helper functions.
 func mustGetwd(t *testing.T) string {
 	t.Helper()
-	wd, err := getwd()
+	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get working directory: %v", err)
 	}
@@ -55,7 +56,7 @@ func mustGetwd(t *testing.T) string {
 
 func mustChdir(t *testing.T, dir string) {
 	t.Helper()
-	if err := chdir(dir); err != nil {
+	if err := os.Chdir(dir); err != nil {
 		t.Fatalf("failed to change directory to %s: %v", dir, err)
 	}
 }

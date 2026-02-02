@@ -35,6 +35,10 @@ type CloseFunc func() error
 // The fallbackWriter is used when the configured output cannot be opened.
 // Returns the configured logger (does not set as default - caller should do that).
 //
+// Deprecated: Use SetupWithCleanup instead, which returns an error on file open
+// failure rather than silently falling back to stdout. Setup remains for backward
+// compatibility but new code should prefer SetupWithCleanup for explicit error handling.
+//
 // Note: When logging to a file, the file handle is not explicitly closed.
 // For applications that need to close the file handle, use SetupWithCleanup instead.
 // This function falls back to stdout on file open errors (use SetupWithCleanup for strict mode).
@@ -83,7 +87,8 @@ func SetupDefaultWithCleanup(cfg config.LoggingConfig) (CloseFunc, error) {
 }
 
 // parseLevel converts a string level to slog.Level.
-// Invalid levels default to info with a warning logged.
+// Empty string silently defaults to info. Non-empty invalid levels
+// default to info with a warning logged.
 func parseLevel(level string) slog.Level {
 	switch strings.ToLower(level) {
 	case "debug":
@@ -177,7 +182,8 @@ func getWriterWithCleanupStrict(output string, overrideWriter io.Writer) (io.Wri
 }
 
 // createHandler creates the appropriate slog.Handler based on format.
-// Invalid formats default to JSON with a warning logged.
+// Empty string silently defaults to JSON. Non-empty invalid formats
+// default to JSON with a warning logged.
 func createHandler(format string, writer io.Writer, level slog.Level) slog.Handler {
 	opts := &slog.HandlerOptions{
 		Level: level,

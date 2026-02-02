@@ -832,6 +832,41 @@ server:
 	}
 }
 
+// T138: Test that type coercion failures in YAML cause unmarshal errors.
+// For example, setting port to a non-numeric string should fail.
+func TestLoad_UnmarshalError(t *testing.T) {
+	// Create a temporary file with type mismatch (string for integer field)
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/type_error.yaml"
+
+	// Duration fields expect duration strings, but we'll provide invalid format
+	invalidYAML := `
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  name: testdb
+  sslmode: disable
+  max_conn_lifetime: "not_a_duration"  # Invalid duration format
+server:
+  port: 8080
+`
+	if err := os.WriteFile(configPath, []byte(invalidYAML), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	_, err := Load(configPath)
+	if err == nil {
+		t.Fatal("expected error for invalid duration format, got nil")
+	}
+
+	// Error should indicate unmarshal/decode issue
+	errStr := strings.ToLower(err.Error())
+	if !strings.Contains(errStr, "unmarshal") && !strings.Contains(errStr, "cannot parse") && !strings.Contains(errStr, "decode") {
+		t.Errorf("error should indicate unmarshal issue, got: %s", err)
+	}
+}
+
 // T064: Test for DSN with special characters in password.
 func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
 	tests := []struct {

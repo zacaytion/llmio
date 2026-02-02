@@ -128,3 +128,76 @@ func TestValidateLogFormat(t *testing.T) {
 		})
 	}
 }
+
+// T130: Test that custom validators are registered successfully.
+// This test verifies that all custom validators (sslmode, loglevel, logformat)
+// are properly registered and can be used in validation.
+func TestCustomValidatorsRegistered(t *testing.T) {
+	// Get the validator instance - this triggers registration
+	v := Get()
+	if v == nil {
+		t.Fatal("Get() returned nil validator")
+	}
+
+	// Test that all custom validators work by validating structs that use them
+	type allCustomValidators struct {
+		SSLMode   string `validate:"required,sslmode"`
+		LogLevel  string `validate:"required,loglevel"`
+		LogFormat string `validate:"required,logformat"`
+	}
+
+	valid := allCustomValidators{
+		SSLMode:   "disable",
+		LogLevel:  "info",
+		LogFormat: "json",
+	}
+
+	if err := Validate(valid); err != nil {
+		t.Errorf("validation should pass for valid struct with all custom validators, got: %v", err)
+	}
+
+	// Test each validator individually to ensure they're registered
+	tests := []struct {
+		name      string
+		validator string
+		value     string
+		valid     bool
+	}{
+		{"sslmode valid", "sslmode", "disable", true},
+		{"sslmode invalid", "sslmode", "invalid", false},
+		{"loglevel valid", "loglevel", "debug", true},
+		{"loglevel invalid", "loglevel", "invalid", false},
+		{"logformat valid", "logformat", "json", true},
+		{"logformat invalid", "logformat", "invalid", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a struct dynamically based on validator type
+			var err error
+			switch tt.validator {
+			case "sslmode":
+				type s struct {
+					V string `validate:"sslmode"`
+				}
+				err = Validate(s{V: tt.value})
+			case "loglevel":
+				type s struct {
+					V string `validate:"loglevel"`
+				}
+				err = Validate(s{V: tt.value})
+			case "logformat":
+				type s struct {
+					V string `validate:"logformat"`
+				}
+				err = Validate(s{V: tt.value})
+			}
+
+			hasErr := err != nil
+			if hasErr == tt.valid {
+				t.Errorf("validator %q with value %q: expected valid=%v, got error=%v",
+					tt.validator, tt.value, tt.valid, err)
+			}
+		})
+	}
+}

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -61,4 +62,30 @@ func TestNewPoolFromConfig_FunctionExists(t *testing.T) {
 	// This is a compile-time check. If NewPoolFromConfig doesn't exist,
 	// the test file won't compile.
 	var _ = NewPoolFromConfig // Reference the function to ensure it exists
+}
+
+// T137: Test that NewPoolFromConfig returns error for invalid connection.
+// This is an integration test that verifies error handling for unreachable hosts.
+func TestNewPoolFromConfig_ConnectionError(t *testing.T) {
+	cfg := config.DatabaseConfig{
+		Host:              "nonexistent.invalid.host.example.com",
+		Port:              5432,
+		User:              "testuser",
+		Password:          "testpass",
+		Name:              "testdb",
+		SSLMode:           "disable",
+		MaxConns:          10,
+		MinConns:          1,
+		MaxConnLifetime:   time.Hour,
+		MaxConnIdleTime:   15 * time.Minute,
+		HealthCheckPeriod: 30 * time.Second,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := NewPoolFromConfig(ctx, cfg)
+	if err == nil {
+		t.Error("expected error when connecting to invalid host, got nil")
+	}
 }
