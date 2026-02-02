@@ -7,7 +7,10 @@
 
 ##@ Containers
 
-up: ## Start all services
+.env:
+	@echo "Error: .env file not found. Run: cp .env.example .env" && exit 1
+
+up: .env ## Start all services
 	podman compose up -d
 
 down: ## Stop all services
@@ -115,7 +118,7 @@ clean-go-all: ## Clean all Go caches
 	go clean -cache -testcache -fuzzcache
 
 clean: down ## Clean everything (volumes, caches, binaries, artifacts)
-	@echo "Removing Docker volumes..."
+	@echo "Removing Podman volumes..."
 	podman volume rm llmio_postgres_data llmio_pgadmin_data 2>/dev/null || true
 	@echo "Removing binaries..."
 	rm -rf bin/server bin/migrate
