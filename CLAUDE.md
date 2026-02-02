@@ -237,5 +237,30 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - Go 1.25+ + Viper (config), Cobra (CLI), log/slog (stdlib logging) (002-config-system)
 - PostgreSQL 18 (existing), YAML config files (new) (002-config-system)
 
+## Validation Patterns
+
+**Use `go-playground/validator/v10`** for all struct validation (config, API requests, domain entities).
+
+```go
+// Add validate tags to structs
+type Config struct {
+    Port int `validate:"required,min=1,max=65535"`
+    Host string `validate:"required"`
+}
+
+// Use internal/validation package for shared validator instance
+import "github.com/zacaytion/llmio/internal/validation"
+
+func Load() (*Config, error) {
+    cfg := &Config{...}
+    if err := validation.Validate(cfg); err != nil {
+        return nil, fmt.Errorf("config validation failed: %w", err)
+    }
+    return cfg, nil
+}
+```
+
+**Custom validators** for domain-specific rules (e.g., `sslmode`, `loglevel`) are registered in `internal/validation/validator.go`.
+
 ## Recent Changes
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2

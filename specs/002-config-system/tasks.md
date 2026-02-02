@@ -570,6 +570,97 @@ With multiple developers:
 
 ---
 
+## Phase 12: Migrate to go-playground/validator
+
+**Input**: Existing manual validation in `internal/config/config.go`
+
+**Purpose**: Replace hand-rolled validation with the industry-standard `go-playground/validator` package for consistent, declarative validation across the codebase.
+
+**Why go-playground/validator**:
+- Declarative struct tags (e.g., `validate:"required,min=1,max=65535"`)
+- Extensive built-in validators (email, URL, UUID, IP, etc.)
+- Custom validator registration for domain-specific rules
+- Clear, consistent error messages
+- Well-tested and widely adopted in Go projects
+- Will be reused for API request validation, form validation, etc.
+
+### Phase 12.1: Setup & Infrastructure
+
+- [ ] T114 Add validator dependency: `go get github.com/go-playground/validator/v10`
+- [ ] T115 Create `internal/validation/validator.go` with singleton validator instance and custom validators
+- [ ] T116 Register custom validators for `sslmode`, `loglevel`, `logformat` enum types
+- [ ] T117 Write tests for custom validators in `internal/validation/validator_test.go`
+
+### Phase 12.2: Migrate Config Validation
+
+- [ ] T118 Add `validate` struct tags to `DatabaseConfig` fields in `internal/config/config.go`
+- [ ] T119 Add `validate` struct tags to `ServerConfig` fields in `internal/config/config.go`
+- [ ] T120 Add `validate` struct tags to `SessionConfig` fields in `internal/config/config.go`
+- [ ] T121 Add `validate` struct tags to `LoggingConfig` fields in `internal/config/config.go`
+- [ ] T122 Replace manual `Validate()` methods with calls to validator in `internal/config/config.go`
+- [ ] T123 Update tests to verify new validation behavior in `internal/config/config_test.go`
+
+### Phase 12.3: Documentation & Standards
+
+- [ ] T124 Add validation patterns to CLAUDE.md for future reference
+- [ ] T125 Document custom validator registration pattern for future domain validators
+
+### Phase 12.4: Verification
+
+- [ ] T126 Run full test suite: `go test ./... -v`
+- [ ] T127 Run linter: `golangci-lint run ./...`
+- [ ] T128 Verify server starts with defaults and invalid configs are rejected
+- [ ] T129 Commit changes with message: `refactor(config): migrate validation to go-playground/validator`
+
+**Checkpoint**: Config validation uses go-playground/validator; pattern established for future use
+
+---
+
+### Phase 12 Dependencies
+
+- **Phase 12.1 (Setup)**: No dependencies - can start immediately
+- **Phase 12.2 (Migration)**: Depends on Phase 12.1 completion
+- **Phase 12.3 (Documentation)**: Can run in parallel with Phase 12.2
+- **Phase 12.4 (Verification)**: Depends on Phase 12.2 completion
+
+### Phase 12 Design Notes
+
+**Struct Tag Examples**:
+```go
+type DatabaseConfig struct {
+    Host              string        `mapstructure:"host" validate:"required"`
+    Port              int           `mapstructure:"port" validate:"required,min=1,max=65535"`
+    User              string        `mapstructure:"user" validate:"required"`
+    Password          string        `mapstructure:"password"` // optional
+    Name              string        `mapstructure:"name" validate:"required"`
+    SSLMode           string        `mapstructure:"sslmode" validate:"required,sslmode"`
+    MaxConns          int32         `mapstructure:"max_conns" validate:"required,min=1"`
+    MinConns          int32         `mapstructure:"min_conns" validate:"min=0,ltefield=MaxConns"`
+    MaxConnLifetime   time.Duration `mapstructure:"max_conn_lifetime" validate:"required,gt=0"`
+    // ...
+}
+```
+
+**Custom Validator Registration**:
+```go
+// internal/validation/validator.go
+func New() *validator.Validate {
+    v := validator.New()
+    v.RegisterValidation("sslmode", validateSSLMode)
+    v.RegisterValidation("loglevel", validateLogLevel)
+    v.RegisterValidation("logformat", validateLogFormat)
+    return v
+}
+```
+
+**Reuse in Future Features**:
+- API request body validation (Huma integration)
+- Form input validation
+- Domain entity validation
+- Any struct that needs validation before processing
+
+---
+
 ### Phase 11.5: Verification
 
 **Purpose**: Ensure all fixes work correctly
