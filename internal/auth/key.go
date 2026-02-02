@@ -27,7 +27,7 @@ func GeneratePublicKey() string {
 // The exists function should return true if the key is already in use.
 // Returns an error after 100 failed attempts (indicates a bug in exists function).
 func MakePublicKeyUnique(exists func(string) bool) (string, error) {
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		key := GeneratePublicKey()
 		if !exists(key) {
 			return key, nil

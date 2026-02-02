@@ -123,14 +123,14 @@ func TestVerifyPasswordTiming(t *testing.T) {
 
 	// Measure time for correct password
 	start := time.Now()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		VerifyPassword(password, hash)
 	}
 	correctTime := time.Since(start)
 
 	// Measure time for wrong password
 	start = time.Now()
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		VerifyPassword("wrongpassword", hash)
 	}
 	wrongTime := time.Since(start)

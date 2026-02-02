@@ -28,7 +28,7 @@ func TestGeneratePublicKeyUniqueness(t *testing.T) {
 	collisions := 0
 
 	// Generate 1000 keys and check for collisions
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		key := GeneratePublicKey()
 		if seen[key] {
 			collisions++
