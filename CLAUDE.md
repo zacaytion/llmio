@@ -24,6 +24,8 @@ sqlc generate                 # Regenerate DB types from queries
 ### Go Gotchas
 
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
+- golangci-lint autofix: use `golangci-lint run ./... --fix` to auto-fix gofmt/goimports issues
+- Import ordering: stdlib first, blank line, then third-party (goimports enforces this)
 - Config has `interface{}` → `any` rewrite rule; use `any` not `interface{}`
 - errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
 - errcheck requires checked type assertions: `val, ok := x.(*Type)` not `val := x.(*Type)`
@@ -261,6 +263,8 @@ func Load() (*Config, error) {
 ```
 
 **Custom validators** for domain-specific rules (e.g., `sslmode`, `loglevel`) are registered in `internal/validation/validator.go`.
+
+**Cross-field validation**: Use `ltefield`/`gtefield` tags (e.g., `validate:"ltefield=MaxConns"` ensures MinConns ≤ MaxConns).
 
 ## Recent Changes
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2
