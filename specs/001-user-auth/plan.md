@@ -26,7 +26,7 @@ Implement email/password authentication with Argon2id password hashing and in-me
 | Principle | Status | Notes |
 |-----------|--------|-------|
 | I. Test-First Development | PASS | All code via TDD; table-driven Go tests + pgTap for schema |
-| II. Spec-First API Design | PASS | OpenAPI contracts in `/contracts/` before implementation |
+| II. Spec-First API Design | PASS | OpenAPI contracts in `/contracts/`; Huma validates and generates types at runtime |
 | III. Security-First | PASS | Argon2id hashing, no account enumeration, constant-time comparison |
 | IV. Full-Stack Type Safety | PASS | sqlc generates Go types; TypeScript from OpenAPI |
 | V. Simplicity & YAGNI | PASS | In-memory sessions per spec; no Redis initially |

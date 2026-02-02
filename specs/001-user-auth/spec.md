@@ -90,7 +90,7 @@ A user wants their session to persist across browser tabs and page refreshes wit
 ### Edge Cases
 
 - What happens when a user registers with mixed-case email (e.g., "User@Example.COM")? System treats email as case-insensitive.
-- What happens when a user's session expires mid-action? User is redirected to login with option to continue after re-authentication.
+- What happens when a user's session expires mid-action? User is redirected to login. *(Future: option to continue after re-authentication)*
 - What happens when the same user logs in from multiple devices? All sessions remain valid independently.
 - What happens when server restarts? All sessions are cleared; users must log in again.
 - What happens when a user submits login form with empty fields? Validation errors shown for required fields.
@@ -120,7 +120,7 @@ A user wants their session to persist across browser tabs and page refreshes wit
 
 - **User**: A person who has registered an account. Key attributes: email (unique, case-insensitive), name, username (unique, auto-generated), email verification status, account status (active/deactivated), registration date.
 
-- **Session**: An authenticated user's active login state. Key attributes: associated user, creation time, expiration time (7 days from creation), originating device info (user agent, IP address).
+- **Session**: An authenticated user's active login state. Key attributes: associated user, creation time, expiration time (7 days from creation), originating device info (user agent, IP address - *captured but not used in MVP*).
 
 ## Success Criteria *(mandatory)*
 

@@ -33,7 +33,7 @@
 **CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T005 Create database migration migrations/001_create_users.sql with schema from data-model.md
-- [x] T006 Write pgTap tests for users table schema in migrations/001_create_users_test.sql
+- [x] T006 Write pgTap tests for users table schema in tests/pgtap/001_create_users_test.sql
 - [x] T007 Create SQL queries in internal/db/queries/users.sql (CreateUser, GetUserByEmail, GetUserByID, UsernameExists, EmailExists)
 - [x] T008 Run `sqlc generate` to create Go types in internal/db/
 - [x] T009 [P] Write unit tests for password hashing in internal/auth/password_test.go (hash, verify, timing)
