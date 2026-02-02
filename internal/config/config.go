@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -32,13 +33,25 @@ type DatabaseConfig struct {
 }
 
 // DSN returns the PostgreSQL connection string.
+// Passwords are single-quoted and escaped to handle special characters
+// (spaces, single quotes, backslashes, equals signs).
 func (c DatabaseConfig) DSN() string {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.User, c.Name, c.SSLMode)
 	if c.Password != "" {
-		dsn += fmt.Sprintf(" password=%s", c.Password)
+		dsn += fmt.Sprintf(" password='%s'", escapePassword(c.Password))
 	}
 	return dsn
+}
+
+// escapePassword escapes special characters in passwords for PostgreSQL DSN.
+// Backslashes and single quotes must be escaped within single-quoted values.
+func escapePassword(password string) string {
+	// Escape backslashes first (must come before single quote escaping)
+	escaped := strings.ReplaceAll(password, `\`, `\\`)
+	// Escape single quotes
+	escaped = strings.ReplaceAll(escaped, `'`, `\'`)
+	return escaped
 }
 
 // ServerConfig holds HTTP server settings.
@@ -93,7 +106,9 @@ func LoadWithViper(v *viper.Viper, configPath string) (*Config, error) {
 
 	// Read config file (optional - won't fail if not found)
 	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if !errors.As(err, &configFileNotFoundError) {
+			// Only return error for real errors (not "file not found")
 			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
 	}

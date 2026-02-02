@@ -836,7 +836,10 @@ func TestGetCurrentUser(t *testing.T) {
 
 	var resp map[string]any
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
-	user := resp["user"].(map[string]any)
+	user, ok := resp["user"].(map[string]any)
+	if !ok {
+		t.Fatal("Expected user in response")
+	}
 	if user["email"] != "session@example.com" {
 		t.Errorf("Expected email session@example.com, got %v", user["email"])
 	}

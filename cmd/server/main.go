@@ -121,8 +121,14 @@ func bindFlags(cmd *cobra.Command) {
 func runServer(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	// Setup logging from config
-	logging.SetupDefault(cfg.Logging)
+	// Setup logging from config with cleanup support
+	closeLogger := logging.SetupDefaultWithCleanup(cfg.Logging)
+	defer func() {
+		if err := closeLogger(); err != nil {
+			// Can't use slog here as we're closing it
+			fmt.Fprintf(os.Stderr, "error closing log file: %v\n", err)
+		}
+	}()
 
 	// Connect to database using config
 	pool, err := db.NewPoolFromConfig(ctx, cfg.Database)
@@ -165,21 +171,27 @@ func runServer(cmd *cobra.Command, args []string) error {
 		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
 
+	// Error channel for server goroutine
+	serverErr := make(chan error, 1)
+
 	// Start server in goroutine
 	go func() {
 		slog.Info("server starting", "port", cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("server failed", "error", err)
-			os.Exit(1)
+			serverErr <- err
 		}
 	}()
 
-	// Wait for interrupt signal
+	// Wait for interrupt signal or server error
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	slog.Info("shutting down server")
+	select {
+	case err := <-serverErr:
+		return fmt.Errorf("server failed: %w", err)
+	case <-quit:
+		slog.Info("shutting down server")
+	}
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

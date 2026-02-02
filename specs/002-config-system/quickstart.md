@@ -96,14 +96,27 @@ go test ./... -v
 # Check migration status
 go run ./cmd/migrate status
 
+# Show current database version
+go run ./cmd/migrate version
+
 # Run pending migrations
 go run ./cmd/migrate up
 
 # Rollback last migration
 go run ./cmd/migrate down
 
+# Create a new migration file
+go run ./cmd/migrate create add_users_table
+
 # With explicit config
 go run ./cmd/migrate --config config.test.yaml status
+```
+
+**Note**: This migrate tool provides a simplified subset of goose commands. For advanced operations like `up-by-one`, `up-to`, `down-to`, `redo`, or `reset`, use goose CLI directly:
+
+```bash
+go install github.com/pressly/goose/v3/cmd/goose@latest
+goose -dir migrations postgres "user=z dbname=loomio_development" up-by-one
 ```
 
 ## Example Config Files

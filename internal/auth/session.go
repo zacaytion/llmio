@@ -82,7 +82,10 @@ func (s *SessionStore) Get(token string) (*Session, bool) {
 		return nil, false
 	}
 
-	session := value.(*Session)
+	session, ok := value.(*Session)
+	if !ok {
+		return nil, false
+	}
 	if session.IsExpired() {
 		// Clean up expired session
 		s.sessions.Delete(token)
@@ -102,7 +105,10 @@ func (s *SessionStore) GetByUserID(userID int64) []*Session {
 	var sessions []*Session
 
 	s.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session, ok := value.(*Session)
+		if !ok {
+			return true // Continue iteration, skip invalid entry
+		}
 		if session.UserID == userID && !session.IsExpired() {
 			sessions = append(sessions, session)
 		}
@@ -117,7 +123,10 @@ func (s *SessionStore) DeleteByUserID(userID int64) {
 	var toDelete []string
 
 	s.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session, ok := value.(*Session)
+		if !ok {
+			return true // Continue iteration, skip invalid entry
+		}
 		if session.UserID == userID {
 			toDelete = append(toDelete, session.Token)
 		}
@@ -136,7 +145,10 @@ func (s *SessionStore) CleanupExpired() int {
 	var toDelete []string
 
 	s.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session, ok := value.(*Session)
+		if !ok {
+			return true // Continue iteration, skip invalid entry
+		}
 		if session.IsExpired() {
 			toDelete = append(toDelete, session.Token)
 		}

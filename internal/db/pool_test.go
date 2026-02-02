@@ -31,7 +31,8 @@ func TestNewPoolFromConfig(t *testing.T) {
 	// The actual connection test would be in integration tests.
 
 	// For unit testing, we verify the DSN is correctly built from config
-	expectedDSN := "host=testhost port=5433 user=testuser dbname=testdb sslmode=disable password=testpass"
+	// Note: Passwords are now single-quoted for special character support
+	expectedDSN := "host=testhost port=5433 user=testuser dbname=testdb sslmode=disable password='testpass'"
 	if cfg.DSN() != expectedDSN {
 		t.Errorf("Config DSN = %q, want %q", cfg.DSN(), expectedDSN)
 	}

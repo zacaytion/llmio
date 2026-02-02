@@ -194,3 +194,57 @@ func TestSetup_FileOutput(t *testing.T) {
 		t.Errorf("expected valid JSON in file, got: %s, error: %v", content, err)
 	}
 }
+
+// T055: Test that SetupWithCleanup returns a closer for file handles.
+func TestSetupWithCleanup_ReturnsCloser(t *testing.T) {
+	tmpFile := t.TempDir() + "/test_cleanup.log"
+
+	cfg := config.LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: tmpFile,
+	}
+
+	logger, closer := SetupWithCleanup(cfg, os.Stdout)
+	if logger == nil {
+		t.Fatal("expected non-nil logger")
+	}
+
+	// When logging to a file, closer should be non-nil
+	if closer == nil {
+		t.Fatal("expected non-nil closer when logging to file")
+	}
+
+	// Log something
+	logger.Info("test message before close")
+
+	// Close should not error
+	if err := closer(); err != nil {
+		t.Errorf("closer returned error: %v", err)
+	}
+}
+
+// TestSetupWithCleanup_StdoutNoClose verifies stdout doesn't need closing.
+func TestSetupWithCleanup_StdoutNoClose(t *testing.T) {
+	cfg := config.LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: "stdout",
+	}
+
+	var buf bytes.Buffer
+	logger, closer := SetupWithCleanup(cfg, &buf)
+	if logger == nil {
+		t.Fatal("expected non-nil logger")
+	}
+
+	// For stdout/stderr, closer should be a no-op (not nil for consistency)
+	if closer == nil {
+		t.Fatal("expected non-nil closer even for stdout (should be no-op)")
+	}
+
+	// Calling closer should not error
+	if err := closer(); err != nil {
+		t.Errorf("closer returned error: %v", err)
+	}
+}

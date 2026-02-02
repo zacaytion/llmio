@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -297,6 +298,45 @@ server:
 	}
 }
 
+// T058: Test that invalid YAML returns error with file information.
+func TestLoad_InvalidYAML(t *testing.T) {
+	// Create a temporary file with invalid YAML
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/invalid.yaml"
+
+	invalidYAML := `
+database:
+  host: localhost
+  port: invalid_not_a_number
+  user testuser  # Missing colon - syntax error
+`
+	if err := os.WriteFile(configPath, []byte(invalidYAML), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	_, err := Load(configPath)
+	if err == nil {
+		t.Fatal("expected error for invalid YAML, got nil")
+	}
+
+	// Error should contain file path or indicate YAML parsing issue
+	errStr := err.Error()
+	if !containsAny(errStr, []string{"config", "yaml", "unmarshal", "reading"}) {
+		t.Errorf("error should indicate config/yaml issue, got: %s", errStr)
+	}
+}
+
+// containsAny checks if s contains any of the substrings (case-insensitive).
+func containsAny(s string, substrings []string) bool {
+	sLower := strings.ToLower(s)
+	for _, sub := range substrings {
+		if strings.Contains(sLower, strings.ToLower(sub)) {
+			return true
+		}
+	}
+	return false
+}
+
 // T007: Test for DatabaseConfig.DSN() method.
 func TestDatabaseConfig_DSN(t *testing.T) {
 	tests := []struct {
@@ -325,13 +365,65 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 				Name:     "proddb",
 				SSLMode:  "require",
 			},
-			expected: "host=db.example.com port=5433 user=admin dbname=proddb sslmode=require password=secret",
+			expected: "host=db.example.com port=5433 user=admin dbname=proddb sslmode=require password='secret'",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.config.DSN()
+			if got != tt.expected {
+				t.Errorf("DSN() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
+// T064: Test for DSN with special characters in password.
+func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
+	tests := []struct {
+		name     string
+		password string
+		expected string
+	}{
+		{
+			name:     "password with spaces",
+			password: "my secret password",
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable password='my secret password'",
+		},
+		{
+			name:     "password with single quote",
+			password: "pass'word",
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable password='pass\\'word'",
+		},
+		{
+			name:     "password with equals sign",
+			password: "pass=word",
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable password='pass=word'",
+		},
+		{
+			name:     "password with backslash",
+			password: "pass\\word",
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable password='pass\\\\word'",
+		},
+		{
+			name:     "password with multiple special chars",
+			password: "p@ss'w=rd\\123",
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable password='p@ss\\'w=rd\\\\123'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := DatabaseConfig{
+				Host:     "localhost",
+				Port:     5432,
+				User:     "postgres",
+				Password: tt.password,
+				Name:     "testdb",
+				SSLMode:  "disable",
+			}
+			got := cfg.DSN()
 			if got != tt.expected {
 				t.Errorf("DSN() = %q, want %q", got, tt.expected)
 			}

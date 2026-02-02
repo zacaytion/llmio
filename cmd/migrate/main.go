@@ -1,4 +1,17 @@
 // Package main provides database migration commands using goose.
+//
+// Note: This migrate tool intentionally provides a simplified subset of goose commands:
+//   - up: Run all pending migrations
+//   - down: Roll back the most recent migration
+//   - status: Show migration status
+//   - version: Show current database version
+//   - create: Create a new migration file
+//
+// Advanced goose commands (up-by-one, up-to, down-to, redo, reset) are omitted
+// for simplicity. For advanced use cases, use goose CLI directly:
+//
+//	go install github.com/pressly/goose/v3/cmd/goose@latest
+//	goose -dir migrations postgres "user=z dbname=loomio_development" up-by-one
 package main
 
 import (

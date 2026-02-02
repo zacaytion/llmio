@@ -195,6 +195,7 @@
   - US3 and US4 are P2 and depend on US1 (need server rewrite)
   - US5 is P3 and can proceed independently after Foundation
 - **Polish (Phase 8)**: Depends on all user stories being complete
+- **Code Review Fixes (Phase 9)**: Depends on Phase 8 completion - addresses review findings before merge
 
 ### User Story Dependencies
 
@@ -275,6 +276,119 @@ With multiple developers:
 
 ---
 
+## Phase 9: Code Review Fixes
+
+**Input**: Code review findings from 002-config-system implementation (commit 237173f)
+
+**Purpose**: Address issues discovered during code review before merge
+
+### Phase 9.1: Important Fixes (Should Fix Before Merge)
+
+#### Issue 1: File Handle Leak in Logging Package
+
+**Problem**: When logging to a file, the file handle is never closed. Could lead to "too many open files" errors.
+
+**File**: `internal/logging/logging.go:62-74`
+
+- [x] T055 [P] Write test for logging.Setup() returning closeable resource in `internal/logging/logging_test.go`
+- [x] T056 Document single-call pattern OR return file handle for cleanup in `internal/logging/logging.go`
+- [x] T057 If returning handle: Update `cmd/server/main.go` to close log file on shutdown
+
+#### Issue 2: Missing Test for Invalid YAML Error Handling
+
+**Problem**: Spec edge case "invalid YAML syntax → clear error message" has no unit test coverage.
+
+**File**: `internal/config/config_test.go`
+
+- [x] T058 [P] Write test `TestLoad_InvalidYAML` verifying error contains file info in `internal/config/config_test.go`
+
+#### Issue 3: Document Reduced Migrate Subcommands
+
+**Problem**: Original migrate had `up-by-one`, `up-to`, `down-to`, `redo`, `reset`. New only has basic commands.
+
+**File**: `cmd/migrate/main.go`
+
+- [x] T059 [P] Add comment in `cmd/migrate/main.go` documenting intentional simplification
+- [x] T060 [P] Update `specs/002-config-system/quickstart.md` to reflect available migrate subcommands
+
+**Checkpoint**: Important issues resolved - safe to merge
+
+---
+
+### Phase 9.2: Minor Improvements (Nice to Have)
+
+**Purpose**: Code quality improvements that don't affect functionality
+
+#### Issue 4: Inconsistent Error Return in Server
+
+**Problem**: `runServer` returns error but goroutine exits directly instead of propagating.
+
+**File**: `cmd/server/main.go:168-171`
+
+- [x] T061 [P] Refactor server error handling to use error channel in `cmd/server/main.go`
+
+#### Issue 5: Package-Level Config Variables
+
+**Problem**: Package-level mutable state (`cfgFile`, `cfg`, `v`) makes testing harder.
+
+**Files**: `cmd/server/main.go:21-23`, `cmd/migrate/main.go:18-20`
+
+- [ ] T062 [P] Refactor `cmd/server/main.go` to pass config through function parameters (deferred - minor improvement)
+- [ ] T063 [P] Refactor `cmd/migrate/main.go` to pass config through function parameters (deferred - minor improvement)
+
+#### Issue 6: DSN Password Special Characters
+
+**Problem**: Passwords with special characters (spaces, `=`, quotes) could break DSN format.
+
+**File**: `internal/config/config.go:35-42`
+
+- [x] T064 [P] Write test for DSN with special characters in password in `internal/config/config_test.go`
+- [x] T065 Update `DatabaseConfig.DSN()` to handle special characters in `internal/config/config.go`
+
+---
+
+### Phase 9.3: Verification
+
+**Purpose**: Ensure all fixes work correctly
+
+- [x] T066 Run full test suite: `go test ./... -v`
+- [x] T067 Run linter: `golangci-lint run ./...`
+- [x] T068 Verify server starts with config file: `go run ./cmd/server --config config.example.yaml`
+- [x] T069 Commit fixes with message: `fix(config): address code review findings`
+
+**Checkpoint**: All code review fixes complete
+
+---
+
+### Phase 9 Dependencies
+
+- **Phase 9.1 (Important)**: No dependencies - can start immediately after Phase 8
+- **Phase 9.2 (Minor)**: Can start after Phase 9.1 or in parallel if different files
+- **Phase 9.3 (Verification)**: Depends on all fix phases being complete
+
+### Phase 9 Parallel Opportunities
+
+- T055, T058, T059, T060 can run in parallel (different files)
+- T061, T062, T063, T064 can run in parallel (different files)
+- T056 depends on T055 (test first)
+- T065 depends on T064 (test first)
+- T057 depends on T056 (implementation first)
+
+### Phase 9 Implementation Strategy
+
+**Recommended Order**:
+
+1. **T058** - Quick win: Add missing invalid YAML test
+2. **T059, T060** - Quick win: Document migrate simplification
+3. **T055, T056** - File handle: Write test, then document/fix
+4. **T057** - If needed: Update server to close log file
+5. **Minor fixes** - T061-T065 as time permits
+6. **T066-T069** - Verify and commit
+
+**MVP (Minimum to Merge)**: Complete T055-T060 (Important fixes) to address all "Should Fix" issues from code review.
+
+---
+
 ## Notes
 
 - [P] tasks = different files, no dependencies
@@ -284,3 +398,4 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+- Phase 9 tasks (T055-T069) are code review fixes - minor improvements (Phase 9.2) can be deferred to follow-up PR
