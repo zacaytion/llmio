@@ -35,11 +35,13 @@ sqlc generate                 # Regenerate DB types from queries
 - DB errors → 500; NotFound → context-specific (401 for auth, 404 for resources)
 - Crypto/rand failures should panic (not silent fallback) - security-critical
 - Auth failures: log reason server-side, return generic "Invalid credentials" to client
+- Always call `LogDBError(ctx, "OperationName", err)` before returning 500 for DB errors
 
 ### Security Patterns
 
 - Timing attacks: dummy password hash must be valid Argon2id (verification detects invalid formats)
 - Generate dummy hash at `init()` with `auth.HashPassword("placeholder")` for consistent timing
+- Tests must use same pattern: `testDummyHash` generated via `auth.HashPassword()` in test `init()`
 
 ### Goose Migrations
 
