@@ -10,6 +10,24 @@ This is a **monorepo for rewriting Loomio** - a collaborative decision-making pl
 
 ## Development Commands
 
+### Go Backend (new rewrite)
+
+```bash
+go test ./... -v              # Run all tests
+go run ./cmd/server           # Start API server (port 8080)
+go run ./cmd/migrate up       # Run database migrations
+go run ./cmd/migrate status   # Check migration status
+golangci-lint run ./...       # Lint (output in .var/log/golangci-lint.log)
+sqlc generate                 # Regenerate DB types from queries
+```
+
+### Go Gotchas
+
+- golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
+- Config has `interface{}` → `any` rewrite rule; use `any` not `interface{}`
+- errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
+- Avoid naming local variables `api` when importing `internal/api` package
+
 ### Version Management (mise)
 
 This project uses [mise](https://mise.jdx.dev/) for tool version management with experimental monorepo mode.
@@ -170,6 +188,7 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 
 ## Active Technologies
 - Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2 (001-user-auth)
+- goose/v3 for database migrations (001-user-auth)
 - PostgreSQL 18 for users; in-memory Go map for sessions (MVP) (001-user-auth)
 
 ## Recent Changes

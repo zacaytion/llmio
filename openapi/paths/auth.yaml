@@ -1,0 +1,322 @@
+# OpenAPI 3.1 Specification: User Authentication
+# Feature: 001-user-auth
+# Date: 2026-02-01
+
+openapi: 3.1.0
+info:
+  title: Loomio Authentication API
+  version: 1.0.0
+  description: |
+    User registration, login, logout, and session management endpoints.
+
+    ## Authentication
+    Most endpoints require authentication via session cookie.
+    The `loomio_session` cookie is set on successful login and must be
+    included in subsequent requests.
+
+servers:
+  - url: /api/v1
+    description: API version 1
+
+tags:
+  - name: Authentication
+    description: User registration, login, and logout
+
+paths:
+  /registrations:
+    post:
+      operationId: createRegistration
+      summary: Register a new user
+      description: |
+        Creates a new user account with email and password.
+
+        - Email must be unique (case-insensitive)
+        - Password must be at least 8 characters
+        - Password confirmation must match
+        - Name is required
+
+        Does NOT automatically log in the user (email verification required).
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+            example:
+              email: "user@example.com"
+              name: "John Doe"
+              password: "secretpassword123"
+              password_confirmation: "secretpassword123"
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                email_taken:
+                  summary: Email already registered
+                  value:
+                    error: "validation_error"
+                    message: "Email already taken"
+                    field: "email"
+                password_mismatch:
+                  summary: Passwords don't match
+                  value:
+                    error: "validation_error"
+                    message: "Passwords do not match"
+                    field: "password_confirmation"
+                password_too_short:
+                  summary: Password too short
+                  value:
+                    error: "validation_error"
+                    message: "Password must be at least 8 characters"
+                    field: "password"
+                name_required:
+                  summary: Name missing
+                  value:
+                    error: "validation_error"
+                    message: "Name is required"
+                    field: "name"
+
+  /sessions:
+    post:
+      operationId: createSession
+      summary: Log in (create session)
+      description: |
+        Authenticates a user with email and password.
+
+        On success:
+        - Sets `loomio_session` HTTP-only cookie (7 day expiry)
+        - Returns user data
+
+        On failure:
+        - Returns generic "Invalid credentials" error (no account enumeration)
+        - Same error for: wrong email, wrong password, unverified email, deactivated account
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "user@example.com"
+              password: "secretpassword123"
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: Session cookie
+              schema:
+                type: string
+                example: "loomio_session=abc123; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+              example:
+                error: "unauthorized"
+                message: "Invalid credentials"
+
+    delete:
+      operationId: destroySession
+      summary: Log out (destroy session)
+      description: |
+        Logs out the current user by invalidating their session.
+
+        - Clears the session cookie
+        - Removes session from server store
+      tags:
+        - Authentication
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              description: Cleared session cookie
+              schema:
+                type: string
+                example: "loomio_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+
+  /sessions/me:
+    get:
+      operationId: getCurrentSession
+      summary: Get current user
+      description: |
+        Returns the currently authenticated user's information.
+        Used by frontend to check authentication status and get user data.
+      tags:
+        - Authentication
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Authenticated user data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthError'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: loomio_session
+      description: Session cookie set on login
+
+  schemas:
+    RegistrationRequest:
+      type: object
+      required:
+        - email
+        - name
+        - password
+        - password_confirmation
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (case-insensitive)
+          example: "user@example.com"
+        name:
+          type: string
+          minLength: 1
+          description: User's display name
+          example: "John Doe"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: Password (minimum 8 characters)
+        password_confirmation:
+          type: string
+          format: password
+          description: Must match password
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered email address
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          description: Account password
+
+    UserResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique user identifier
+          example: 123
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        name:
+          type: string
+          description: Display name
+          example: "John Doe"
+        username:
+          type: string
+          description: URL-safe username (auto-generated)
+          example: "john-doe"
+        email_verified:
+          type: boolean
+          description: Whether email has been verified
+          example: true
+        key:
+          type: string
+          description: Public URL key
+          example: "a1b2c3d4e5f6g7h8i9j0"
+        created_at:
+          type: string
+          format: date-time
+          description: Registration timestamp
+          example: "2026-02-01T12:00:00Z"
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [validation_error]
+          example: "validation_error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Email already taken"
+        field:
+          type: string
+          description: Field that failed validation
+          example: "email"
+
+    AuthError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [unauthorized]
+          example: "unauthorized"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid credentials"
