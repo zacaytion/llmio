@@ -127,3 +127,50 @@ orig/loomio_channel_server/  # Node.js WebSocket server
 | Real-time | Socket.io, Hocuspocus + Yjs |
 | Client State | LokiJS in-memory DB |
 | Testing | RSpec (backend), Nightwatch (E2E) |
+
+## Spec-First Development Workflow
+
+This project uses speckit commands for spec-first TDD development. See `docs/spec-first-tdd-workflow.md` for full guide.
+
+### Speckit Commands (in order)
+
+| Command | Purpose |
+|---------|---------|
+| `/speckit.specify <description>` | Create feature spec from description |
+| `/speckit.clarify` | Fill gaps in spec via questions |
+| `/speckit.plan` | Generate technical design from spec |
+| `/speckit.tasks` | Create ordered task list with TDD |
+| `/speckit.analyze` | Validate spec ↔ plan ↔ tasks consistency |
+| `/speckit.implement` | Execute tasks with TDD discipline |
+
+### Key Files
+
+- `.specify/memory/constitution.md` - Project principles (TDD mandatory, spec-first API, security-first)
+- `.specify/templates/` - Templates for spec, plan, tasks
+- `specs/N-feature-name/` - Feature artifacts (spec.md, plan.md, tasks.md)
+
+### Superpowers Integration
+
+- `/superpowers:brainstorming` - Before specifying, explore requirements
+- `/superpowers:test-driven-development` - During implementation, enforce Red-Green-Refactor
+- `/superpowers:verification-before-completion` - Before claiming done, verify tests pass
+
+### Feature Branch Setup
+
+```bash
+.specify/scripts/bash/create-new-feature.sh --json --number N --short-name "feature-name" "Description"
+```
+
+### Discovery Reference (check when designing new features)
+
+- `discovery/openapi/paths/` - Existing API endpoint patterns (auth.yaml, users.yaml, etc.)
+- `discovery/schemas/request_schemas/` - Request parameter schemas by controller
+- `discovery/schemas/response_schemas/` - Response serializer schemas
+- `discovery/schema_dump.sql` - Full PostgreSQL schema (users table at line 2278)
+
+## Active Technologies
+- Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2 (001-user-auth)
+- PostgreSQL 18 for users; in-memory Go map for sessions (MVP) (001-user-auth)
+
+## Recent Changes
+- 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2
