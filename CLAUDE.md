@@ -10,6 +10,50 @@ This is a **monorepo for rewriting Loomio** - a collaborative decision-making pl
 
 ## Development Commands
 
+### Go Backend (new rewrite)
+
+```bash
+go test ./... -v              # Run all tests
+go run ./cmd/server           # Start API server (port 8080)
+go run ./cmd/migrate up       # Run database migrations
+go run ./cmd/migrate status   # Check migration status
+golangci-lint run ./...       # Lint (output in .var/log/golangci-lint.log)
+sqlc generate                 # Regenerate DB types from queries
+```
+
+### Go Gotchas
+
+- golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
+- Config has `interface{}` → `any` rewrite rule; use `any` not `interface{}`
+- errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
+- Avoid naming local variables `api` when importing `internal/api` package
+- Port 8080 typically occupied by `gvproxy` (Docker/Podman); use `PORT=8081` for Go server
+
+### Error Handling Patterns
+
+- Use `db.IsNotFound(err)` to check for `pgx.ErrNoRows` (not just `err != nil`)
+- DB errors → 500; NotFound → context-specific (401 for auth, 404 for resources)
+- Crypto/rand failures should panic (not silent fallback) - security-critical
+- Auth failures: log reason server-side, return generic "Invalid credentials" to client
+- Always call `LogDBError(ctx, "OperationName", err)` before returning 500 for DB errors
+
+### Security Patterns
+
+- Timing attacks: dummy password hash must be valid Argon2id (verification detects invalid formats)
+- Generate dummy hash at `init()` with `auth.HashPassword("placeholder")` for consistent timing
+- Tests must use same pattern: `testDummyHash` generated via `auth.HashPassword()` in test `init()`
+
+### Goose Migrations
+
+- Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix
+- pgTap schema tests belong in `tests/pgtap/`, NOT in migrations directory
+
+### PostgreSQL Access
+
+- Use `psql-18` (not `psql`) with `-h localhost -U z` and `PGPASSWORD=password`
+- Example: `PGPASSWORD=password psql-18 -h localhost -U z -d loomio_development -c "SELECT 1;"`
+- Server env vars: `DB_USER=z DB_PASSWORD=password DB_HOST=localhost`
+
 ### Version Management (mise)
 
 This project uses [mise](https://mise.jdx.dev/) for tool version management with experimental monorepo mode.
@@ -127,3 +171,51 @@ orig/loomio_channel_server/  # Node.js WebSocket server
 | Real-time | Socket.io, Hocuspocus + Yjs |
 | Client State | LokiJS in-memory DB |
 | Testing | RSpec (backend), Nightwatch (E2E) |
+
+## Spec-First Development Workflow
+
+This project uses speckit commands for spec-first TDD development. See `docs/spec-first-tdd-workflow.md` for full guide.
+
+### Speckit Commands (in order)
+
+| Command | Purpose |
+|---------|---------|
+| `/speckit.specify <description>` | Create feature spec from description |
+| `/speckit.clarify` | Fill gaps in spec via questions |
+| `/speckit.plan` | Generate technical design from spec |
+| `/speckit.tasks` | Create ordered task list with TDD |
+| `/speckit.analyze` | Validate spec ↔ plan ↔ tasks consistency |
+| `/speckit.implement` | Execute tasks with TDD discipline |
+
+### Key Files
+
+- `.specify/memory/constitution.md` - Project principles (TDD mandatory, spec-first API, security-first)
+- `.specify/templates/` - Templates for spec, plan, tasks
+- `specs/N-feature-name/` - Feature artifacts (spec.md, plan.md, tasks.md)
+
+### Superpowers Integration
+
+- `/superpowers:brainstorming` - Before specifying, explore requirements
+- `/superpowers:test-driven-development` - During implementation, enforce Red-Green-Refactor
+- `/superpowers:verification-before-completion` - Before claiming done, verify tests pass
+
+### Feature Branch Setup
+
+```bash
+.specify/scripts/bash/create-new-feature.sh --json --number N --short-name "feature-name" "Description"
+```
+
+### Discovery Reference (check when designing new features)
+
+- `discovery/openapi/paths/` - Existing API endpoint patterns (auth.yaml, users.yaml, etc.)
+- `discovery/schemas/request_schemas/` - Request parameter schemas by controller
+- `discovery/schemas/response_schemas/` - Response serializer schemas
+- `discovery/schema_dump.sql` - Full PostgreSQL schema (users table at line 2278)
+
+## Active Technologies
+- Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2 (001-user-auth)
+- goose/v3 for database migrations (001-user-auth)
+- PostgreSQL 18 for users; in-memory Go map for sessions (MVP) (001-user-auth)
+
+## Recent Changes
+- 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2

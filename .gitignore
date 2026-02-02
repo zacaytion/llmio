@@ -23,3 +23,24 @@ pnpm-debug.log*
 
 # worktrees
 .worktrees/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.prof*
+vendor/
+/server
+
+# IDE
+.idea/
+*.iml
+
+# Temporary files
+*.tmp
+*.swp
+*~
