@@ -586,31 +586,31 @@ With multiple developers:
 
 ### Phase 12.1: Setup & Infrastructure
 
-- [ ] T114 Add validator dependency: `go get github.com/go-playground/validator/v10`
-- [ ] T115 Create `internal/validation/validator.go` with singleton validator instance and custom validators
-- [ ] T116 Register custom validators for `sslmode`, `loglevel`, `logformat` enum types
-- [ ] T117 Write tests for custom validators in `internal/validation/validator_test.go`
+- [x] T114 Add validator dependency: `go get github.com/go-playground/validator/v10`
+- [x] T115 Create `internal/validation/validator.go` with singleton validator instance and custom validators
+- [x] T116 Register custom validators for `sslmode`, `loglevel`, `logformat` enum types
+- [x] T117 Write tests for custom validators in `internal/validation/validator_test.go`
 
 ### Phase 12.2: Migrate Config Validation
 
-- [ ] T118 Add `validate` struct tags to `DatabaseConfig` fields in `internal/config/config.go`
-- [ ] T119 Add `validate` struct tags to `ServerConfig` fields in `internal/config/config.go`
-- [ ] T120 Add `validate` struct tags to `SessionConfig` fields in `internal/config/config.go`
-- [ ] T121 Add `validate` struct tags to `LoggingConfig` fields in `internal/config/config.go`
-- [ ] T122 Replace manual `Validate()` methods with calls to validator in `internal/config/config.go`
-- [ ] T123 Update tests to verify new validation behavior in `internal/config/config_test.go`
+- [x] T118 Add `validate` struct tags to `DatabaseConfig` fields in `internal/config/config.go`
+- [x] T119 Add `validate` struct tags to `ServerConfig` fields in `internal/config/config.go`
+- [x] T120 Add `validate` struct tags to `SessionConfig` fields in `internal/config/config.go`
+- [x] T121 Add `validate` struct tags to `LoggingConfig` fields in `internal/config/config.go`
+- [x] T122 Replace manual `Validate()` methods with calls to validator in `internal/config/config.go`
+- [x] T123 Update tests to verify new validation behavior in `internal/config/config_test.go`
 
 ### Phase 12.3: Documentation & Standards
 
-- [ ] T124 Add validation patterns to CLAUDE.md for future reference
-- [ ] T125 Document custom validator registration pattern for future domain validators
+- [x] T124 Add validation patterns to CLAUDE.md for future reference
+- [x] T125 Document custom validator registration pattern for future domain validators
 
 ### Phase 12.4: Verification
 
-- [ ] T126 Run full test suite: `go test ./... -v`
-- [ ] T127 Run linter: `golangci-lint run ./...`
-- [ ] T128 Verify server starts with defaults and invalid configs are rejected
-- [ ] T129 Commit changes with message: `refactor(config): migrate validation to go-playground/validator`
+- [x] T126 Run full test suite: `go test ./... -v`
+- [x] T127 Run linter: `golangci-lint run ./...`
+- [x] T128 Verify server starts with defaults and invalid configs are rejected
+- [x] T129 Commit changes with message: `refactor(config): migrate validation to go-playground/validator`
 
 **Checkpoint**: Config validation uses go-playground/validator; pattern established for future use
 

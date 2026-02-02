@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/zacaytion/llmio/internal/validation"
 )
 
 // T005: Test for Config struct existence.
@@ -472,7 +474,8 @@ server:
 	}
 }
 
-// T099: Test DatabaseConfig.Validate() catches invalid values.
+// T099: Test DatabaseConfig validation catches invalid values.
+// Uses go-playground/validator; tests check for field name in error.
 func TestDatabaseConfig_Validate(t *testing.T) {
 	validConfig := DatabaseConfig{
 		Host:              "localhost",
@@ -488,79 +491,79 @@ func TestDatabaseConfig_Validate(t *testing.T) {
 	}
 
 	// Valid config should pass
-	if err := validConfig.Validate(); err != nil {
+	if err := validation.Validate(validConfig); err != nil {
 		t.Errorf("valid config should pass validation, got: %v", err)
 	}
 
 	tests := []struct {
-		name    string
-		modify  func(*DatabaseConfig)
-		wantErr string
+		name      string
+		modify    func(*DatabaseConfig)
+		wantField string // field name expected in validation error
 	}{
 		{
-			name:    "empty host",
-			modify:  func(c *DatabaseConfig) { c.Host = "" },
-			wantErr: "host cannot be empty",
+			name:      "empty host",
+			modify:    func(c *DatabaseConfig) { c.Host = "" },
+			wantField: "Host",
 		},
 		{
-			name:    "invalid port zero",
-			modify:  func(c *DatabaseConfig) { c.Port = 0 },
-			wantErr: "port must be 1-65535",
+			name:      "invalid port zero",
+			modify:    func(c *DatabaseConfig) { c.Port = 0 },
+			wantField: "Port",
 		},
 		{
-			name:    "invalid port negative",
-			modify:  func(c *DatabaseConfig) { c.Port = -1 },
-			wantErr: "port must be 1-65535",
+			name:      "invalid port negative",
+			modify:    func(c *DatabaseConfig) { c.Port = -1 },
+			wantField: "Port",
 		},
 		{
-			name:    "invalid port too high",
-			modify:  func(c *DatabaseConfig) { c.Port = 65536 },
-			wantErr: "port must be 1-65535",
+			name:      "invalid port too high",
+			modify:    func(c *DatabaseConfig) { c.Port = 65536 },
+			wantField: "Port",
 		},
 		{
-			name:    "empty user",
-			modify:  func(c *DatabaseConfig) { c.User = "" },
-			wantErr: "user cannot be empty",
+			name:      "empty user",
+			modify:    func(c *DatabaseConfig) { c.User = "" },
+			wantField: "User",
 		},
 		{
-			name:    "empty name",
-			modify:  func(c *DatabaseConfig) { c.Name = "" },
-			wantErr: "name cannot be empty",
+			name:      "empty name",
+			modify:    func(c *DatabaseConfig) { c.Name = "" },
+			wantField: "Name",
 		},
 		{
-			name:    "invalid sslmode",
-			modify:  func(c *DatabaseConfig) { c.SSLMode = "invalid" },
-			wantErr: "sslmode must be one of",
+			name:      "invalid sslmode",
+			modify:    func(c *DatabaseConfig) { c.SSLMode = "invalid" },
+			wantField: "SSLMode",
 		},
 		{
-			name:    "max_conns zero",
-			modify:  func(c *DatabaseConfig) { c.MaxConns = 0 },
-			wantErr: "max_conns must be positive",
+			name:      "max_conns zero",
+			modify:    func(c *DatabaseConfig) { c.MaxConns = 0 },
+			wantField: "MaxConns",
 		},
 		{
-			name:    "min_conns negative",
-			modify:  func(c *DatabaseConfig) { c.MinConns = -1 },
-			wantErr: "min_conns cannot be negative",
+			name:      "min_conns negative",
+			modify:    func(c *DatabaseConfig) { c.MinConns = -1 },
+			wantField: "MinConns",
 		},
 		{
-			name:    "min_conns exceeds max_conns",
-			modify:  func(c *DatabaseConfig) { c.MinConns = 30; c.MaxConns = 25 },
-			wantErr: "min_conns (30) cannot exceed max_conns (25)",
+			name:      "min_conns exceeds max_conns",
+			modify:    func(c *DatabaseConfig) { c.MinConns = 30; c.MaxConns = 25 },
+			wantField: "MinConns",
 		},
 		{
-			name:    "max_conn_lifetime zero",
-			modify:  func(c *DatabaseConfig) { c.MaxConnLifetime = 0 },
-			wantErr: "max_conn_lifetime must be positive",
+			name:      "max_conn_lifetime zero",
+			modify:    func(c *DatabaseConfig) { c.MaxConnLifetime = 0 },
+			wantField: "MaxConnLifetime",
 		},
 		{
-			name:    "max_conn_idle_time negative",
-			modify:  func(c *DatabaseConfig) { c.MaxConnIdleTime = -time.Second },
-			wantErr: "max_conn_idle_time must be positive",
+			name:      "max_conn_idle_time negative",
+			modify:    func(c *DatabaseConfig) { c.MaxConnIdleTime = -time.Second },
+			wantField: "MaxConnIdleTime",
 		},
 		{
-			name:    "health_check_period zero",
-			modify:  func(c *DatabaseConfig) { c.HealthCheckPeriod = 0 },
-			wantErr: "health_check_period must be positive",
+			name:      "health_check_period zero",
+			modify:    func(c *DatabaseConfig) { c.HealthCheckPeriod = 0 },
+			wantField: "HealthCheckPeriod",
 		},
 	}
 
@@ -568,18 +571,18 @@ func TestDatabaseConfig_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := validConfig // copy
 			tt.modify(&cfg)
-			err := cfg.Validate()
+			err := validation.Validate(cfg)
 			if err == nil {
 				t.Fatal("expected validation error, got nil")
 			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			if !strings.Contains(err.Error(), tt.wantField) {
+				t.Errorf("error should reference field %q, got: %v", tt.wantField, err)
 			}
 		})
 	}
 }
 
-// T100: Test ServerConfig.Validate() catches invalid values.
+// T100: Test ServerConfig validation catches invalid values.
 func TestServerConfig_Validate(t *testing.T) {
 	validConfig := ServerConfig{
 		Port:         8080,
@@ -588,34 +591,34 @@ func TestServerConfig_Validate(t *testing.T) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	if err := validConfig.Validate(); err != nil {
+	if err := validation.Validate(validConfig); err != nil {
 		t.Errorf("valid config should pass validation, got: %v", err)
 	}
 
 	tests := []struct {
-		name    string
-		modify  func(*ServerConfig)
-		wantErr string
+		name      string
+		modify    func(*ServerConfig)
+		wantField string
 	}{
 		{
-			name:    "invalid port zero",
-			modify:  func(c *ServerConfig) { c.Port = 0 },
-			wantErr: "port must be 1-65535",
+			name:      "invalid port zero",
+			modify:    func(c *ServerConfig) { c.Port = 0 },
+			wantField: "Port",
 		},
 		{
-			name:    "read_timeout zero",
-			modify:  func(c *ServerConfig) { c.ReadTimeout = 0 },
-			wantErr: "read_timeout must be positive",
+			name:      "read_timeout zero",
+			modify:    func(c *ServerConfig) { c.ReadTimeout = 0 },
+			wantField: "ReadTimeout",
 		},
 		{
-			name:    "write_timeout negative",
-			modify:  func(c *ServerConfig) { c.WriteTimeout = -time.Second },
-			wantErr: "write_timeout must be positive",
+			name:      "write_timeout negative",
+			modify:    func(c *ServerConfig) { c.WriteTimeout = -time.Second },
+			wantField: "WriteTimeout",
 		},
 		{
-			name:    "idle_timeout zero",
-			modify:  func(c *ServerConfig) { c.IdleTimeout = 0 },
-			wantErr: "idle_timeout must be positive",
+			name:      "idle_timeout zero",
+			modify:    func(c *ServerConfig) { c.IdleTimeout = 0 },
+			wantField: "IdleTimeout",
 		},
 	}
 
@@ -623,42 +626,42 @@ func TestServerConfig_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := validConfig
 			tt.modify(&cfg)
-			err := cfg.Validate()
+			err := validation.Validate(cfg)
 			if err == nil {
 				t.Fatal("expected validation error, got nil")
 			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			if !strings.Contains(err.Error(), tt.wantField) {
+				t.Errorf("error should reference field %q, got: %v", tt.wantField, err)
 			}
 		})
 	}
 }
 
-// T101: Test SessionConfig.Validate() catches invalid values.
+// T101: Test SessionConfig validation catches invalid values.
 func TestSessionConfig_Validate(t *testing.T) {
 	validConfig := SessionConfig{
 		Duration:        168 * time.Hour,
 		CleanupInterval: 10 * time.Minute,
 	}
 
-	if err := validConfig.Validate(); err != nil {
+	if err := validation.Validate(validConfig); err != nil {
 		t.Errorf("valid config should pass validation, got: %v", err)
 	}
 
 	tests := []struct {
-		name    string
-		modify  func(*SessionConfig)
-		wantErr string
+		name      string
+		modify    func(*SessionConfig)
+		wantField string
 	}{
 		{
-			name:    "duration zero",
-			modify:  func(c *SessionConfig) { c.Duration = 0 },
-			wantErr: "duration must be positive",
+			name:      "duration zero",
+			modify:    func(c *SessionConfig) { c.Duration = 0 },
+			wantField: "Duration",
 		},
 		{
-			name:    "cleanup_interval negative",
-			modify:  func(c *SessionConfig) { c.CleanupInterval = -time.Minute },
-			wantErr: "cleanup_interval must be positive",
+			name:      "cleanup_interval negative",
+			modify:    func(c *SessionConfig) { c.CleanupInterval = -time.Minute },
+			wantField: "CleanupInterval",
 		},
 	}
 
@@ -666,18 +669,18 @@ func TestSessionConfig_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := validConfig
 			tt.modify(&cfg)
-			err := cfg.Validate()
+			err := validation.Validate(cfg)
 			if err == nil {
 				t.Fatal("expected validation error, got nil")
 			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			if !strings.Contains(err.Error(), tt.wantField) {
+				t.Errorf("error should reference field %q, got: %v", tt.wantField, err)
 			}
 		})
 	}
 }
 
-// T102: Test LoggingConfig.Validate() catches invalid values.
+// T102: Test LoggingConfig validation catches invalid values.
 func TestLoggingConfig_Validate(t *testing.T) {
 	validConfig := LoggingConfig{
 		Level:  "info",
@@ -685,29 +688,29 @@ func TestLoggingConfig_Validate(t *testing.T) {
 		Output: "stdout",
 	}
 
-	if err := validConfig.Validate(); err != nil {
+	if err := validation.Validate(validConfig); err != nil {
 		t.Errorf("valid config should pass validation, got: %v", err)
 	}
 
 	tests := []struct {
-		name    string
-		modify  func(*LoggingConfig)
-		wantErr string
+		name      string
+		modify    func(*LoggingConfig)
+		wantField string
 	}{
 		{
-			name:    "invalid level",
-			modify:  func(c *LoggingConfig) { c.Level = "invalid" },
-			wantErr: "level must be one of",
+			name:      "invalid level",
+			modify:    func(c *LoggingConfig) { c.Level = "invalid" },
+			wantField: "Level",
 		},
 		{
-			name:    "invalid format",
-			modify:  func(c *LoggingConfig) { c.Format = "invalid" },
-			wantErr: "format must be one of",
+			name:      "invalid format",
+			modify:    func(c *LoggingConfig) { c.Format = "invalid" },
+			wantField: "Format",
 		},
 		{
-			name:    "empty output",
-			modify:  func(c *LoggingConfig) { c.Output = "" },
-			wantErr: "output cannot be empty",
+			name:      "empty output",
+			modify:    func(c *LoggingConfig) { c.Output = "" },
+			wantField: "Output",
 		},
 	}
 
@@ -715,12 +718,12 @@ func TestLoggingConfig_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := validConfig
 			tt.modify(&cfg)
-			err := cfg.Validate()
+			err := validation.Validate(cfg)
 			if err == nil {
 				t.Fatal("expected validation error, got nil")
 			}
-			if !strings.Contains(err.Error(), tt.wantErr) {
-				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			if !strings.Contains(err.Error(), tt.wantField) {
+				t.Errorf("error should reference field %q, got: %v", tt.wantField, err)
 			}
 		})
 	}
@@ -823,8 +826,9 @@ server:
 	if !strings.Contains(err.Error(), "validation") {
 		t.Errorf("error should mention validation, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "port") {
-		t.Errorf("error should mention port, got: %v", err)
+	// Validator uses field name "Port" (title case)
+	if !strings.Contains(err.Error(), "Port") {
+		t.Errorf("error should mention Port, got: %v", err)
 	}
 }
 

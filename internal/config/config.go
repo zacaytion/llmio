@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+
+	"github.com/zacaytion/llmio/internal/validation"
 )
 
 // Config holds all application configuration.
@@ -18,42 +20,24 @@ type Config struct {
 }
 
 // Validate checks if all configuration sections have valid values.
-// Returns an error describing all validation failures across all sections.
+// Uses go-playground/validator for declarative struct validation.
 func (c Config) Validate() error {
-	var errs []error
-
-	if err := c.Database.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-	if err := c.Server.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-	if err := c.Session.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-	if err := c.Logging.Validate(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if len(errs) > 0 {
-		return errors.Join(errs...)
-	}
-	return nil
+	return validation.Validate(c)
 }
 
 // DatabaseConfig holds database connection settings.
 type DatabaseConfig struct {
-	Host              string        `mapstructure:"host"`
-	Port              int           `mapstructure:"port"`
-	User              string        `mapstructure:"user"`
+	Host              string        `mapstructure:"host" validate:"required"`
+	Port              int           `mapstructure:"port" validate:"required,min=1,max=65535"`
+	User              string        `mapstructure:"user" validate:"required"`
 	Password          string        `mapstructure:"password"`
-	Name              string        `mapstructure:"name"`
-	SSLMode           string        `mapstructure:"sslmode"`
-	MaxConns          int32         `mapstructure:"max_conns"`
-	MinConns          int32         `mapstructure:"min_conns"`
-	MaxConnLifetime   time.Duration `mapstructure:"max_conn_lifetime"`
-	MaxConnIdleTime   time.Duration `mapstructure:"max_conn_idle_time"`
-	HealthCheckPeriod time.Duration `mapstructure:"health_check_period"`
+	Name              string        `mapstructure:"name" validate:"required"`
+	SSLMode           string        `mapstructure:"sslmode" validate:"required,sslmode"`
+	MaxConns          int32         `mapstructure:"max_conns" validate:"required,min=1"`
+	MinConns          int32         `mapstructure:"min_conns" validate:"min=0,ltefield=MaxConns"`
+	MaxConnLifetime   time.Duration `mapstructure:"max_conn_lifetime" validate:"required,gt=0"`
+	MaxConnIdleTime   time.Duration `mapstructure:"max_conn_idle_time" validate:"required,gt=0"`
+	HealthCheckPeriod time.Duration `mapstructure:"health_check_period" validate:"required,gt=0"`
 }
 
 // SSLMode represents valid PostgreSQL SSL modes.
@@ -84,51 +68,6 @@ func (m SSLMode) String() string {
 	return string(m)
 }
 
-// Validate checks if the DatabaseConfig has valid values.
-// Returns an error describing all validation failures, or nil if valid.
-func (c DatabaseConfig) Validate() error {
-	var errs []string
-
-	if c.Host == "" {
-		errs = append(errs, "database.host cannot be empty")
-	}
-	if c.Port < 1 || c.Port > 65535 {
-		errs = append(errs, fmt.Sprintf("database.port must be 1-65535, got %d", c.Port))
-	}
-	if c.User == "" {
-		errs = append(errs, "database.user cannot be empty")
-	}
-	if c.Name == "" {
-		errs = append(errs, "database.name cannot be empty")
-	}
-	if !SSLMode(c.SSLMode).Valid() {
-		errs = append(errs, fmt.Sprintf("database.sslmode must be one of: disable, allow, prefer, require, verify-ca, verify-full; got %q", c.SSLMode))
-	}
-	if c.MaxConns < 1 {
-		errs = append(errs, fmt.Sprintf("database.max_conns must be positive, got %d", c.MaxConns))
-	}
-	if c.MinConns < 0 {
-		errs = append(errs, fmt.Sprintf("database.min_conns cannot be negative, got %d", c.MinConns))
-	}
-	if c.MinConns > c.MaxConns {
-		errs = append(errs, fmt.Sprintf("database.min_conns (%d) cannot exceed max_conns (%d)", c.MinConns, c.MaxConns))
-	}
-	if c.MaxConnLifetime <= 0 {
-		errs = append(errs, fmt.Sprintf("database.max_conn_lifetime must be positive, got %v", c.MaxConnLifetime))
-	}
-	if c.MaxConnIdleTime <= 0 {
-		errs = append(errs, fmt.Sprintf("database.max_conn_idle_time must be positive, got %v", c.MaxConnIdleTime))
-	}
-	if c.HealthCheckPeriod <= 0 {
-		errs = append(errs, fmt.Sprintf("database.health_check_period must be positive, got %v", c.HealthCheckPeriod))
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("database config validation failed: %s", strings.Join(errs, "; "))
-	}
-	return nil
-}
-
 // DSN returns the PostgreSQL connection string.
 // Passwords are single-quoted and escaped to handle special characters
 // (spaces, single quotes, backslashes, equals signs).
@@ -153,56 +92,16 @@ func escapePassword(password string) string {
 
 // ServerConfig holds HTTP server settings.
 type ServerConfig struct {
-	Port         int           `mapstructure:"port"`
-	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
-	WriteTimeout time.Duration `mapstructure:"write_timeout"`
-	IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
-}
-
-// Validate checks if the ServerConfig has valid values.
-func (c ServerConfig) Validate() error {
-	var errs []string
-
-	if c.Port < 1 || c.Port > 65535 {
-		errs = append(errs, fmt.Sprintf("server.port must be 1-65535, got %d", c.Port))
-	}
-	if c.ReadTimeout <= 0 {
-		errs = append(errs, fmt.Sprintf("server.read_timeout must be positive, got %v", c.ReadTimeout))
-	}
-	if c.WriteTimeout <= 0 {
-		errs = append(errs, fmt.Sprintf("server.write_timeout must be positive, got %v", c.WriteTimeout))
-	}
-	if c.IdleTimeout <= 0 {
-		errs = append(errs, fmt.Sprintf("server.idle_timeout must be positive, got %v", c.IdleTimeout))
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("server config validation failed: %s", strings.Join(errs, "; "))
-	}
-	return nil
+	Port         int           `mapstructure:"port" validate:"required,min=1,max=65535"`
+	ReadTimeout  time.Duration `mapstructure:"read_timeout" validate:"required,gt=0"`
+	WriteTimeout time.Duration `mapstructure:"write_timeout" validate:"required,gt=0"`
+	IdleTimeout  time.Duration `mapstructure:"idle_timeout" validate:"required,gt=0"`
 }
 
 // SessionConfig holds session management settings.
 type SessionConfig struct {
-	Duration        time.Duration `mapstructure:"duration"`
-	CleanupInterval time.Duration `mapstructure:"cleanup_interval"`
-}
-
-// Validate checks if the SessionConfig has valid values.
-func (c SessionConfig) Validate() error {
-	var errs []string
-
-	if c.Duration <= 0 {
-		errs = append(errs, fmt.Sprintf("session.duration must be positive, got %v", c.Duration))
-	}
-	if c.CleanupInterval <= 0 {
-		errs = append(errs, fmt.Sprintf("session.cleanup_interval must be positive, got %v", c.CleanupInterval))
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("session config validation failed: %s", strings.Join(errs, "; "))
-	}
-	return nil
+	Duration        time.Duration `mapstructure:"duration" validate:"required,gt=0"`
+	CleanupInterval time.Duration `mapstructure:"cleanup_interval" validate:"required,gt=0"`
 }
 
 // LogLevel represents valid log levels.
@@ -257,30 +156,9 @@ func (f LogFormat) String() string {
 
 // LoggingConfig holds logging settings.
 type LoggingConfig struct {
-	Level  string `mapstructure:"level"`
-	Format string `mapstructure:"format"`
-	Output string `mapstructure:"output"`
-}
-
-// Validate checks if the LoggingConfig has valid values.
-func (c LoggingConfig) Validate() error {
-	var errs []string
-
-	if !LogLevel(c.Level).Valid() {
-		errs = append(errs, fmt.Sprintf("logging.level must be one of: debug, info, warn, error; got %q", c.Level))
-	}
-	if !LogFormat(c.Format).Valid() {
-		errs = append(errs, fmt.Sprintf("logging.format must be one of: json, text; got %q", c.Format))
-	}
-	// Output can be "stdout", "stderr", or any file path - we don't validate file existence here
-	if c.Output == "" {
-		errs = append(errs, "logging.output cannot be empty")
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("logging config validation failed: %s", strings.Join(errs, "; "))
-	}
-	return nil
+	Level  string `mapstructure:"level" validate:"required,loglevel"`
+	Format string `mapstructure:"format" validate:"required,logformat"`
+	Output string `mapstructure:"output" validate:"required"`
 }
 
 // NewViper creates a new Viper instance with defaults set.
