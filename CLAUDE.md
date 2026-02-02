@@ -27,6 +27,18 @@ sqlc generate                 # Regenerate DB types from queries
 - Config has `interface{}` → `any` rewrite rule; use `any` not `interface{}`
 - errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
 - Avoid naming local variables `api` when importing `internal/api` package
+- Port 8080 typically occupied by `gvproxy` (Docker/Podman); use `PORT=8081` for Go server
+
+### Goose Migrations
+
+- Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix
+- pgTap schema tests belong in `tests/pgtap/`, NOT in migrations directory
+
+### PostgreSQL Access
+
+- Use `psql-18` (not `psql`) with `-h localhost -U z` and `PGPASSWORD=password`
+- Example: `PGPASSWORD=password psql-18 -h localhost -U z -d loomio_development -c "SELECT 1;"`
+- Server env vars: `DB_USER=z DB_PASSWORD=password DB_HOST=localhost`
 
 ### Version Management (mise)
 

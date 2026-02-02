@@ -160,9 +160,9 @@
 - [x] T057 [P] Add request logging middleware in internal/api/middleware.go
 - [x] T058 [P] Add input sanitization for email (lowercase, trim) across all endpoints
 - [x] T059 Run full test suite: `go test ./... -v`
-- [ ] T060 Validate against quickstart.md curl examples
+- [x] T060 Validate against quickstart.md curl examples
 - [x] T061 Run golangci-lint and fix any issues
-- [ ] T062 Verify all acceptance scenarios from spec.md pass manually
+- [x] T062 Verify all acceptance scenarios from spec.md pass manually
 
 ---
 
