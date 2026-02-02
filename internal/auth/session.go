@@ -31,12 +31,22 @@ func (s *Session) IsExpired() bool {
 
 // SessionStore manages in-memory sessions.
 type SessionStore struct {
-	sessions sync.Map // map[token]Session
+	sessions sync.Map      // map[token]Session
+	duration time.Duration // configurable session duration
 }
 
-// NewSessionStore creates a new in-memory session store.
+// NewSessionStore creates a new in-memory session store with default duration.
 func NewSessionStore() *SessionStore {
-	return &SessionStore{}
+	return &SessionStore{
+		duration: SessionDuration,
+	}
+}
+
+// NewSessionStoreWithConfig creates a session store with custom duration.
+func NewSessionStoreWithConfig(duration time.Duration) *SessionStore {
+	return &SessionStore{
+		duration: duration,
+	}
 }
 
 // Create generates a new session for the given user.
@@ -51,7 +61,7 @@ func (s *SessionStore) Create(userID int64, userAgent, ipAddress string) (*Sessi
 		Token:     token,
 		UserID:    userID,
 		CreatedAt: now,
-		ExpiresAt: now.Add(SessionDuration),
+		ExpiresAt: now.Add(s.duration),
 		UserAgent: userAgent,
 		IPAddress: ipAddress,
 	}

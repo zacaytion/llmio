@@ -1,0 +1,286 @@
+# Tasks: Configuration System
+
+**Input**: Design documents from `/specs/002-config-system/`
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, quickstart.md
+
+**Tests**: Included per Constitution Principle I (Test-First Development)
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+- **Go module**: `cmd/`, `internal/` at repository root
+- Config files at repository root
+
+---
+
+## Phase 1: Setup (Dependencies & Project Structure)
+
+**Purpose**: Add dependencies and create new package directories
+
+- [x] T001 Add Viper dependency with `go get github.com/spf13/viper`
+- [x] T002 [P] Create directory `internal/config/`
+- [x] T003 [P] Create directory `internal/logging/`
+- [x] T004 [P] Update `.gitignore` to add `config.yaml` and `config.local.yaml`
+
+---
+
+## Phase 2: Foundational (Config Structs & Core Loading)
+
+**Purpose**: Core config infrastructure that MUST be complete before ANY user story can be implemented
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+### Tests for Foundational
+
+- [x] T005 [P] Write failing test for Config struct existence in `internal/config/config_test.go`
+- [x] T006 [P] Write failing test for Load() with defaults in `internal/config/config_test.go`
+- [x] T007 [P] Write failing test for DatabaseConfig.DSN() method in `internal/config/config_test.go`
+
+### Implementation for Foundational
+
+- [x] T008 Create Config, DatabaseConfig, ServerConfig, SessionConfig, LoggingConfig structs in `internal/config/config.go`
+- [x] T009 Implement DatabaseConfig.DSN() method in `internal/config/config.go`
+- [x] T010 Implement setDefaults() function with all default values in `internal/config/config.go`
+- [x] T011 Implement Load() function with Viper file discovery in `internal/config/config.go`
+- [x] T012 Run tests to verify foundational config works: `go test ./internal/config/... -v`
+
+**Checkpoint**: Foundation ready - config structs exist and Load() returns defaults
+
+---
+
+## Phase 3: User Story 1 - Developer Configures Local Environment (Priority: P1) 🎯 MVP
+
+**Goal**: Developer creates config.yaml with custom values and server uses them
+
+**Independent Test**: Create config file → Start server → Verify server uses config values
+
+### Tests for User Story 1
+
+- [x] T013 [P] [US1] Write failing test for YAML file loading in `internal/config/config_test.go`
+- [x] T014 [P] [US1] Write failing test for NewPoolFromConfig() in `internal/db/pool_test.go`
+- [x] T015 [P] [US1] Write failing test for NewSessionStoreWithConfig() in `internal/auth/session_test.go`
+
+### Implementation for User Story 1
+
+- [x] T016 [US1] Add YAML file reading to Load() in `internal/config/config.go`
+- [x] T017 [US1] Add NewPoolFromConfig() function in `internal/db/pool.go`
+- [x] T018 [US1] Add duration field to SessionStore and NewSessionStoreWithConfig() in `internal/auth/session.go`
+- [x] T019 [US1] Create `config.example.yaml` with all settings and placeholder values
+- [x] T020 [US1] Rewrite `cmd/server/main.go` with Cobra root command and config loading
+- [x] T021 [US1] Update server to use NewPoolFromConfig() and NewSessionStoreWithConfig()
+- [x] T022 [US1] Run tests and verify server starts with config file: `go test ./... -v`
+
+**Checkpoint**: Server starts with `--config config.yaml` using configured values
+
+---
+
+## Phase 4: User Story 2 - Developer Runs Tests Against Test Database (Priority: P1)
+
+**Goal**: Developer uses config.test.yaml to run tests against isolated loomio_test database
+
+**Independent Test**: Create test config → Run migrate → Run tests → Verify test DB used
+
+### Tests for User Story 2
+
+- [x] T023 [P] [US2] Write test verifying config.test.yaml loads different database name in `internal/config/config_test.go`
+
+### Implementation for User Story 2
+
+- [x] T024 [US2] Create `config.test.yaml` pointing to loomio_test database
+- [x] T025 [US2] Rewrite `cmd/migrate/main.go` with Cobra (up/down/status subcommands) and config loading
+- [x] T026 [US2] Add --config flag to migrate command for test config support
+- [x] T027 [US2] Verify migrate works with test config: `go run ./cmd/migrate --config config.test.yaml status`
+
+**Checkpoint**: Migrations run against test database when using config.test.yaml
+
+---
+
+## Phase 5: User Story 3 - Developer Overrides Config via Command Line (Priority: P2)
+
+**Goal**: CLI flags override config file values (--port, --log-level, etc.)
+
+**Independent Test**: Start server with --port 9000 → Verify server listens on 9000 despite config file
+
+### Tests for User Story 3
+
+- [x] T028 [P] [US3] Write test verifying CLI flag overrides config file value in `internal/config/config_test.go`
+
+### Implementation for User Story 3
+
+- [x] T029 [US3] Add all server CLI flags (--port, --db-*, --session-*, --log-*) in `cmd/server/main.go`
+- [x] T030 [US3] Bind CLI flags to Viper for priority override in `cmd/server/main.go`
+- [x] T031 [US3] Add database CLI flags to migrate command in `cmd/migrate/main.go`
+- [x] T032 [US3] Verify CLI override: `go run ./cmd/server --port 9000` uses port 9000
+
+**Checkpoint**: CLI flags take precedence over config file values
+
+---
+
+## Phase 6: User Story 4 - Developer Uses Environment Variables (Priority: P2)
+
+**Goal**: Environment variables override config file but are overridden by CLI flags
+
+**Independent Test**: Set LOOMIO_SERVER_PORT=9000 → Start server → Verify port 9000
+
+### Tests for User Story 4
+
+- [x] T033 [P] [US4] Write test for env var override (LOOMIO_*) in `internal/config/config_test.go`
+
+### Implementation for User Story 4
+
+- [x] T034 [US4] Add SetEnvPrefix("LOOMIO") and AutomaticEnv() to Load() in `internal/config/config.go`
+- [x] T035 [US4] Verify env var override: `LOOMIO_SERVER_PORT=9000 go run ./cmd/server` uses port 9000
+
+**Checkpoint**: Environment variables (LOOMIO_*) override config file values
+
+---
+
+## Phase 7: User Story 5 - Developer Views Structured Logs (Priority: P3)
+
+**Goal**: Configurable structured logging with slog (JSON by default, level filtering)
+
+**Independent Test**: Set log format to JSON → Make request → Verify JSON log output
+
+### Tests for User Story 5
+
+- [x] T036 [P] [US5] Write failing test for logging.Setup() with JSON format in `internal/logging/logging_test.go`
+- [x] T037 [P] [US5] Write failing test for log level filtering in `internal/logging/logging_test.go`
+- [x] T038 [P] [US5] Write failing test for log file fallback to stdout in `internal/logging/logging_test.go`
+
+### Implementation for User Story 5
+
+- [x] T039 [US5] Create logging.Setup() function in `internal/logging/logging.go`
+- [x] T040 [US5] Implement JSON and text format handlers in `internal/logging/logging.go`
+- [x] T041 [US5] Implement log level parsing (debug/info/warn/error) in `internal/logging/logging.go`
+- [x] T042 [US5] Implement file output with fallback to stdout on error in `internal/logging/logging.go`
+- [x] T043 [US5] Replace log.Printf with slog calls in `internal/api/logging.go`
+- [x] T044 [US5] Replace log.Printf with slog.Info in `internal/api/middleware.go`
+- [x] T045 [US5] Call logging.Setup() in server startup in `cmd/server/main.go`
+- [x] T046 [US5] Run tests and verify JSON logs: `go test ./internal/logging/... -v`
+
+**Checkpoint**: Server outputs structured JSON logs by default, respects log level config
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final validation and cleanup
+
+- [x] T047 Run full test suite: `go test ./... -v`
+- [x] T048 Run linter: `golangci-lint run ./...`
+- [x] T049 Verify server starts with defaults: `go run ./cmd/server`
+- [x] T050 Verify server starts with config: `go run ./cmd/server --config config.example.yaml`
+- [x] T051 Verify migrate with test config: `go run ./cmd/migrate --config config.test.yaml status`
+- [x] T052 Run quickstart.md validation scenarios manually
+- [x] T053 Remove old getEnv() helper from `cmd/server/main.go` if still present
+- [x] T054 Final commit with all changes
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Stories (Phase 3-7)**: All depend on Foundational phase completion
+  - US1 and US2 are both P1 and can proceed in parallel
+  - US3 and US4 are P2 and depend on US1 (need server rewrite)
+  - US5 is P3 and can proceed independently after Foundation
+- **Polish (Phase 8)**: Depends on all user stories being complete
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
+- **User Story 2 (P1)**: Can start after Foundational (Phase 2) - Can run in parallel with US1
+- **User Story 3 (P2)**: Depends on US1 (needs Cobra server from US1)
+- **User Story 4 (P2)**: Depends on US1 (needs Load() function from US1)
+- **User Story 5 (P3)**: Can start after Foundational - only needs logging package
+
+### Within Each User Story
+
+- Tests MUST be written and FAIL before implementation
+- Config package changes before consumer changes (db/pool, auth/session)
+- Core implementation before CLI integration
+- Story complete before moving to next priority
+
+### Parallel Opportunities
+
+- T002, T003, T004 (Setup) can run in parallel
+- T005, T006, T007 (Foundation tests) can run in parallel
+- T013, T014, T015 (US1 tests) can run in parallel
+- T036, T037, T038 (US5 tests) can run in parallel
+- US1 and US2 can be worked on in parallel (both P1)
+- US5 (logging) can be worked on in parallel with US3/US4
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Launch all tests for User Story 1 together:
+Task: "Write failing test for YAML file loading in internal/config/config_test.go"
+Task: "Write failing test for NewPoolFromConfig() in internal/db/pool_test.go"
+Task: "Write failing test for NewSessionStoreWithConfig() in internal/auth/session_test.go"
+```
+
+## Parallel Example: User Story 5
+
+```bash
+# Launch all tests for User Story 5 together (T036, T037, T038):
+Task: "Write failing test for logging.Setup() with JSON format in internal/logging/logging_test.go"
+Task: "Write failing test for log level filtering in internal/logging/logging_test.go"
+Task: "Write failing test for log file fallback to stdout in internal/logging/logging_test.go"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
+3. Complete Phase 3: User Story 1
+4. **STOP and VALIDATE**: Test User Story 1 independently
+5. Deploy/demo if ready - developers can now use config files!
+
+### Incremental Delivery
+
+1. Complete Setup + Foundational → Foundation ready
+2. Add User Story 1 → Test independently → Config files work!
+3. Add User Story 2 → Test independently → Test database works!
+4. Add User Story 3 → Test independently → CLI flags work!
+5. Add User Story 4 → Test independently → Env vars work!
+6. Add User Story 5 → Test independently → Structured logs!
+7. Each story adds value without breaking previous stories
+
+### Parallel Team Strategy
+
+With multiple developers:
+
+1. Team completes Setup + Foundational together
+2. Once Foundational is done:
+   - Developer A: User Story 1 + User Story 3 (sequential - US3 needs US1)
+   - Developer B: User Story 2
+   - Developer C: User Story 4 + User Story 5 (US4 needs US1, then US5 is independent)
+3. Stories complete and integrate independently
+
+---
+
+## Notes
+
+- [P] tasks = different files, no dependencies
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Verify tests fail before implementing (TDD per Constitution)
+- Commit after each task or logical group
+- Stop at any checkpoint to validate story independently
+- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence

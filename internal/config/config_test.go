@@ -1,0 +1,340 @@
+package config
+
+import (
+	"os"
+	"testing"
+	"time"
+)
+
+// T005: Test for Config struct existence.
+func TestConfigStructs(t *testing.T) {
+	// Verify structs can be instantiated with expected fields
+	cfg := Config{
+		Database: DatabaseConfig{
+			Host:              "localhost",
+			Port:              5432,
+			User:              "postgres",
+			Password:          "secret",
+			Name:              "testdb",
+			SSLMode:           "disable",
+			MaxConns:          25,
+			MinConns:          2,
+			MaxConnLifetime:   time.Hour,
+			MaxConnIdleTime:   30 * time.Minute,
+			HealthCheckPeriod: time.Minute,
+		},
+		Server: ServerConfig{
+			Port:         8080,
+			ReadTimeout:  15 * time.Second,
+			WriteTimeout: 15 * time.Second,
+			IdleTimeout:  60 * time.Second,
+		},
+		Session: SessionConfig{
+			Duration:        168 * time.Hour,
+			CleanupInterval: 10 * time.Minute,
+		},
+		Logging: LoggingConfig{
+			Level:  "info",
+			Format: "json",
+			Output: "stdout",
+		},
+	}
+
+	if cfg.Database.Host != "localhost" {
+		t.Errorf("expected localhost, got %s", cfg.Database.Host)
+	}
+	if cfg.Server.Port != 8080 {
+		t.Errorf("expected 8080, got %d", cfg.Server.Port)
+	}
+	if cfg.Session.Duration != 168*time.Hour {
+		t.Errorf("expected 168h, got %v", cfg.Session.Duration)
+	}
+	if cfg.Logging.Format != "json" {
+		t.Errorf("expected json, got %s", cfg.Logging.Format)
+	}
+}
+
+// T006: Test for Load() with defaults.
+//
+//nolint:gocyclo // Test function validating many config defaults - complexity is intentional
+func TestLoad_Defaults(t *testing.T) {
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Database defaults
+	if cfg.Database.Host != "localhost" {
+		t.Errorf("expected localhost, got %s", cfg.Database.Host)
+	}
+	if cfg.Database.Port != 5432 {
+		t.Errorf("expected 5432, got %d", cfg.Database.Port)
+	}
+	if cfg.Database.User != "postgres" {
+		t.Errorf("expected postgres, got %s", cfg.Database.User)
+	}
+	if cfg.Database.Name != "loomio_development" {
+		t.Errorf("expected loomio_development, got %s", cfg.Database.Name)
+	}
+	if cfg.Database.SSLMode != "disable" {
+		t.Errorf("expected disable, got %s", cfg.Database.SSLMode)
+	}
+	if cfg.Database.MaxConns != 25 {
+		t.Errorf("expected 25, got %d", cfg.Database.MaxConns)
+	}
+	if cfg.Database.MinConns != 2 {
+		t.Errorf("expected 2, got %d", cfg.Database.MinConns)
+	}
+	if cfg.Database.MaxConnLifetime != time.Hour {
+		t.Errorf("expected 1h, got %v", cfg.Database.MaxConnLifetime)
+	}
+	if cfg.Database.MaxConnIdleTime != 30*time.Minute {
+		t.Errorf("expected 30m, got %v", cfg.Database.MaxConnIdleTime)
+	}
+	if cfg.Database.HealthCheckPeriod != time.Minute {
+		t.Errorf("expected 1m, got %v", cfg.Database.HealthCheckPeriod)
+	}
+
+	// Server defaults
+	if cfg.Server.Port != 8080 {
+		t.Errorf("expected 8080, got %d", cfg.Server.Port)
+	}
+	if cfg.Server.ReadTimeout != 15*time.Second {
+		t.Errorf("expected 15s, got %v", cfg.Server.ReadTimeout)
+	}
+	if cfg.Server.WriteTimeout != 15*time.Second {
+		t.Errorf("expected 15s, got %v", cfg.Server.WriteTimeout)
+	}
+	if cfg.Server.IdleTimeout != 60*time.Second {
+		t.Errorf("expected 60s, got %v", cfg.Server.IdleTimeout)
+	}
+
+	// Session defaults
+	if cfg.Session.Duration != 168*time.Hour {
+		t.Errorf("expected 168h, got %v", cfg.Session.Duration)
+	}
+	if cfg.Session.CleanupInterval != 10*time.Minute {
+		t.Errorf("expected 10m, got %v", cfg.Session.CleanupInterval)
+	}
+
+	// Logging defaults
+	if cfg.Logging.Level != "info" {
+		t.Errorf("expected info, got %s", cfg.Logging.Level)
+	}
+	if cfg.Logging.Format != "json" {
+		t.Errorf("expected json, got %s", cfg.Logging.Format)
+	}
+	if cfg.Logging.Output != "stdout" {
+		t.Errorf("expected stdout, got %s", cfg.Logging.Output)
+	}
+}
+
+// T033: Test for environment variable override (LOOMIO_*).
+func TestLoad_EnvVarOverride(t *testing.T) {
+	// Set environment variable
+	t.Setenv("LOOMIO_SERVER_PORT", "9001")
+	t.Setenv("LOOMIO_DATABASE_NAME", "loomio_from_env")
+
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Env var should override default
+	if cfg.Server.Port != 9001 {
+		t.Errorf("expected 9001 (from LOOMIO_SERVER_PORT), got %d", cfg.Server.Port)
+	}
+	if cfg.Database.Name != "loomio_from_env" {
+		t.Errorf("expected loomio_from_env (from LOOMIO_DATABASE_NAME), got %s", cfg.Database.Name)
+	}
+}
+
+// T028: Test for CLI flag override of config file value.
+func TestLoadWithViper_CLIOverride(t *testing.T) {
+	// Create a temporary YAML config file
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config.yaml"
+
+	yamlContent := `
+server:
+  port: 8080
+database:
+  name: loomio_development
+`
+	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	// Create a viper instance with CLI flag bound
+	v := NewViper()
+
+	// Simulate CLI flag override
+	v.Set("server.port", 9000)
+
+	cfg, err := LoadWithViper(v, configPath)
+	if err != nil {
+		t.Fatalf("LoadWithViper failed: %v", err)
+	}
+
+	// CLI flag should override config file value
+	if cfg.Server.Port != 9000 {
+		t.Errorf("expected 9000 (CLI override), got %d", cfg.Server.Port)
+	}
+
+	// Config file value should still apply where not overridden
+	if cfg.Database.Name != "loomio_development" {
+		t.Errorf("expected loomio_development, got %s", cfg.Database.Name)
+	}
+}
+
+// T023: Test for config.test.yaml loading different database name.
+func TestLoad_TestConfig(t *testing.T) {
+	// Create a temporary test config file
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config.test.yaml"
+
+	yamlContent := `
+database:
+  host: localhost
+  port: 5432
+  user: testuser
+  password: testpass
+  name: loomio_test
+  max_conns: 5
+  min_conns: 1
+server:
+  port: 8081
+session:
+  duration: 1h
+  cleanup_interval: 1m
+logging:
+  level: warn
+  format: text
+`
+	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Verify test database name is different from development
+	if cfg.Database.Name != "loomio_test" {
+		t.Errorf("expected loomio_test, got %s", cfg.Database.Name)
+	}
+	if cfg.Database.Name == "loomio_development" {
+		t.Error("test config should NOT use development database")
+	}
+
+	// Verify other test-specific settings
+	if cfg.Database.MaxConns != 5 {
+		t.Errorf("expected 5, got %d", cfg.Database.MaxConns)
+	}
+	if cfg.Server.Port != 8081 {
+		t.Errorf("expected 8081, got %d", cfg.Server.Port)
+	}
+	if cfg.Session.Duration != time.Hour {
+		t.Errorf("expected 1h, got %v", cfg.Session.Duration)
+	}
+	if cfg.Logging.Level != "warn" {
+		t.Errorf("expected warn, got %s", cfg.Logging.Level)
+	}
+}
+
+// T013: Test for YAML file loading.
+func TestLoad_YAMLFile(t *testing.T) {
+	// Create a temporary YAML config file
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config.yaml"
+
+	yamlContent := `
+database:
+  host: testhost
+  port: 5433
+  user: testuser
+  password: testpass
+  name: testdb
+server:
+  port: 9000
+`
+	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Verify YAML values override defaults
+	if cfg.Database.Host != "testhost" {
+		t.Errorf("expected testhost, got %s", cfg.Database.Host)
+	}
+	if cfg.Database.Port != 5433 {
+		t.Errorf("expected 5433, got %d", cfg.Database.Port)
+	}
+	if cfg.Database.User != "testuser" {
+		t.Errorf("expected testuser, got %s", cfg.Database.User)
+	}
+	if cfg.Database.Password != "testpass" {
+		t.Errorf("expected testpass, got %s", cfg.Database.Password)
+	}
+	if cfg.Database.Name != "testdb" {
+		t.Errorf("expected testdb, got %s", cfg.Database.Name)
+	}
+	if cfg.Server.Port != 9000 {
+		t.Errorf("expected 9000, got %d", cfg.Server.Port)
+	}
+
+	// Verify defaults still apply for unspecified values
+	if cfg.Database.SSLMode != "disable" {
+		t.Errorf("expected disable (default), got %s", cfg.Database.SSLMode)
+	}
+	if cfg.Logging.Format != "json" {
+		t.Errorf("expected json (default), got %s", cfg.Logging.Format)
+	}
+}
+
+// T007: Test for DatabaseConfig.DSN() method.
+func TestDatabaseConfig_DSN(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   DatabaseConfig
+		expected string
+	}{
+		{
+			name: "without password",
+			config: DatabaseConfig{
+				Host:    "localhost",
+				Port:    5432,
+				User:    "postgres",
+				Name:    "testdb",
+				SSLMode: "disable",
+			},
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable",
+		},
+		{
+			name: "with password",
+			config: DatabaseConfig{
+				Host:     "db.example.com",
+				Port:     5433,
+				User:     "admin",
+				Password: "secret",
+				Name:     "proddb",
+				SSLMode:  "require",
+			},
+			expected: "host=db.example.com port=5433 user=admin dbname=proddb sslmode=require password=secret",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.config.DSN()
+			if got != tt.expected {
+				t.Errorf("DSN() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}

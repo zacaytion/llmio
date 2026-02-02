@@ -28,6 +28,8 @@ sqlc generate                 # Regenerate DB types from queries
 - errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
 - Avoid naming local variables `api` when importing `internal/api` package
 - Port 8080 typically occupied by `gvproxy` (Docker/Podman); use `PORT=8081` for Go server
+- Viper requires `mapstructure` tags on config structs (not `yaml` or `json`)
+- Viper durations: use `time.Duration` values directly in `SetDefault()`, not strings
 
 ### Error Handling Patterns
 
@@ -195,7 +197,8 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 
 ### Superpowers Integration
 
-- `/superpowers:brainstorming` - Before specifying, explore requirements
+- `/superpowers:brainstorming` - FIRST step before any feature work; explores requirements via Q&A
+- `/superpowers:writing-plans` - Creates detailed bite-sized task plans from specs
 - `/superpowers:test-driven-development` - During implementation, enforce Red-Green-Refactor
 - `/superpowers:verification-before-completion` - Before claiming done, verify tests pass
 
@@ -216,6 +219,8 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2 (001-user-auth)
 - goose/v3 for database migrations (001-user-auth)
 - PostgreSQL 18 for users; in-memory Go map for sessions (MVP) (001-user-auth)
+- Go 1.25+ + Viper (config), Cobra (CLI), log/slog (stdlib logging) (002-config-system)
+- PostgreSQL 18 (existing), YAML config files (new) (002-config-system)
 
 ## Recent Changes
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2
