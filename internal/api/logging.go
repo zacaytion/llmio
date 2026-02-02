@@ -1,4 +1,3 @@
-// Package api provides HTTP handlers and middleware.
 package api
 
 import (

@@ -389,6 +389,41 @@ With multiple developers:
 
 ---
 
+## Phase 10: Linter Configuration & Cleanup
+
+**Input**: Additional linter enablement and godoclint fixes
+
+**Purpose**: Enable stricter linting and fix resulting issues
+
+### Phase 10.1: Linter Configuration
+
+- [x] T070 [P] Enable errorlint in `.golangci.yml` for proper error wrapping checks
+- [x] T071 [P] Enable sloglint in `.golangci.yml` for slog best practices
+- [x] T072 [P] Enable iface in `.golangci.yml` for interface analysis
+- [x] T073 [P] Enable godoclint in `.golangci.yml` with relaxed settings (max-len: 100, no require-doc)
+- [x] T074 [P] Add errcheck type assertion checking in `.golangci.yml`
+
+### Phase 10.2: Godoclint Fixes
+
+- [x] T075 Remove duplicate package doc from `internal/api/logging.go` (keep doc in dto.go)
+
+### Phase 10.3: Error Handling Fixes
+
+- [x] T076 Fix `internal/auth/key_test.go` to use `errors.Is()` instead of direct comparison
+
+### Phase 10.4: Documentation Updates
+
+- [x] T077 Update CLAUDE.md with learnings from config system implementation
+
+### Phase 10.5: Verification
+
+- [x] T078 Run linter: `golangci-lint run ./...`
+- [x] T079 Commit changes with message: `chore: enable additional linters and fix godoclint issues`
+
+**Checkpoint**: All linter issues resolved with stricter configuration
+
+---
+
 ## Notes
 
 - [P] tasks = different files, no dependencies

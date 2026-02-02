@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"regexp"
 	"testing"
 )
@@ -74,7 +75,7 @@ func TestMakePublicKeyUnique_ErrorAfterMaxAttempts(t *testing.T) {
 	if err == nil {
 		t.Error("MakePublicKeyUnique() expected error after 100 attempts, got nil")
 	}
-	if err != ErrKeyGenerationFailed {
+	if !errors.Is(err, ErrKeyGenerationFailed) {
 		t.Errorf("MakePublicKeyUnique() error = %v, want ErrKeyGenerationFailed", err)
 	}
 }

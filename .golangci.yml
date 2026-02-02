@@ -3,6 +3,7 @@ linters:
   default: standard
   enable:
     - errcheck
+    - errorlint
     - govet
     - staticcheck
     - unused
@@ -15,7 +16,21 @@ linters:
     - gocyclo
     - nolintlint
     - predeclared
+    - sloglint
+    - iface
+    - nosprintfhostport
+    - predeclared
+    - interfacebloat
+    - inamedparam
+    - godoclint
   settings:
+    errcheck:
+      check-type-assertions: true
+    errorlint:
+      errorf: true
+      errorf-multi: true
+      asserts: true
+      comparison: true
     embeddedstructfieldcheck:
       forbid-mutex: true
     gocyclo:
@@ -25,6 +40,19 @@ linters:
         # Exclude todo and fixme comments.
         - "^fixme:"
         - "^todo:"
+    godoclint:
+      require-pkg-doc: false
+      require-doc: false
+      max-len: 100
+      require-stdlib-doclink: true
+    sloglint:
+      context: "scope"
+      msg-style: lowercased
+      key-naming-case: snake
+    iface:
+      enable:
+        - identical # Identifies interfaces in the same package that have identical method sets.
+        - opaque # Identifies functions that return interfaces, but the actual returned value is always a single concrete implementation.
   exclusions:
     generated: lax
 formatters:

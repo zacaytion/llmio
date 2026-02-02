@@ -26,10 +26,13 @@ sqlc generate                 # Regenerate DB types from queries
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
 - Config has `interface{}` → `any` rewrite rule; use `any` not `interface{}`
 - errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
+- errcheck requires checked type assertions: `val, ok := x.(*Type)` not `val := x.(*Type)`
 - Avoid naming local variables `api` when importing `internal/api` package
 - Port 8080 typically occupied by `gvproxy` (Docker/Podman); use `PORT=8081` for Go server
 - Viper requires `mapstructure` tags on config structs (not `yaml` or `json`)
 - Viper durations: use `time.Duration` values directly in `SetDefault()`, not strings
+- Viper file not found: use `if !errors.As(err, &viper.ConfigFileNotFoundError{})` to ignore missing files
+- PostgreSQL DSN passwords: single-quote and escape (`\\` then `\'`) for special chars
 
 ### Error Handling Patterns
 
@@ -38,6 +41,11 @@ sqlc generate                 # Regenerate DB types from queries
 - Crypto/rand failures should panic (not silent fallback) - security-critical
 - Auth failures: log reason server-side, return generic "Invalid credentials" to client
 - Always call `LogDBError(ctx, "OperationName", err)` before returning 500 for DB errors
+
+### Logging Patterns
+
+- Use `logging.SetupDefaultWithCleanup()` to get cleanup function for file handles
+- Cleanup function is no-op for stdout/stderr, closes file for file output
 
 ### Security Patterns
 
@@ -109,6 +117,8 @@ Conventional commits enforced via commitlint. Valid types:
 `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `plan`, `refactor`, `revert`, `style`, `test`
 
 Pre-commit hooks run `golangci-lint` on Go files.
+
+**Pre-commit gotcha**: Linter runs on ALL Go files, not just staged ones. Pre-existing errors anywhere block commits.
 
 ## Architecture
 
@@ -194,6 +204,11 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - `.specify/memory/constitution.md` - Project principles (TDD mandatory, spec-first API, security-first)
 - `.specify/templates/` - Templates for spec, plan, tasks
 - `specs/N-feature-name/` - Feature artifacts (spec.md, plan.md, tasks.md)
+
+### Speckit Workflow Notes
+
+- Code review fixes: Add as new phase in `specs/$feature/tasks.md`, not separate `tasks-fixes.md`
+- Task IDs must be unique: Continue numbering from last task (e.g., T055+ if T054 exists)
 
 ### Superpowers Integration
 
