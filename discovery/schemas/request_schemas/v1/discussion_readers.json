@@ -1,0 +1,63 @@
+{
+  "name": "DiscussionReadersController",
+  "source_file": "app/controllers/api/v1/discussion_readers_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/discussion_readers",
+  "inherits": "RestfulController",
+  "description": "Discussion participants and read state management",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/discussion_readers",
+      "description": "List participants of a discussion",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "required": true },
+        "query": { "type": "string", "description": "Search by name/email" },
+        "from": { "type": "integer" },
+        "per": { "type": "integer", "default": 50 }
+      }
+    },
+    "make_admin": {
+      "method": "POST",
+      "path": "/api/v1/discussion_readers/:id/make_admin",
+      "description": "Make a reader an admin of the discussion",
+      "authentication": "required",
+      "authorization": "make_admin on DiscussionReader",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "remove_admin": {
+      "method": "POST",
+      "path": "/api/v1/discussion_readers/:id/remove_admin",
+      "description": "Remove admin status from a reader",
+      "authentication": "required",
+      "authorization": "remove_admin on DiscussionReader",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "resend": {
+      "method": "POST",
+      "path": "/api/v1/discussion_readers/:id/resend",
+      "description": "Resend invitation to reader",
+      "authentication": "required",
+      "authorization": "resend on DiscussionReader",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "notes": "Not implemented - raises NotImplementedError"
+    },
+    "revoke": {
+      "method": "POST",
+      "path": "/api/v1/discussion_readers/:id/revoke",
+      "description": "Revoke a reader's access to the discussion",
+      "authentication": "required",
+      "authorization": "remove on DiscussionReader",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    }
+  }
+}

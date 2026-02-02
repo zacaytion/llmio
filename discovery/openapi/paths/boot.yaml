@@ -1,0 +1,126 @@
+# Boot Paths
+# Extracted from app/controllers/api/v1/boot_controller.rb
+
+paths:
+  /api/v1/boot/site:
+    get:
+      operationId: getBootSite
+      summary: Get site configuration
+      description: |
+        Returns site-wide configuration including feature flags, theme settings,
+        enabled OAuth providers, and other deployment-specific settings.
+        Called on initial page load.
+      tags:
+        - Boot
+      security: []
+      responses:
+        '200':
+          description: Site configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  site:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: Site name
+                      theme:
+                        type: object
+                        properties:
+                          site_name:
+                            type: string
+                          primary_color:
+                            type: string
+                          accent_color:
+                            type: string
+                          text_on_primary_color:
+                            type: string
+                          text_on_accent_color:
+                            type: string
+                      features:
+                        type: object
+                        description: Feature flags
+                        additionalProperties:
+                          type: boolean
+                      locales:
+                        type: array
+                        items:
+                          type: string
+                        description: Available locales
+                      default_locale:
+                        type: string
+                      flash:
+                        type: object
+                        nullable: true
+                      pending_identity:
+                        type: object
+                        nullable: true
+                        description: Pending OAuth identity to link
+                      channels:
+                        type: object
+                        description: Real-time channel configuration
+
+  /api/v1/boot/user:
+    get:
+      operationId: getBootUser
+      summary: Get current user data
+      description: |
+        Returns the current user's data including profile, memberships,
+        and group information. Called after site boot when user is logged in.
+      tags:
+        - Boot
+      responses:
+        '200':
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/CurrentUser'
+                    maxItems: 1
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/notification.yaml#/Notification'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+
+  /api/v1/boot/version:
+    get:
+      operationId: getBootVersion
+      summary: Get application version
+      description: |
+        Returns the current application version. Used by frontend to
+        detect when to prompt for refresh after deployment.
+      tags:
+        - Boot
+      security: []
+      responses:
+        '200':
+          description: Version info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: Application version string
+                  release:
+                    type: string
+                    description: Release identifier

@@ -1,0 +1,17 @@
+{
+  "name": "ReceivedEmailSerializer",
+  "source_file": "app/serializers/received_email_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "received_emails",
+  "sideloaded_as": "received_emails",
+  "description": "Inbound email held for moderation",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "group_id": { "type": "integer", "source": "column" },
+    "released": { "type": "boolean", "source": "column" },
+    "subject": { "type": "string", "source": "column" },
+    "sender_email": { "type": "string", "source": "column" },
+    "sender_name": { "type": "string", "source": "column", "nullable": true }
+  },
+  "relationships": {}
+}

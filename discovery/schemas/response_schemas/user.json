@@ -1,0 +1,23 @@
+{
+  "name": "UserSerializer",
+  "source_file": "app/serializers/user_serializer.rb",
+  "inherits_from": "AuthorSerializer",
+  "root_key": "users",
+  "sideloaded_as": "users",
+  "description": "Extended user serializer with profile details (inherits all AuthorSerializer attributes)",
+  "inherited_attributes": ["id", "name", "email", "username", "avatar_initials", "avatar_kind", "thumb_url", "time_zone", "locale", "created_at", "titles", "delegates", "placeholder_name", "email_verified", "bot"],
+  "attributes": {
+    "short_bio": { "type": "string", "source": "column", "nullable": true },
+    "short_bio_format": { "type": "string", "source": "column", "enum": ["md", "html"] },
+    "content_locale": { "type": "string", "source": "column", "nullable": true },
+    "location": { "type": "string", "source": "column", "nullable": true },
+    "has_password": { "type": "boolean", "source": "column", "conditional": "scope[:include_password_status]" },
+    "autodetect_time_zone": { "type": "boolean", "source": "column" },
+    "avatar_url": { "type": "string", "source": "column", "nullable": true },
+    "attachments": { "type": "array", "source": "column", "items": "attachment_object" },
+    "date_time_pref": { "type": "string", "source": "column", "nullable": true },
+    "complaints_count": { "type": "integer", "source": "column", "conditional": "object.complaints_count > 0" },
+    "sign_in_count": { "type": "integer", "source": "column" }
+  },
+  "relationships": {}
+}

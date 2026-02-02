@@ -1,0 +1,20 @@
+{
+  "name": "DemoSerializer",
+  "source_file": "app/serializers/demo_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "demos",
+  "sideloaded_as": "demos",
+  "description": "Demo group configuration for onboarding",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "description": { "type": "string", "source": "column", "nullable": true },
+    "group_id": { "type": "integer", "source": "column" },
+    "priority": { "type": "integer", "source": "column" },
+    "demo_handle": { "type": "string", "source": "column", "nullable": true }
+  },
+  "relationships": {
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" },
+    "group": { "type": "has_one", "note": "No explicit serializer specified" }
+  }
+}

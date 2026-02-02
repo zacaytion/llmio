@@ -1,0 +1,40 @@
+{
+  "name": "EventSerializer",
+  "source_file": "app/serializers/event_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "events",
+  "sideloaded_as": "events",
+  "description": "Activity event serializer for timeline and notifications",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "sequence_id": { "type": "integer", "source": "column", "nullable": true },
+    "position": { "type": "integer", "source": "column", "nullable": true },
+    "depth": { "type": "integer", "source": "column" },
+    "child_count": { "type": "integer", "source": "column" },
+    "descendant_count": { "type": "integer", "source": "column" },
+    "kind": { "type": "string", "source": "column", "note": "42 event types via STI" },
+    "discussion_id": { "type": "integer", "source": "column", "nullable": true },
+    "created_at": { "type": "datetime", "source": "column" },
+    "eventable_id": { "type": "integer", "source": "column" },
+    "eventable_type": { "type": "string", "source": "column" },
+    "custom_fields": { "type": "object", "source": "column", "conditional": "kind in ['poll_edited', 'discussion_edited', 'discussion_moved']" },
+    "pinned": { "type": "boolean", "source": "column" },
+    "pinned_title": { "type": "string", "source": "method", "note": "custom_fields['pinned_title']", "nullable": true },
+    "parent_id": { "type": "integer", "source": "column", "nullable": true },
+    "actor_id": { "type": "integer", "source": "column", "nullable": true },
+    "position_key": { "type": "string", "source": "method", "note": "Returns '00000' for new_discussion events" },
+    "recipient_message": { "type": "string", "source": "column", "nullable": true }
+  },
+  "relationships": {
+    "actor": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user')" },
+    "eventable": { "type": "has_one", "polymorphic": true, "note": "Type depends on eventable_type (Discussion, Poll, Comment, Stance, Outcome, Reaction, Membership, Group, MembershipRequest)" },
+    "discussion": { "serializer": "DiscussionSerializer", "type": "has_one", "root": "discussions", "conditional": "include_type?('discussion')" },
+    "parent": { "serializer": "EventSerializer", "type": "has_one", "root": "parent_events", "conditional": "include_type?('parent')" },
+    "source_group": { "serializer": "GroupSerializer", "type": "has_one", "root": "groups", "conditional": "kind == 'discussion_moved' && custom_fields['source_group_id'].present?" }
+  },
+  "notes": [
+    "eventable is polymorphic - serializer determined by eventable_type",
+    "Uses cache_fetch for efficient relationship lookups",
+    "custom_fields only included for edit/move events"
+  ]
+}

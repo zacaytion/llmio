@@ -1,0 +1,18 @@
+{
+  "name": "Metadata::DiscussionSerializer",
+  "source_file": "app/serializers/metadata/discussion_serializer.rb",
+  "inherits_from": "MetadataSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "SEO/OpenGraph metadata for discussion pages",
+  "attributes": {
+    "title": { "type": "string", "source": "column" },
+    "description": { "type": "string", "source": "method", "note": "Plain text conversion of description" },
+    "image_urls": { "type": "array", "source": "method", "items": "string", "note": "[group.cover_url, group.logo_url]" }
+  },
+  "relationships": {},
+  "notes": [
+    "Used for meta tags in HTML head",
+    "root: false means no JSON wrapper"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "ReactionSerializer",
+  "source_file": "app/serializers/reaction_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "reactions",
+  "sideloaded_as": "reactions",
+  "description": "Emoji reaction serializer",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "reaction": { "type": "string", "source": "column", "note": "Emoji character or shortcode" },
+    "reactable_id": { "type": "integer", "source": "column" },
+    "reactable_type": { "type": "string", "source": "column", "note": "Polymorphic type (Comment, Poll, etc.)" },
+    "user_id": { "type": "integer", "source": "column" }
+  },
+  "relationships": {
+    "user": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user')" }
+  }
+}

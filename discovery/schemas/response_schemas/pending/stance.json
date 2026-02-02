@@ -1,0 +1,13 @@
+{
+  "name": "Pending::StanceSerializer",
+  "source_file": "app/serializers/pending/stance_serializer.rb",
+  "inherits_from": "Pending::MembershipSerializer",
+  "root_key": "pending",
+  "sideloaded_as": null,
+  "description": "Pending state for stance/vote invitation",
+  "attributes": {
+    "identity_type": { "type": "string", "source": "method", "value": "stance" },
+    "group_id": { "type": "null", "source": "method", "value": null }
+  },
+  "relationships": {}
+}

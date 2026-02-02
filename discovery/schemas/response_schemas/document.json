@@ -1,0 +1,28 @@
+{
+  "name": "DocumentSerializer",
+  "source_file": "app/serializers/document_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "documents",
+  "sideloaded_as": "documents",
+  "description": "File document attachment serializer",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "title": { "type": "string", "source": "column" },
+    "icon": { "type": "string", "source": "column" },
+    "color": { "type": "string", "source": "column" },
+    "url": { "type": "string", "source": "column" },
+    "download_url": { "type": "string", "source": "column", "nullable": true },
+    "web_url": { "type": "string", "source": "column", "conditional": "doctype == 'image'", "nullable": true },
+    "thumb_url": { "type": "string", "source": "column", "conditional": "doctype == 'image'", "nullable": true },
+    "model_id": { "type": "integer", "source": "column" },
+    "model_type": { "type": "string", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "group_id": { "type": "integer", "source": "method", "nullable": true, "note": "object.group&.id" }
+  },
+  "relationships": {
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user') && include_type?('author')" }
+  },
+  "notes": [
+    "web_url and thumb_url only included for image documents"
+  ]
+}

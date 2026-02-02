@@ -1,0 +1,28 @@
+{
+  "name": "DiscussionReaderSerializer",
+  "source_file": "app/serializers/discussion_reader_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "discussion_readers",
+  "sideloaded_as": "discussion_readers",
+  "description": "Per-user discussion read state and guest access tracking",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "user_id": { "type": "integer", "source": "column" },
+    "discussion_id": { "type": "integer", "source": "column" },
+    "read_ranges": { "type": "array", "source": "method", "note": "Returns [] if discussion has anonymous polls" },
+    "last_read_at": { "type": "datetime", "source": "method", "nullable": true, "note": "Returns nil if discussion has anonymous polls" },
+    "dismissed_at": { "type": "datetime", "source": "column", "nullable": true },
+    "volume": { "type": "integer", "source": "method", "note": "Direct column access via object[:volume]", "enum_values": { "0": "mute", "1": "quiet", "2": "normal", "3": "loud" } },
+    "inviter_id": { "type": "integer", "source": "column", "nullable": true },
+    "guest": { "type": "boolean", "source": "column" },
+    "admin": { "type": "boolean", "source": "column" },
+    "revoked_at": { "type": "datetime", "source": "column", "nullable": true }
+  },
+  "relationships": {
+    "user": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user')" }
+  },
+  "notes": [
+    "read_ranges and last_read_at are hidden when discussion.anonymous_polls_count > 0",
+    "This is to prevent vote timing inference on anonymous polls"
+  ]
+}

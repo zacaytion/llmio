@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: Loomio API
+  description: |
+    Loomio is a collaborative decision-making tool. This API specification documents
+    the internal API used by the Vue frontend, as well as external bot APIs.
+
+    ## Authentication
+
+    The API supports multiple authentication methods:
+
+    - **Session-based**: Standard Devise session cookies (primary for web app)
+    - **Login tokens**: One-time use tokens for passwordless login
+    - **API keys**: For bot integrations (B2 API uses `user.api_key`)
+    - **B3 API key**: Environment variable for admin operations
+
+    ## Response Format
+
+    All responses use a **sideloading pattern** where related records are included
+    in separate top-level arrays rather than nested. This allows deduplication
+    when the same record (e.g., a user) appears in multiple relationships.
+
+    Example response:
+    ```json
+    {
+      "discussions": [
+        { "id": 1, "title": "...", "author_id": 10, "group_id": 5 }
+      ],
+      "users": [
+        { "id": 10, "name": "Alice" }
+      ],
+      "groups": [
+        { "id": 5, "name": "My Group" }
+      ]
+    }
+    ```
+
+    ### Controlling Sideloaded Data
+
+    Use the `exclude_types` query parameter to exclude certain record types:
+    ```
+    GET /api/v1/discussions/123?exclude_types=poll reaction
+    ```
+
+    ## Pagination
+
+    Most collection endpoints support cursor-based pagination:
+    - `from`: Offset cursor (integer)
+    - `per`: Items per page (default varies by endpoint, typically 30-50)
+
+    ## Rate Limiting
+
+    The v1 API has multi-layer rate limiting:
+    - Rack::Attack at the request level
+    - ThrottleService for action-specific limits
+    - Note: Bot APIs (b2, b3) currently have NO rate limiting
+
+  version: 1.0.0
+  contact:
+    name: Loomio Team
+    url: https://www.loomio.com
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.en.html
+
+servers:
+  - url: https://www.loomio.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: Login, registration, and session management
+  - name: Boot
+    description: Initial application data loading
+  - name: Groups
+    description: Group and organization management
+  - name: Discussions
+    description: Discussion threads
+  - name: Polls
+    description: Polls and voting
+  - name: Comments
+    description: Discussion comments
+  - name: Stances
+    description: Poll votes/stances
+  - name: Events
+    description: Discussion timeline events
+  - name: Memberships
+    description: Group membership management
+  - name: Notifications
+    description: User notifications
+  - name: Search
+    description: Full-text search
+  - name: Profile
+    description: User profile management
+  - name: Templates
+    description: Discussion and poll templates
+  - name: Webhooks
+    description: Webhook integrations
+  - name: Bot API (B2)
+    description: External bot integration API
+  - name: Admin Bot API (B3)
+    description: Admin-level user management API
+
+paths:
+  # Authentication
+  $ref: 'paths/auth.yaml#/paths'
+
+  # Boot
+  $ref: 'paths/boot.yaml#/paths'
+
+  # Groups
+  $ref: 'paths/groups.yaml#/paths'
+
+  # Discussions
+  $ref: 'paths/discussions.yaml#/paths'
+
+  # Polls
+  $ref: 'paths/polls.yaml#/paths'
+
+  # Comments
+  $ref: 'paths/comments.yaml#/paths'
+
+  # Stances
+  $ref: 'paths/stances.yaml#/paths'
+
+  # Events
+  $ref: 'paths/events.yaml#/paths'
+
+  # Memberships
+  $ref: 'paths/memberships.yaml#/paths'
+
+  # Notifications
+  $ref: 'paths/notifications.yaml#/paths'
+
+  # Search
+  $ref: 'paths/search.yaml#/paths'
+
+  # Profile/Users
+  $ref: 'paths/users.yaml#/paths'
+
+  # Bot APIs
+  $ref: 'paths/bot_b2.yaml#/paths'
+  $ref: 'paths/bot_b3.yaml#/paths'
+
+components:
+  schemas:
+    $ref: 'components/schemas/_index.yaml'
+
+  parameters:
+    $ref: 'components/parameters/common.yaml'
+
+  responses:
+    $ref: 'components/responses/errors.yaml'
+
+  securitySchemes:
+    $ref: 'components/securitySchemes/auth.yaml'
+
+security:
+  - sessionAuth: []

@@ -1,0 +1,238 @@
+{
+  "name": "DiscussionsController",
+  "source_file": "app/controllers/api/v1/discussions_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/discussions",
+  "inherits": "RestfulController",
+  "permitted_params_key": "discussion",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/discussions",
+      "description": "List discussions visible to the current user",
+      "authentication": "optional",
+      "query_parameters": {
+        "group_id": { "type": "integer", "description": "Filter by group" },
+        "subgroups": { "type": "string", "enum": ["all", "mine", "none"], "description": "Include subgroup discussions" },
+        "tags": { "type": "string", "description": "Filter by tags" },
+        "xids": { "type": "string", "description": "x-separated discussion IDs to fetch" },
+        "filter": { "type": "string", "description": "Filter type" },
+        "from": { "type": "integer" },
+        "per": { "type": "integer", "default": 50 },
+        "exclude_types": { "type": "string" }
+      }
+    },
+    "show": {
+      "method": "GET",
+      "path": "/api/v1/discussions/:id",
+      "description": "Get a single discussion by ID or key",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string", "description": "Discussion ID or key" }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/discussions",
+      "description": "Create a new discussion",
+      "authentication": "required",
+      "root_key": "discussion",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/discussion" },
+      "notes": "If forked_event_ids is provided, moves those events to the new discussion"
+    },
+    "update": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id",
+      "description": "Update a discussion",
+      "authentication": "required",
+      "authorization": "update on Discussion",
+      "root_key": "discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": { "$ref": "../permitted_params.json#/attributes/discussion" }
+    },
+    "dashboard": {
+      "method": "GET",
+      "path": "/api/v1/discussions/dashboard",
+      "description": "Get discussions for the user's dashboard",
+      "authentication": "required"
+    },
+    "inbox": {
+      "method": "GET",
+      "path": "/api/v1/discussions/inbox",
+      "description": "Get unread discussions for the user",
+      "authentication": "required"
+    },
+    "direct": {
+      "method": "GET",
+      "path": "/api/v1/discussions/direct",
+      "description": "Get direct discussions (not in any group)",
+      "authentication": "required"
+    },
+    "search": {
+      "method": "GET",
+      "path": "/api/v1/discussions/search",
+      "description": "Search discussions within a group",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "q": { "type": "string", "required": true }
+      }
+    },
+    "mark_as_seen": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/mark_as_seen",
+      "description": "Mark discussion as seen by current user",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "mark_as_read": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/mark_as_read",
+      "description": "Mark discussion as read up to a certain point",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "query_parameters": {
+        "ranges": { "type": "string", "description": "Sequence ID ranges to mark as read" }
+      }
+    },
+    "dismiss": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/dismiss",
+      "description": "Dismiss discussion from inbox",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "recall": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/recall",
+      "description": "Recall dismissed discussion to inbox",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "close": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/close",
+      "description": "Close a discussion",
+      "authentication": "required",
+      "authorization": "close on Discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "reopen": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/reopen",
+      "description": "Reopen a closed discussion",
+      "authentication": "required",
+      "authorization": "reopen on Discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "pin": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/pin",
+      "description": "Pin discussion to top of group",
+      "authentication": "required",
+      "authorization": "pin on Discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "unpin": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/unpin",
+      "description": "Unpin discussion",
+      "authentication": "required",
+      "authorization": "unpin on Discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "pin_reader": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/pin_reader",
+      "description": "Pin discussion for current user only",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "unpin_reader": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/unpin_reader",
+      "description": "Unpin discussion for current user",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "move": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/move",
+      "description": "Move discussion to another group",
+      "authentication": "required",
+      "authorization": "move on Discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": {
+        "group_id": { "type": "integer", "required": true }
+      }
+    },
+    "set_volume": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/set_volume",
+      "description": "Set notification volume for discussion",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": {
+        "volume": { "type": "string", "enum": ["normal", "loud", "quiet", "mute"], "required": true }
+      }
+    },
+    "discard": {
+      "method": "DELETE",
+      "path": "/api/v1/discussions/:id/discard",
+      "description": "Soft-delete a discussion",
+      "authentication": "required",
+      "authorization": "discard on Discussion",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "move_comments": {
+      "method": "PATCH",
+      "path": "/api/v1/discussions/:id/move_comments",
+      "description": "Move comments/events to another discussion",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": {
+        "forked_event_ids": { "type": "array", "items": { "type": "integer" }, "required": true }
+      }
+    },
+    "history": {
+      "method": "GET",
+      "path": "/api/v1/discussions/:id/history",
+      "description": "Get read history for all readers of a discussion",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "notes": "Returns 403 if discussion has anonymous polls"
+    }
+  }
+}

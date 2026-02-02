@@ -1,0 +1,62 @@
+# Error Schemas
+# Extracted from app/serializers/model_error_serializer.rb
+
+Error:
+  type: object
+  description: Standard API error response
+  properties:
+    errors:
+      type: object
+      description: Error messages keyed by field name or 'base'
+      additionalProperties:
+        type: array
+        items:
+          type: string
+  required:
+    - errors
+  example:
+    errors:
+      base: ["Something went wrong"]
+
+ValidationError:
+  type: object
+  description: Validation error with field-specific messages
+  properties:
+    errors:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+  required:
+    - errors
+  example:
+    errors:
+      title: ["can't be blank"]
+      closing_at: ["must be in the future"]
+
+ModelError:
+  type: object
+  description: |
+    Structured model error for i18n support.
+    Used when validation errors need to be displayed with localized messages.
+  properties:
+    model_errors:
+      type: array
+      items:
+        type: object
+        properties:
+          key:
+            type: string
+            description: i18n key for the error message
+          vars:
+            type: object
+            additionalProperties: true
+            description: Variables for message interpolation
+        required:
+          - key
+  example:
+    model_errors:
+      - key: "poll.closing_at_must_be_in_future"
+        vars:
+          closing_at: "2024-01-01T00:00:00Z"

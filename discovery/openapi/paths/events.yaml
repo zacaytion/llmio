@@ -1,0 +1,257 @@
+# Events Paths
+# Extracted from app/controllers/api/v1/events_controller.rb
+
+paths:
+  /api/v1/events:
+    get:
+      operationId: listEvents
+      summary: List timeline events
+      description: |
+        Returns events for a discussion timeline.
+        Supports pagination by sequence_id ranges.
+      tags:
+        - Events
+      parameters:
+        - name: discussion_id
+          in: query
+          description: Filter by discussion
+          schema:
+            type: integer
+        - name: from_sequence_id
+          in: query
+          description: Start from this sequence ID
+          schema:
+            type: integer
+        - name: to_sequence_id
+          in: query
+          description: End at this sequence ID
+          schema:
+            type: integer
+        - name: pinned
+          in: query
+          description: Filter to pinned events only
+          schema:
+            type: boolean
+        - name: order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [sequence_id, position]
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+                  comments:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Comment'
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Reaction'
+
+  /api/v1/events/count:
+    get:
+      operationId: countEvents
+      summary: Count events
+      description: Returns count of events for a discussion.
+      tags:
+        - Events
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /api/v1/events/position_keys:
+    get:
+      operationId: getEventPositionKeys
+      summary: Get position keys
+      description: |
+        Returns position keys for efficient timeline navigation.
+        Used for jumping to specific positions in nested threads.
+      tags:
+        - Events
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: position_keys
+          in: query
+          description: Comma-separated position keys to lookup
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Position key mappings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  position_keys:
+                    type: object
+                    additionalProperties:
+                      type: integer
+
+  /api/v1/events/timeline:
+    get:
+      operationId: getTimeline
+      summary: Get timeline structure
+      description: Returns timeline structure for navigation UI.
+      tags:
+        - Events
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+
+  /api/v1/events/comment:
+    get:
+      operationId: getCommentEvent
+      summary: Get event for a comment
+      description: Returns the event containing a specific comment.
+      tags:
+        - Events
+      parameters:
+        - name: comment_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment event
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+                    maxItems: 1
+                  comments:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Comment'
+
+  /api/v1/events/{id}/pin:
+    patch:
+      operationId: pinEvent
+      summary: Pin an event
+      description: Pins an event in the discussion timeline.
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pinned_title:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Event pinned
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/events/{id}/unpin:
+    patch:
+      operationId: unpinEvent
+      summary: Unpin an event
+      description: Removes pin from an event.
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event unpinned
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/events/{id}/remove_from_thread:
+    patch:
+      operationId: removeEventFromThread
+      summary: Remove event from thread
+      description: |
+        Removes an event from nested position, making it top-level.
+        Used for reorganizing discussion structure.
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Event removed from thread
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

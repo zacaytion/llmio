@@ -1,0 +1,586 @@
+# Miscellaneous Paths
+# Various utility endpoints: attachments, mentions, versions, translations, demos, emails, etc.
+
+paths:
+  # ==================== ATTACHMENTS ====================
+
+  /api/v1/attachments:
+    get:
+      operationId: listAttachments
+      summary: List attachments
+      description: |
+        Returns file attachments for a group and its content.
+        Searches across all discussions, comments, and polls.
+      tags:
+        - Attachments
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: q
+          in: query
+          description: Search query for filename
+          schema:
+            type: string
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: List of attachments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachments:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Attachment'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+
+  /api/v1/attachments/{id}:
+    delete:
+      operationId: destroyAttachment
+      summary: Delete an attachment
+      description: Removes an attachment from its parent record.
+      tags:
+        - Attachments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Attachment deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  # ==================== MENTIONS ====================
+
+  /api/v1/mentions:
+    get:
+      operationId: listMentions
+      summary: Search for mentionable users/groups
+      description: |
+        Returns users and groups that can be @mentioned in the given context.
+        Used for autocomplete in editors.
+      tags:
+        - Mentions
+      parameters:
+        - name: q
+          in: query
+          description: Search query (name or username)
+          schema:
+            type: string
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: comment_id
+          in: query
+          schema:
+            type: integer
+        - name: stance_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Mentionable entities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    handle:
+                      type: string
+                      description: Username or group handle
+                    name:
+                      type: string
+                      description: Display name
+              example:
+                - handle: "johndoe"
+                  name: "John Doe"
+                - handle: "engineering"
+                  name: "Engineering Team"
+
+  # ==================== VERSIONS ====================
+
+  /api/v1/versions/show:
+    get:
+      operationId: getVersion
+      summary: Get version history entry
+      description: |
+        Returns a specific version (revision) from a model's history.
+        Uses Paper Trail for version tracking.
+      tags:
+        - Versions
+      parameters:
+        - name: group_id
+          in: query
+          description: One of group_id, discussion_id, comment_id, stance_id, poll_id, or outcome_id
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: comment_id
+          in: query
+          schema:
+            type: integer
+        - name: stance_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+        - name: index
+          in: query
+          required: true
+          description: Version index (0 = first version)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Version details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  versions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Version'
+
+  # ==================== TRANSLATIONS ====================
+
+  /api/v1/translations/inline:
+    get:
+      operationId: translateInline
+      summary: Translate content
+      description: |
+        Translates a model's content to the specified language.
+        Returns cached translation if available.
+      tags:
+        - Translations
+      parameters:
+        - name: model
+          in: query
+          required: true
+          description: Model type (Discussion, Comment, Poll, Outcome)
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: true
+          description: Model ID
+          schema:
+            type: integer
+        - name: to
+          in: query
+          required: true
+          description: Target language code (e.g., 'es', 'fr', 'de')
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Translation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  translations:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Translation'
+
+  # ==================== DEMOS ====================
+
+  /api/v1/demos:
+    get:
+      operationId: listDemos
+      summary: List available demos
+      description: Returns available demo groups that can be cloned.
+      tags:
+        - Demos
+      security: []
+      responses:
+        '200':
+          description: Available demos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  demos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        description:
+                          type: string
+
+  /api/v1/demos/clone:
+    post:
+      operationId: cloneDemo
+      summary: Clone a demo group
+      description: |
+        Creates a copy of a demo group for the current user.
+        Used for onboarding new users with sample content.
+      tags:
+        - Demos
+      responses:
+        '200':
+          description: Cloned group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+  # ==================== RECEIVED EMAILS ====================
+
+  /api/v1/received_emails:
+    get:
+      operationId: listReceivedEmails
+      summary: List received emails
+      description: |
+        Returns unreleased emails received by the group.
+        Used for managing reply-by-email functionality.
+      tags:
+        - Emails
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Received emails
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received_emails:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/ReceivedEmail'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/received_emails/aliases:
+    get:
+      operationId: listEmailAliases
+      summary: List email aliases
+      description: Returns email aliases configured for a group.
+      tags:
+        - Emails
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Email aliases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aliases:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        email:
+                          type: string
+                          format: email
+                        user_id:
+                          type: integer
+                          nullable: true
+                        group_id:
+                          type: integer
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/received_emails/destroy_alias:
+    delete:
+      operationId: destroyEmailAlias
+      summary: Delete an email alias
+      description: Removes an email alias from a group.
+      tags:
+        - Emails
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Alias deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/received_emails/{id}/allow:
+    post:
+      operationId: allowReceivedEmail
+      summary: Allow email and create alias
+      description: |
+        Creates an alias for the sender and releases the email.
+        Future emails from this sender will be accepted automatically.
+      tags:
+        - Emails
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  description: User to associate with this email address
+              required:
+                - user_id
+      responses:
+        '200':
+          description: Email allowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received_emails:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/ReceivedEmail'
+        '403':
+          description: Trial groups cannot add aliases
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'
+
+  /api/v1/received_emails/{id}/block:
+    post:
+      operationId: blockReceivedEmail
+      summary: Block email sender
+      description: |
+        Creates a blocking alias for the sender.
+        Future emails from this sender will be rejected.
+      tags:
+        - Emails
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sender blocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received_emails:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/ReceivedEmail'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  # ==================== CONTACT MESSAGES ====================
+
+  /api/v1/contact_messages:
+    post:
+      operationId: createContactMessage
+      summary: Send a contact message
+      description: Sends a message to the Loomio support team.
+      tags:
+        - Contact
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contact_message:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    message:
+                      type: string
+                    subject:
+                      type: string
+                  required:
+                    - email
+                    - message
+      responses:
+        '200':
+          description: Message sent
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  # ==================== LINK PREVIEWS ====================
+
+  /api/v1/link_previews:
+    post:
+      operationId: createLinkPreview
+      summary: Generate a link preview
+      description: |
+        Fetches metadata for a URL to generate a rich link preview.
+        Returns title, description, and image.
+      tags:
+        - Utilities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+              required:
+                - url
+      responses:
+        '200':
+          description: Link preview data
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/group.yaml#/LinkPreview'
+        '422':
+          description: Could not fetch preview
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'
+
+  # ==================== TRIALS ====================
+
+  /api/v1/trials:
+    post:
+      operationId: createTrial
+      summary: Start a trial
+      description: |
+        Creates a trial group for the current user.
+        Used when users click "Start Free Trial".
+      tags:
+        - Groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trial:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Group name
+      responses:
+        '200':
+          description: Trial group created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  # ==================== IDENTITIES ====================
+
+  /api/v1/identities/{id}/{command}:
+    get:
+      operationId: identityCommand
+      summary: Execute identity command
+      description: |
+        Executes a command on an OAuth identity (e.g., disconnect).
+        Used for managing linked OAuth providers.
+      tags:
+        - Authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: command
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [destroy]
+      responses:
+        '200':
+          description: Command executed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

@@ -1,0 +1,214 @@
+# Documents Paths
+# Extracted from app/controllers/api/v1/documents_controller.rb
+
+paths:
+  /api/v1/documents:
+    get:
+      operationId: listDocuments
+      summary: List documents
+      description: |
+        Returns documents accessible to the current user.
+        Documents can be attached to groups, discussions, comments, polls, or outcomes.
+      tags:
+        - Documents
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: comment_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Document'
+
+    post:
+      operationId: createDocument
+      summary: Create a document
+      description: Attaches a document/file to a record.
+      tags:
+        - Documents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: object
+                  properties:
+                    model_id:
+                      type: integer
+                    model_type:
+                      type: string
+                      enum: [Group, Discussion, Comment, Poll, Outcome]
+                    title:
+                      type: string
+                    url:
+                      type: string
+                      format: uri
+                    icon:
+                      type: string
+                  required:
+                    - model_id
+                    - model_type
+                    - title
+                    - url
+      responses:
+        '200':
+          description: Document created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Document'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/documents/{id}:
+    patch:
+      operationId: updateDocument
+      summary: Update a document
+      description: Updates document metadata.
+      tags:
+        - Documents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                document:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+      responses:
+        '200':
+          description: Document updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    delete:
+      operationId: destroyDocument
+      summary: Delete a document
+      description: Removes a document attachment.
+      tags:
+        - Documents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Document deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/documents/for_group:
+    get:
+      operationId: getDocumentsForGroup
+      summary: Get group documents
+      description: |
+        Returns all documents for a group, including documents from
+        discussions, comments, and polls within the group.
+      tags:
+        - Documents
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: subgroups
+          in: query
+          description: Include subgroup documents
+          schema:
+            type: string
+            enum: [all, mine, none]
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Group documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Document'
+
+  /api/v1/documents/for_discussion:
+    get:
+      operationId: getDocumentsForDiscussion
+      summary: Get discussion documents
+      description: |
+        Returns all documents for a discussion, including documents from
+        comments and polls within the discussion.
+      tags:
+        - Documents
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Document'

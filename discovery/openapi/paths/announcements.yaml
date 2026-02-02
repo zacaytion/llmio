@@ -1,0 +1,369 @@
+# Announcements Paths
+# Extracted from app/controllers/api/v1/announcements_controller.rb
+
+paths:
+  /api/v1/announcements:
+    post:
+      operationId: createAnnouncement
+      summary: Send announcements/invitations
+      description: |
+        Sends announcements or invitations to users for a group, discussion, poll, or outcome.
+        Can invite by user ID, email address, or audience type.
+      tags:
+        - Announcements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                  description: Target group (mutually exclusive with other target IDs)
+                discussion_id:
+                  type: integer
+                  description: Target discussion
+                poll_id:
+                  type: integer
+                  description: Target poll
+                outcome_id:
+                  type: integer
+                  description: Target outcome
+                recipient_audience:
+                  type: string
+                  description: |
+                    Audience type to notify:
+                    - group: All group members
+                    - discussion_group: Discussion's group members
+                    - voters: All voters on a poll
+                    - decided_voters: Users who have voted
+                    - undecided_voters: Users who haven't voted
+                  enum:
+                    - group
+                    - discussion_group
+                    - voters
+                    - decided_voters
+                    - undecided_voters
+                recipient_user_ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Specific user IDs to notify
+                recipient_emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Email addresses to invite
+                recipient_message:
+                  type: string
+                  description: Custom message to include in invitation
+            example:
+              poll_id: 123
+              recipient_audience: "undecided_voters"
+              recipient_message: "Please vote by Friday!"
+      responses:
+        '200':
+          description: Announcements sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/announcements/audience:
+    get:
+      operationId: getAnnouncementAudience
+      summary: Get users in an audience
+      description: |
+        Returns users that would receive an announcement for a given audience type.
+        Returns 403 for decided_voters/undecided_voters on anonymous polls.
+      tags:
+        - Announcements
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+        - name: recipient_audience
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: exclude_members
+          in: query
+          description: Exclude existing group members
+          schema:
+            type: boolean
+        - name: include_actor
+          in: query
+          description: Include the current user in results
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Audience users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/announcements/count:
+    get:
+      operationId: countAnnouncementRecipients
+      summary: Count announcement recipients
+      description: Returns the number of users that would receive an announcement.
+      tags:
+        - Announcements
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+        - name: recipient_audience
+          in: query
+          schema:
+            type: string
+        - name: recipient_user_xids
+          in: query
+          description: X-separated user IDs
+          schema:
+            type: string
+        - name: recipient_emails_cmr
+          in: query
+          description: Comma-separated email addresses
+          schema:
+            type: string
+        - name: recipient_chatbot_xids
+          in: query
+          description: X-separated chatbot IDs
+          schema:
+            type: string
+        - name: recipient_usernames
+          in: query
+          description: Comma-separated usernames
+          schema:
+            type: string
+        - name: exclude_members
+          in: query
+          schema:
+            type: boolean
+        - name: include_actor
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Recipient count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /api/v1/announcements/new_member_count:
+    get:
+      operationId: countNewMembers
+      summary: Count new members that would be added
+      description: Returns count of users who are not yet members but would be invited.
+      tags:
+        - Announcements
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+        - name: recipient_user_xids
+          in: query
+          schema:
+            type: string
+        - name: recipient_emails_cmr
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: New member count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /api/v1/announcements/search:
+    get:
+      operationId: searchAnnouncementRecipients
+      summary: Search for users to invite
+      description: Searches for users that can be added to an announcement.
+      tags:
+        - Announcements
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+        - name: q
+          in: query
+          description: Search query (name, email, username)
+          schema:
+            type: string
+        - name: existing_only
+          in: query
+          description: Only search existing members
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/announcements/users_notified_count:
+    get:
+      operationId: getUsersNotifiedCount
+      summary: Count users notified
+      description: Returns count of unique users that have been notified about a resource.
+      tags:
+        - Announcements
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notified count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /api/v1/announcements/history:
+    get:
+      operationId: getAnnouncementHistory
+      summary: Get notification history
+      description: |
+        Returns notification history for a resource.
+        Note: Returns `allow_viewed: false` if discussion has anonymous polls.
+      tags:
+        - Announcements
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          schema:
+            type: integer
+        - name: poll_id
+          in: query
+          schema:
+            type: integer
+        - name: outcome_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/notification.yaml#/Notification'
+                  allow_viewed:
+                    type: boolean
+                    description: Whether viewed status can be shown (false for anonymous polls)

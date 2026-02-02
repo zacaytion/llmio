@@ -1,0 +1,22 @@
+{
+  "name": "PollOptionSerializer",
+  "source_file": "app/serializers/poll_option_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "poll_options",
+  "sideloaded_as": "poll_options",
+  "description": "Poll option/choice serializer",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "poll_id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "priority": { "type": "integer", "source": "column" },
+    "color": { "type": "string", "source": "column", "nullable": true },
+    "icon": { "type": "string", "source": "column", "nullable": true },
+    "meaning": { "type": "string", "source": "column", "nullable": true },
+    "prompt": { "type": "string", "source": "column", "nullable": true },
+    "test_operator": { "type": "string", "source": "column", "nullable": true },
+    "test_percent": { "type": "integer", "source": "column", "nullable": true },
+    "test_against": { "type": "string", "source": "column", "nullable": true }
+  },
+  "relationships": {}
+}

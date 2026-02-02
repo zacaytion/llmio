@@ -1,0 +1,30 @@
+{
+  "name": "NotificationSerializer",
+  "source_file": "app/serializers/notification_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "notifications",
+  "sideloaded_as": "notifications",
+  "description": "User notification serializer with translated content",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "viewed": { "type": "boolean", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "url": { "type": "string", "source": "column" },
+    "kind": { "type": "string", "source": "method", "note": "Transforms announcement_created to specific kind, comment_replied_to for reply mentions" },
+    "actor_id": { "type": "integer", "source": "column", "nullable": true },
+    "event_id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "method", "note": "Extracted from translation_values['name']" },
+    "title": { "type": "string", "source": "method", "note": "Extracted from translation_values['title']" },
+    "poll_type": { "type": "string", "source": "method", "note": "Extracted from translation_values['poll_type']", "nullable": true },
+    "reaction": { "type": "string", "source": "method", "note": "Extracted from translation_values['reaction']", "nullable": true },
+    "model": { "type": "string", "source": "method", "note": "Extracted from translation_values['model']", "nullable": true }
+  },
+  "relationships": {
+    "actor": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user')" }
+  },
+  "notes": [
+    "translation_values is a JSONB column containing localized strings",
+    "kind is computed - 'announcement_created' becomes custom_fields['kind'] or 'group_announced'",
+    "user_mentioned becomes 'comment_replied_to' when replying to user's own comment"
+  ]
+}

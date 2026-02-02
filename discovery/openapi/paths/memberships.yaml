@@ -1,0 +1,471 @@
+# Memberships Paths
+# Extracted from app/controllers/api/v1/memberships_controller.rb
+
+paths:
+  /api/v1/memberships:
+    get:
+      operationId: listMemberships
+      summary: List memberships
+      description: Returns memberships for a group or user.
+      tags:
+        - Memberships
+      parameters:
+        - name: group_id
+          in: query
+          description: Filter by group
+          schema:
+            type: integer
+        - name: user_id
+          in: query
+          description: Filter by user
+          schema:
+            type: integer
+        - name: xids
+          in: query
+          description: X-separated membership IDs
+          schema:
+            type: string
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [created_at, accepted_at, name]
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: List of memberships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+    post:
+      operationId: createMembership
+      summary: Invite/add a member
+      description: |
+        Invites a user to join a group. Can invite by email or user_id.
+        Sets pending state until accepted.
+      tags:
+        - Memberships
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                membership:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    user_id:
+                      type: integer
+                      description: Existing user ID
+                    email:
+                      type: string
+                      format: email
+                      description: Email for new invitee
+                    admin:
+                      type: boolean
+                    title:
+                      type: string
+                  required:
+                    - group_id
+      responses:
+        '200':
+          description: Membership created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/memberships/{id}:
+    patch:
+      operationId: updateMembership
+      summary: Update a membership
+      description: Updates membership settings like title.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                membership:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+      responses:
+        '200':
+          description: Membership updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    delete:
+      operationId: destroyMembership
+      summary: Remove a member
+      description: Removes a member from a group.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Membership removed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/for_user:
+    get:
+      operationId: getMembershipsForUser
+      summary: Get user's memberships
+      description: Returns all memberships for a specific user.
+      tags:
+        - Memberships
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User's memberships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+  /api/v1/memberships/my_memberships:
+    get:
+      operationId: getMyMemberships
+      summary: Get current user's memberships
+      description: Returns all memberships for the current user.
+      tags:
+        - Memberships
+      responses:
+        '200':
+          description: Current user's memberships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+  /api/v1/memberships/invitables:
+    get:
+      operationId: getInvitableUsers
+      summary: Get invitable users
+      description: Returns users who can be invited to a group.
+      tags:
+        - Memberships
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invitable users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/memberships/undecided:
+    get:
+      operationId: getUndecidedMembers
+      summary: Get undecided poll voters
+      description: Returns group members who haven't voted on a poll.
+      tags:
+        - Memberships
+      parameters:
+        - name: poll_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Undecided members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/memberships/join_group:
+    post:
+      operationId: joinGroup
+      summary: Join a group
+      description: Allows current user to join an open group.
+      tags:
+        - Memberships
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+              required:
+                - group_id
+      responses:
+        '200':
+          description: Joined group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/{id}/make_admin:
+    post:
+      operationId: makeMemberAdmin
+      summary: Make member an admin
+      description: Grants admin privileges to a member.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Admin privileges granted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/{id}/remove_admin:
+    post:
+      operationId: removeMemberAdmin
+      summary: Remove admin privileges
+      description: Removes admin privileges from a member.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Admin privileges removed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/{id}/make_delegate:
+    post:
+      operationId: makeMemberDelegate
+      summary: Make member a delegate
+      description: Grants delegate status to a member.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Delegate status granted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/{id}/remove_delegate:
+    post:
+      operationId: removeMemberDelegate
+      summary: Remove delegate status
+      description: Removes delegate status from a member.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Delegate status removed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/{id}/set_volume:
+    patch:
+      operationId: setMembershipVolume
+      summary: Set notification volume
+      description: Sets notification volume for a membership.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                volume:
+                  type: integer
+                  enum: [0, 1, 2, 3]
+                  description: 0=mute, 1=quiet, 2=normal, 3=loud
+      responses:
+        '200':
+          description: Volume updated
+
+  /api/v1/memberships/{id}/save_experience:
+    post:
+      operationId: saveMembershipExperience
+      summary: Save experience flag
+      description: Records a feature experience for this membership.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                experience:
+                  type: string
+                  description: Experience key to record
+      responses:
+        '200':
+          description: Experience saved
+
+  /api/v1/memberships/{id}/resend:
+    post:
+      operationId: resendMembershipInvitation
+      summary: Resend invitation
+      description: Resends the invitation email to a pending member.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invitation resent
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/memberships/user_name:
+    post:
+      operationId: setMembershipUserName
+      summary: Set member's name in group
+      description: Sets a display name for a member in the group context.
+      tags:
+        - Memberships
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                membership_id:
+                  type: integer
+                name:
+                  type: string
+      responses:
+        '200':
+          description: Name updated

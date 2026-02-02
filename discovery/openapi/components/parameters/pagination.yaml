@@ -1,0 +1,226 @@
+# Pagination Patterns for Loomio API
+# Documentation of how pagination works across different endpoints
+
+# Overview:
+# Loomio uses cursor-based pagination with `from` and `per` parameters.
+# This is NOT standard offset pagination - `from` is a cursor value, not a page number.
+
+# Standard Pagination
+StandardPagination:
+  description: |
+    Most collection endpoints use cursor-based pagination with these parameters.
+    The `from` parameter is NOT an offset - it's a cursor value typically representing
+    the last ID or timestamp seen.
+
+  parameters:
+    from:
+      name: from
+      in: query
+      description: |
+        Cursor value for pagination. Typically the last ID from the previous page.
+        The meaning varies by endpoint:
+        - Most endpoints: Record ID to start after
+        - Events: sequence_id to start after
+        - Notifications: notification_id to start after
+      schema:
+        type: integer
+      example: 100
+
+    per:
+      name: per
+      in: query
+      description: |
+        Number of items per page. Default varies by endpoint.
+        Maximum is typically 100 to prevent excessive data transfer.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+      example: 30
+
+  default_per_values:
+    discussions: 50
+    polls: 50
+    comments: 30
+    events: 30
+    memberships: 30
+    notifications: 30
+    search_results: 20
+
+# Event Timeline Pagination
+EventPagination:
+  description: |
+    Events use sequence_id-based pagination for discussion timelines.
+    This allows stable pagination even as new events are added.
+
+  parameters:
+    from_sequence_id:
+      name: from_sequence_id
+      in: query
+      description: Start fetching events after this sequence_id
+      schema:
+        type: integer
+
+    to_sequence_id:
+      name: to_sequence_id
+      in: query
+      description: Stop fetching events at this sequence_id
+      schema:
+        type: integer
+
+  example_usage: |
+    # Initial load: get first 30 events
+    GET /api/v1/events?discussion_id=123&per=30
+
+    # Load more: get next 30 after sequence_id 50
+    GET /api/v1/events?discussion_id=123&from_sequence_id=50&per=30
+
+    # Load specific range for read tracking
+    GET /api/v1/events?discussion_id=123&from_sequence_id=20&to_sequence_id=40
+
+# Batch Fetching (xids pattern)
+BatchFetching:
+  description: |
+    Many endpoints support fetching multiple specific records by ID
+    using the `xids` parameter (x-separated IDs).
+
+  parameters:
+    xids:
+      name: xids
+      in: query
+      description: |
+        X-separated list of IDs to fetch.
+        More efficient than multiple single-item requests.
+        Typically limited to ~100 IDs per request.
+      schema:
+        type: string
+        pattern: '^[0-9]+(x[0-9]+)*$'
+      example: "1x5x23x42x99"
+
+  supported_endpoints:
+    - /api/v1/discussions
+    - /api/v1/polls
+    - /api/v1/groups
+    - /api/v1/memberships
+    - /api/v1/events
+    - /api/v1/stances
+    - /api/v1/profile
+
+  example_usage: |
+    # Fetch discussions 1, 5, and 23
+    GET /api/v1/discussions?xids=1x5x23
+
+    # Fetch members 10, 20, 30
+    GET /api/v1/memberships?xids=10x20x30
+
+# Sideloading Control
+SideloadingControl:
+  description: |
+    Control which related records are included in responses using exclude_types.
+    This reduces payload size when related data isn't needed.
+
+  parameters:
+    exclude_types:
+      name: exclude_types
+      in: query
+      description: |
+        Space-separated list of record types to exclude from sideloading.
+        Reduces response size when certain related data isn't needed.
+      schema:
+        type: string
+      example: "poll reaction event"
+
+  excludable_types:
+    - poll        # Exclude active polls from discussions
+    - reaction    # Exclude emoji reactions
+    - event       # Exclude timeline events
+    - outcome     # Exclude poll outcomes
+    - stance      # Exclude votes
+    - user        # Exclude user details (for privacy)
+    - group       # Exclude group details
+    - membership  # Exclude membership info
+    - tag         # Exclude tags
+    - comment     # Exclude comments
+
+  example_usage: |
+    # Get discussion without polls or reactions
+    GET /api/v1/discussions/123?exclude_types=poll reaction
+
+    # Get notifications without full user data
+    GET /api/v1/notifications?exclude_types=user
+
+# Timeframe Filtering
+TimeframeFiltering:
+  description: |
+    Some endpoints support filtering by timestamp ranges.
+    Useful for syncing changes since a known point.
+
+  parameters:
+    since:
+      name: since
+      in: query
+      description: Return records modified after this timestamp
+      schema:
+        type: string
+        format: date-time
+
+    until:
+      name: until
+      in: query
+      description: Return records modified before this timestamp
+      schema:
+        type: string
+        format: date-time
+
+    timeframe_for:
+      name: timeframe_for
+      in: query
+      description: Which timestamp field to filter on
+      schema:
+        type: string
+        enum: [created_at, updated_at, last_activity_at]
+
+  example_usage: |
+    # Get discussions updated in the last hour
+    GET /api/v1/discussions?since=2024-01-15T12:00:00Z&timeframe_for=updated_at
+
+# Response Structure
+ResponseStructure:
+  description: |
+    All paginated responses include the primary collection plus sideloaded
+    related records. There's no explicit "has_more" flag - clients should
+    request the next page if they received `per` items.
+
+  example:
+    discussions:
+      - id: 100
+        title: "Discussion 100"
+        author_id: 10
+      - id: 99
+        title: "Discussion 99"
+        author_id: 11
+    users:
+      - id: 10
+        name: "Alice"
+      - id: 11
+        name: "Bob"
+    groups:
+      - id: 5
+        name: "My Group"
+
+  client_pattern: |
+    # Pseudo-code for loading all pages
+    let items = []
+    let lastId = null
+
+    while (true) {
+      const response = await fetch(`/api/v1/discussions?per=50${lastId ? `&from=${lastId}` : ''}`)
+      const data = response.discussions
+
+      if (data.length === 0) break
+
+      items.push(...data)
+      lastId = data[data.length - 1].id
+
+      if (data.length < 50) break  // Last page
+    }

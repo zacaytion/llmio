@@ -1,0 +1,26 @@
+{
+  "name": "AuthorSerializer",
+  "source_file": "app/serializers/author_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "users",
+  "sideloaded_as": "users",
+  "description": "Base serializer for user data in most contexts (lightweight user representation)",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column", "nullable": true },
+    "email": { "type": "string", "source": "column", "conditional": "scope[:current_user_id] == object.id || scope[:include_email] || scope[:current_user_is_admin]" },
+    "username": { "type": "string", "source": "column" },
+    "avatar_initials": { "type": "string", "source": "column" },
+    "avatar_kind": { "type": "string", "source": "method", "note": "Returns 'mdi-email-outline' for unverified users without name, otherwise column value" },
+    "thumb_url": { "type": "string", "source": "column", "nullable": true },
+    "time_zone": { "type": "string", "source": "column", "nullable": true },
+    "locale": { "type": "string", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "titles": { "type": "object", "source": "method", "note": "Extracted from experiences['titles'], defaults to {}" },
+    "delegates": { "type": "object", "source": "method", "note": "Extracted from experiences['delegates'], defaults to {}" },
+    "placeholder_name": { "type": "string", "source": "method", "conditional": "object.name.nil?", "note": "I18n translated placeholder with email hostname" },
+    "email_verified": { "type": "boolean", "source": "column" },
+    "bot": { "type": "boolean", "source": "column" }
+  },
+  "relationships": {}
+}

@@ -1,0 +1,728 @@
+# Templates Paths (Discussion & Poll)
+# Extracted from app/controllers/api/v1/discussion_templates_controller.rb
+# and app/controllers/api/v1/poll_templates_controller.rb
+
+paths:
+  # ==================== DISCUSSION TEMPLATES ====================
+
+  /api/v1/discussion_templates:
+    get:
+      operationId: listDiscussionTemplates
+      summary: List discussion templates
+      description: Returns discussion templates for a group.
+      tags:
+        - Templates
+      parameters:
+        - name: group_id
+          in: query
+          description: Filter by group
+          schema:
+            type: integer
+        - name: id
+          in: query
+          description: Get specific template by ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of discussion templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionTemplate'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+    post:
+      operationId: createDiscussionTemplate
+      summary: Create a discussion template
+      description: Creates a new discussion template. Requires group admin.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion_template:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    description_format:
+                      type: string
+                      enum: [md, html]
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                    process_name:
+                      type: string
+                    process_subtitle:
+                      type: string
+                    process_introduction:
+                      type: string
+                    process_introduction_format:
+                      type: string
+                      enum: [md, html]
+                    max_depth:
+                      type: integer
+                    newest_first:
+                      type: boolean
+                    public:
+                      type: boolean
+                      description: Whether template is visible in public library
+                  required:
+                    - group_id
+                    - title
+      responses:
+        '200':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionTemplate'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/discussion_templates/{id}:
+    get:
+      operationId: getDiscussionTemplate
+      summary: Get a discussion template
+      description: Returns a single discussion template.
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionTemplate'
+                    maxItems: 1
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+    patch:
+      operationId: updateDiscussionTemplate
+      summary: Update a discussion template
+      description: Updates a discussion template. Requires group admin.
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion_template:
+                  type: object
+                  description: Fields to update
+      responses:
+        '200':
+          description: Template updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    delete:
+      operationId: destroyDiscussionTemplate
+      summary: Delete a discussion template
+      description: Permanently deletes a discussion template.
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_templates/browse:
+    get:
+      operationId: browseDiscussionTemplates
+      summary: Browse public templates
+      description: Browse public discussion templates from the library.
+      tags:
+        - Templates
+      security: []
+      parameters:
+        - name: query
+          in: query
+          description: Search by name, subtitle, or tags
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionTemplate'
+
+  /api/v1/discussion_templates/browse_tags:
+    get:
+      operationId: browseDiscussionTemplateTags
+      summary: Get popular template tags
+      description: Returns popular tags used in public templates.
+      tags:
+        - Templates
+      security: []
+      responses:
+        '200':
+          description: Popular tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/discussion_templates/positions:
+    post:
+      operationId: setDiscussionTemplatePositions
+      summary: Reorder templates
+      description: Sets the display order of templates for a group.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                ids:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+                  description: Template IDs or keys in desired order
+              required:
+                - group_id
+                - ids
+      responses:
+        '200':
+          description: Positions updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_templates/hide:
+    post:
+      operationId: hideDiscussionTemplate
+      summary: Hide a built-in template
+      description: Hides a built-in template from the group's template list.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                key:
+                  type: string
+                  description: Built-in template key
+              required:
+                - group_id
+                - key
+      responses:
+        '200':
+          description: Template hidden
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_templates/unhide:
+    post:
+      operationId: unhideDiscussionTemplate
+      summary: Unhide a built-in template
+      description: Restores a hidden built-in template.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                key:
+                  type: string
+              required:
+                - group_id
+                - key
+      responses:
+        '200':
+          description: Template unhidden
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_templates/discard:
+    post:
+      operationId: discardDiscussionTemplate
+      summary: Soft-delete a template
+      description: Soft-deletes a custom discussion template.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                id:
+                  type: integer
+              required:
+                - group_id
+                - id
+      responses:
+        '200':
+          description: Template discarded
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_templates/undiscard:
+    post:
+      operationId: undiscardDiscussionTemplate
+      summary: Restore a soft-deleted template
+      description: Restores a previously discarded template.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                id:
+                  type: integer
+              required:
+                - group_id
+                - id
+      responses:
+        '200':
+          description: Template restored
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  # ==================== POLL TEMPLATES ====================
+
+  /api/v1/poll_templates:
+    get:
+      operationId: listPollTemplates
+      summary: List poll templates
+      description: Returns poll templates for a group.
+      tags:
+        - Templates
+      parameters:
+        - name: group_id
+          in: query
+          description: Filter by group
+          schema:
+            type: integer
+        - name: key_or_id
+          in: query
+          description: Get specific template by key or ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of poll templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  poll_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/PollTemplate'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+    post:
+      operationId: createPollTemplate
+      summary: Create a poll template
+      description: Creates a new poll template. Requires group admin.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll_template:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    poll_type:
+                      type: string
+                      enum: [proposal, count, poll, dot_vote, score, ranked_choice, meeting]
+                    title:
+                      type: string
+                    details:
+                      type: string
+                    details_format:
+                      type: string
+                      enum: [md, html]
+                    process_name:
+                      type: string
+                    process_subtitle:
+                      type: string
+                    process_introduction:
+                      type: string
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                    default_duration_in_days:
+                      type: integer
+                    notify_on_closing_soon:
+                      type: string
+                      enum: [nobody, author, undecided_voters, voters]
+                    anonymous:
+                      type: boolean
+                    hide_results:
+                      type: string
+                      enum: [off, until_vote, until_closed]
+                    voter_can_add_options:
+                      type: boolean
+                    poll_option_names:
+                      type: array
+                      items:
+                        type: string
+                    public:
+                      type: boolean
+                  required:
+                    - group_id
+                    - poll_type
+                    - title
+      responses:
+        '200':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  poll_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/PollTemplate'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/poll_templates/{id}:
+    get:
+      operationId: getPollTemplate
+      summary: Get a poll template
+      description: Returns a single poll template.
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  poll_templates:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/PollTemplate'
+                    maxItems: 1
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+    patch:
+      operationId: updatePollTemplate
+      summary: Update a poll template
+      description: Updates a poll template. Requires group admin.
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll_template:
+                  type: object
+                  description: Fields to update
+      responses:
+        '200':
+          description: Template updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    delete:
+      operationId: destroyPollTemplate
+      summary: Delete a poll template
+      description: Permanently deletes a poll template.
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Template deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/poll_templates/positions:
+    post:
+      operationId: setPollTemplatePositions
+      summary: Reorder poll templates
+      description: Sets the display order of poll templates for a group.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                ids:
+                  type: array
+                  items:
+                    oneOf:
+                      - type: integer
+                      - type: string
+              required:
+                - group_id
+                - ids
+      responses:
+        '200':
+          description: Positions updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/poll_templates/settings:
+    post:
+      operationId: setPollTemplateSettings
+      summary: Update template display settings
+      description: Updates how templates are displayed (e.g., categorized).
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                categorize_poll_templates:
+                  type: boolean
+              required:
+                - group_id
+      responses:
+        '200':
+          description: Settings updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/poll_templates/hide:
+    post:
+      operationId: hidePollTemplate
+      summary: Hide a built-in poll template
+      description: Hides a built-in template from the group's template list.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                key:
+                  type: string
+              required:
+                - group_id
+                - key
+      responses:
+        '200':
+          description: Template hidden
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/poll_templates/unhide:
+    post:
+      operationId: unhidePollTemplate
+      summary: Unhide a built-in poll template
+      description: Restores a hidden built-in template.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                key:
+                  type: string
+              required:
+                - group_id
+                - key
+      responses:
+        '200':
+          description: Template unhidden
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/poll_templates/discard:
+    post:
+      operationId: discardPollTemplate
+      summary: Soft-delete a poll template
+      description: Soft-deletes a custom poll template.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                id:
+                  type: integer
+              required:
+                - group_id
+                - id
+      responses:
+        '200':
+          description: Template discarded
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/poll_templates/undiscard:
+    post:
+      operationId: undiscardPollTemplate
+      summary: Restore a soft-deleted poll template
+      description: Restores a previously discarded template.
+      tags:
+        - Templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                id:
+                  type: integer
+              required:
+                - group_id
+                - id
+      responses:
+        '200':
+          description: Template restored
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

@@ -1,0 +1,37 @@
+{
+  "name": "SessionsController",
+  "source_file": "app/controllers/api/v1/sessions_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/sessions",
+  "inherits": "Devise::SessionsController",
+  "description": "User authentication sessions",
+  "actions": {
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/sessions",
+      "description": "Sign in (create session)",
+      "authentication": "none",
+      "root_key": "user",
+      "parameters": {
+        "email": { "type": "string", "format": "email", "required": true },
+        "password": { "type": "string", "description": "Password (for password auth)" },
+        "code": { "type": "string", "description": "Login token code (for passwordless auth)" },
+        "remember_me": { "type": "boolean" },
+        "name": { "type": "string", "description": "Set name if not already set" }
+      },
+      "notes": "Supports password auth, login token, or pending login token from session"
+    },
+    "destroy": {
+      "method": "DELETE",
+      "path": "/api/v1/sessions",
+      "description": "Sign out (destroy session)",
+      "authentication": "required"
+    },
+    "unauthorized": {
+      "method": "GET",
+      "path": "/api/v1/sessions/unauthorized",
+      "description": "Endpoint called when authentication is required",
+      "authentication": "none"
+    }
+  }
+}

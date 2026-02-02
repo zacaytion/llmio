@@ -1,0 +1,438 @@
+# Groups Paths
+# Extracted from app/controllers/api/v1/groups_controller.rb
+
+paths:
+  /api/v1/groups:
+    get:
+      operationId: listGroups
+      summary: List groups
+      description: |
+        Returns groups visible to the current user.
+        Can filter by parent group, explore results, etc.
+      tags:
+        - Groups
+      parameters:
+        - name: xids
+          in: query
+          description: X-separated group IDs to fetch
+          schema:
+            type: string
+        - name: parent_id
+          in: query
+          description: Filter by parent group (for subgroups)
+          schema:
+            type: integer
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  tags:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Tag'
+
+    post:
+      operationId: createGroup
+      summary: Create a new group
+      description: |
+        Creates a new group or subgroup. The creator becomes an admin.
+        Subgroups inherit some settings from parent by default.
+      tags:
+        - Groups
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    description_format:
+                      type: string
+                      enum: [md, html]
+                    handle:
+                      type: string
+                    parent_id:
+                      type: integer
+                      description: Parent group ID (for subgroups)
+                    group_privacy:
+                      type: string
+                      enum: [open, closed, secret]
+                    discussion_privacy_options:
+                      type: string
+                    members_can_add_members:
+                      type: boolean
+                    members_can_add_guests:
+                      type: boolean
+                    members_can_announce:
+                      type: boolean
+                    members_can_create_subgroups:
+                      type: boolean
+                    members_can_start_discussions:
+                      type: boolean
+                    members_can_edit_discussions:
+                      type: boolean
+                    members_can_edit_comments:
+                      type: boolean
+                    members_can_delete_comments:
+                      type: boolean
+                    members_can_raise_motions:
+                      type: boolean
+                  required:
+                    - name
+      responses:
+        '200':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                    maxItems: 1
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/groups/{id}:
+    get:
+      operationId: getGroup
+      summary: Get a group
+      description: Returns a single group with its configuration and counts.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Group ID or key
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                    maxItems: 1
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+    patch:
+      operationId: updateGroup
+      summary: Update a group
+      description: Updates group settings. Requires admin permission.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group:
+                  type: object
+                  description: Fields to update (same as create)
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+    delete:
+      operationId: destroyGroup
+      summary: Delete a group
+      description: |
+        Permanently deletes a group and all its content.
+        Requires admin permission. Cannot be undone.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Group deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/groups/{id}/token:
+    get:
+      operationId: getGroupToken
+      summary: Get group invite token
+      description: Returns the group's invite token. Requires admin permission.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Group token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/groups/{id}/reset_token:
+    post:
+      operationId: resetGroupToken
+      summary: Reset group invite token
+      description: Generates a new invite token, invalidating the old one.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: New token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/groups/{id}/subgroups:
+    get:
+      operationId: getGroupSubgroups
+      summary: Get group's subgroups
+      description: Returns all subgroups of the specified group.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of subgroups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+
+  /api/v1/groups/{id}/export:
+    post:
+      operationId: exportGroup
+      summary: Export group data
+      description: |
+        Initiates an export of all group data (discussions, polls, etc.)
+        as a downloadable archive. Sends email when ready.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Export started
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/groups/{id}/export_csv:
+    post:
+      operationId: exportGroupCsv
+      summary: Export group data as CSV
+      description: Exports group member data as CSV.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/groups/{id}/upload_photo/{kind}:
+    post:
+      operationId: uploadGroupPhoto
+      summary: Upload group photo
+      description: Uploads a logo or cover photo for the group.
+      tags:
+        - Groups
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [logo, cover_photo]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Photo uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/groups/count_explore_results:
+    get:
+      operationId: countExploreResults
+      summary: Count explore results
+      description: Returns count of public groups matching search criteria.
+      tags:
+        - Groups
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Count result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /api/v1/groups/suggest_handle:
+    get:
+      operationId: suggestGroupHandle
+      summary: Suggest a group handle
+      description: Suggests an available handle based on group name.
+      tags:
+        - Groups
+      parameters:
+        - name: name
+          in: query
+          required: true
+          description: Group name to base suggestion on
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Suggested handle
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  handle:
+                    type: string

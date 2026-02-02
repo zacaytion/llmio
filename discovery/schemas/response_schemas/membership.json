@@ -1,0 +1,27 @@
+{
+  "name": "MembershipSerializer",
+  "source_file": "app/serializers/membership_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "memberships",
+  "sideloaded_as": "memberships",
+  "description": "Group membership serializer with role and notification settings",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "group_id": { "type": "integer", "source": "column" },
+    "user_id": { "type": "integer", "source": "column" },
+    "inviter_id": { "type": "integer", "source": "column", "nullable": true },
+    "volume": { "type": "integer", "source": "column", "enum_values": { "0": "mute", "1": "quiet", "2": "normal", "3": "loud" } },
+    "admin": { "type": "boolean", "source": "column" },
+    "delegate": { "type": "boolean", "source": "column" },
+    "experiences": { "type": "object", "source": "column" },
+    "title": { "type": "string", "source": "column", "nullable": true },
+    "created_at": { "type": "datetime", "source": "column" },
+    "accepted_at": { "type": "datetime", "source": "column", "nullable": true },
+    "user_email": { "type": "string", "source": "method", "conditional": "inviter_id == current_user_id || current_user_is_admin" }
+  },
+  "relationships": {
+    "group": { "serializer": "GroupSerializer", "type": "has_one", "root": "groups", "conditional": "include_type?('group') && object.group_id" },
+    "user": { "serializer": "UserSerializer", "type": "has_one", "root": "users", "key": "user_id", "conditional": "include_type?('user')" },
+    "inviter": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user') && include_type?('inviter')" }
+  }
+}

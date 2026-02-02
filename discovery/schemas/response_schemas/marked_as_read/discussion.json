@@ -1,0 +1,25 @@
+{
+  "name": "MarkedAsRead::DiscussionSerializer",
+  "source_file": "app/serializers/marked_as_read/discussion_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "discussions",
+  "sideloaded_as": "discussions",
+  "description": "Minimal discussion serializer for mark-as-read responses",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "key": { "type": "string", "source": "column" },
+    "items_count": { "type": "integer", "source": "column" },
+    "ranges": { "type": "string", "source": "column" }
+  },
+  "reader_attributes": {
+    "discussion_reader_id": { "type": "integer", "source": "reader.id", "conditional": "reader.present?" },
+    "read_ranges": { "type": "array", "source": "reader", "conditional": "reader.present?" },
+    "last_read_at": { "type": "datetime", "source": "reader", "conditional": "reader.present?", "nullable": true },
+    "dismissed_at": { "type": "datetime", "source": "reader", "conditional": "reader.present?", "nullable": true }
+  },
+  "relationships": {},
+  "notes": [
+    "Uses scope[:reader_cache] for efficient reader lookup",
+    "Minimal payload for updating read state on client"
+  ]
+}

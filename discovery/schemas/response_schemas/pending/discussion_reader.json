@@ -1,0 +1,13 @@
+{
+  "name": "Pending::DiscussionReaderSerializer",
+  "source_file": "app/serializers/pending/discussion_reader_serializer.rb",
+  "inherits_from": "Pending::MembershipSerializer",
+  "root_key": "pending",
+  "sideloaded_as": null,
+  "description": "Pending state for discussion guest invitation",
+  "attributes": {
+    "identity_type": { "type": "string", "source": "method", "value": "discussion_reader" },
+    "group_id": { "type": "null", "source": "method", "value": null }
+  },
+  "relationships": {}
+}

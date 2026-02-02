@@ -1,0 +1,23 @@
+{
+  "name": "TaskSerializer",
+  "source_file": "app/serializers/task_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "tasks",
+  "sideloaded_as": "tasks",
+  "description": "Task/to-do item attached to discussions or polls",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "author_id": { "type": "integer", "source": "column" },
+    "uid": { "type": "string", "source": "column" },
+    "done": { "type": "boolean", "source": "column" },
+    "done_at": { "type": "datetime", "source": "column", "nullable": true },
+    "due_on": { "type": "date", "source": "column", "nullable": true },
+    "record_type": { "type": "string", "source": "column" },
+    "record_id": { "type": "integer", "source": "column" }
+  },
+  "relationships": {
+    "record": { "type": "has_one", "polymorphic": true, "key": "record_obj" },
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" }
+  }
+}

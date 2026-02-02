@@ -1,0 +1,362 @@
+# Poll Schema
+# Extracted from app/serializers/poll_serializer.rb
+
+Poll:
+  type: object
+  description: |
+    Poll/proposal representation. Supports multiple poll types with
+    different voting mechanisms. Can be standalone or attached to discussions.
+  properties:
+    id:
+      type: integer
+    key:
+      type: string
+      description: Public poll key (used in URLs)
+    discussion_id:
+      type: integer
+      nullable: true
+    group_id:
+      type: integer
+      nullable: true
+    author_id:
+      type: integer
+    poll_template_id:
+      type: integer
+      nullable: true
+
+    # Content
+    title:
+      type: string
+    details:
+      type: string
+      nullable: true
+    details_format:
+      type: string
+      enum: [md, html]
+    content_locale:
+      type: string
+      nullable: true
+    tags:
+      type: array
+      items:
+        type: string
+
+    # Poll configuration
+    poll_type:
+      type: string
+      enum:
+        - proposal
+        - count
+        - poll
+        - dot_vote
+        - score
+        - ranked_choice
+        - meeting
+      description: Type determines voting mechanism and display
+    poll_option_name_format:
+      type: string
+      enum: [plain, iso8601]
+      description: How option names are interpreted
+    chart_type:
+      type: string
+      nullable: true
+      enum: [pie, bar, grid]
+    chart_column:
+      type: string
+      nullable: true
+    default_duration_in_days:
+      type: integer
+      nullable: true
+    specified_voters_only:
+      type: boolean
+    hide_results:
+      type: string
+      enum: [off, until_vote, until_closed]
+    results_hidden:
+      type: boolean
+      description: Computed: whether results are currently hidden
+    voter_can_add_options:
+      type: boolean
+    can_respond_maybe:
+      type: boolean
+      description: For meeting polls - allow 'maybe' response
+    shuffle_options:
+      type: boolean
+    anonymous:
+      type: boolean
+    agree_target:
+      type: integer
+      nullable: true
+    anyone_can_participate:
+      type: boolean
+    allow_long_reason:
+      type: boolean
+    limit_reason_length:
+      type: boolean
+    min_score:
+      type: integer
+      nullable: true
+      description: For score polls
+    max_score:
+      type: integer
+      nullable: true
+      description: For score polls
+    dots_per_person:
+      type: integer
+      nullable: true
+      description: For dot_vote polls
+    minimum_stance_choices:
+      type: integer
+      nullable: true
+      description: Minimum options to select
+    maximum_stance_choices:
+      type: integer
+      nullable: true
+      description: Maximum options to select
+
+    # Visibility
+    secret_token:
+      type: string
+      nullable: true
+      description: Token for anonymous voting access
+
+    # Timestamps
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    closing_at:
+      type: string
+      format: date-time
+      nullable: true
+    closed_at:
+      type: string
+      format: date-time
+      nullable: true
+    discarded_at:
+      type: string
+      format: date-time
+      nullable: true
+    decided_voters_count_to_date:
+      type: integer
+      description: Snapshot of voters at time of closing
+
+    # Reminder settings
+    notify_on_closing_soon:
+      type: string
+      enum: [nobody, author, undecided_voters, voters]
+
+    # Counts
+    stances_count:
+      type: integer
+      description: Total votes cast
+    undecided_voters_count:
+      type: integer
+    voters_count:
+      type: integer
+    versions_count:
+      type: integer
+
+    # Results (score polls)
+    total_score:
+      type: integer
+      nullable: true
+    stance_counts:
+      type: array
+      items:
+        type: integer
+      description: Vote counts per option (indexed by position)
+    matrix_counts:
+      type: array
+      items:
+        type: array
+        items:
+          type: integer
+      description: For ranked_choice - matrix of rankings
+
+    # Rich content
+    attachments:
+      type: array
+      items:
+        $ref: 'group.yaml#/Attachment'
+    link_previews:
+      type: array
+      items:
+        $ref: 'group.yaml#/LinkPreview'
+    mentioned_usernames:
+      type: array
+      items:
+        type: string
+
+    # User state
+    my_stance_id:
+      type: integer
+      nullable: true
+      description: Current user's stance ID if voted
+    current_user_membership_id:
+      type: integer
+      nullable: true
+    translation_id:
+      type: integer
+      nullable: true
+
+  required:
+    - id
+    - key
+    - title
+    - poll_type
+
+PollOption:
+  type: object
+  description: Individual option in a poll
+  properties:
+    id:
+      type: integer
+    poll_id:
+      type: integer
+    name:
+      type: string
+      description: Option text or ISO8601 date for meeting polls
+    icon:
+      type: string
+      nullable: true
+    meaning:
+      type: string
+      nullable: true
+    prompt:
+      type: string
+      nullable: true
+    position:
+      type: integer
+      description: Display order
+    score_counts:
+      type: object
+      additionalProperties:
+        type: integer
+      description: For score polls - count of each score value
+    voter_scores:
+      type: object
+      additionalProperties:
+        type: integer
+      description: Individual voter scores (if not anonymous)
+    total_score:
+      type: integer
+      description: Sum of all scores for this option
+    average_score:
+      type: number
+      format: float
+      description: Average score for this option
+
+PollTemplate:
+  type: object
+  description: Template for creating polls with preset configuration
+  properties:
+    id:
+      type: integer
+    key:
+      type: string
+    group_id:
+      type: integer
+      nullable: true
+    author_id:
+      type: integer
+    poll_type:
+      type: string
+    title:
+      type: string
+    details:
+      type: string
+      nullable: true
+    details_format:
+      type: string
+      enum: [md, html]
+    process_name:
+      type: string
+      nullable: true
+    process_subtitle:
+      type: string
+      nullable: true
+    process_introduction:
+      type: string
+      nullable: true
+    process_introduction_format:
+      type: string
+      enum: [md, html]
+    tags:
+      type: array
+      items:
+        type: string
+    # ... (inherits most poll configuration fields)
+    default_duration_in_days:
+      type: integer
+    notify_on_closing_soon:
+      type: string
+    anonymous:
+      type: boolean
+    hide_results:
+      type: string
+    position:
+      type: integer
+    discarded_at:
+      type: string
+      format: date-time
+      nullable: true
+    hidden_at:
+      type: string
+      format: date-time
+      nullable: true
+    public:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+Outcome:
+  type: object
+  description: |
+    Poll outcome/decision. Created when a poll is closed to document
+    the decision and optionally set review reminders.
+  properties:
+    id:
+      type: integer
+    poll_id:
+      type: integer
+    author_id:
+      type: integer
+    statement:
+      type: string
+      description: Summary of the decision
+    statement_format:
+      type: string
+      enum: [md, html]
+    latest:
+      type: boolean
+      description: Whether this is the current outcome
+    review_on:
+      type: string
+      format: date
+      nullable: true
+      description: Optional date to review the decision
+    created_at:
+      type: string
+      format: date-time
+    attachments:
+      type: array
+      items:
+        $ref: 'group.yaml#/Attachment'
+    link_previews:
+      type: array
+      items:
+        $ref: 'group.yaml#/LinkPreview'
+    mentioned_usernames:
+      type: array
+      items:
+        type: string
+    translation_id:
+      type: integer
+      nullable: true

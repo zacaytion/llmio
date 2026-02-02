@@ -1,0 +1,20 @@
+{
+  "name": "Pending::GroupSerializer",
+  "source_file": "app/serializers/pending/group_serializer.rb",
+  "inherits_from": "Pending::BaseSerializer",
+  "root_key": "pending",
+  "sideloaded_as": null,
+  "description": "Pending state for group token-based access (public group link)",
+  "attributes": {
+    "token": { "type": "string", "source": "method" },
+    "group_id": { "type": "integer", "source": "method" },
+    "identity_type": { "type": "string", "source": "method", "value": "group" },
+    "auth_form": { "type": "boolean", "source": "method", "value": false },
+    "has_token": { "type": "boolean", "source": "method", "value": true }
+  },
+  "relationships": {},
+  "notes": [
+    "email_status and email excluded",
+    "name returns nil"
+  ]
+}

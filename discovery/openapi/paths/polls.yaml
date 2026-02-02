@@ -1,0 +1,567 @@
+# Polls Paths
+# Extracted from app/controllers/api/v1/polls_controller.rb
+
+paths:
+  /api/v1/polls:
+    get:
+      operationId: listPolls
+      summary: List polls
+      description: Returns polls visible to the current user.
+      tags:
+        - Polls
+      parameters:
+        - name: group_id
+          in: query
+          description: Filter by group
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          description: Filter by discussion
+          schema:
+            type: integer
+        - name: author_id
+          in: query
+          description: Filter by author
+          schema:
+            type: integer
+        - name: xids
+          in: query
+          description: X-separated poll IDs to fetch
+          schema:
+            type: string
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: List of polls
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+                  poll_options:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/PollOption'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+                  outcomes:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Outcome'
+
+    post:
+      operationId: createPoll
+      summary: Create a new poll
+      description: |
+        Creates a new poll. Can be standalone or attached to a discussion.
+        The poll_type determines the voting mechanism.
+      tags:
+        - Polls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    details:
+                      type: string
+                    details_format:
+                      type: string
+                      enum: [md, html]
+                    poll_type:
+                      type: string
+                      enum: [proposal, count, poll, dot_vote, score, ranked_choice, meeting]
+                    group_id:
+                      type: integer
+                      nullable: true
+                    discussion_id:
+                      type: integer
+                      nullable: true
+                    closing_at:
+                      type: string
+                      format: date-time
+                    anonymous:
+                      type: boolean
+                    hide_results:
+                      type: string
+                      enum: [off, until_vote, until_closed]
+                    specified_voters_only:
+                      type: boolean
+                    voter_can_add_options:
+                      type: boolean
+                    shuffle_options:
+                      type: boolean
+                    notify_on_closing_soon:
+                      type: string
+                      enum: [nobody, author, undecided_voters, voters]
+                    poll_option_names:
+                      type: array
+                      items:
+                        type: string
+                      description: Names/values for poll options
+                    poll_option_name_format:
+                      type: string
+                      enum: [plain, iso8601]
+                    dots_per_person:
+                      type: integer
+                      description: For dot_vote polls
+                    min_score:
+                      type: integer
+                    max_score:
+                      type: integer
+                    minimum_stance_choices:
+                      type: integer
+                    maximum_stance_choices:
+                      type: integer
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                    recipient_user_ids:
+                      type: array
+                      items:
+                        type: integer
+                    recipient_emails:
+                      type: array
+                      items:
+                        type: string
+                        format: email
+                    recipient_audience:
+                      type: string
+                  required:
+                    - title
+                    - poll_type
+      responses:
+        '200':
+          description: Poll created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+                    maxItems: 1
+                  poll_options:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/PollOption'
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/polls/closed:
+    get:
+      operationId: listClosedPolls
+      summary: List closed polls
+      description: Returns closed polls for a group.
+      tags:
+        - Polls
+      parameters:
+        - name: group_id
+          in: query
+          description: Filter by group
+          schema:
+            type: integer
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Closed polls
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+
+  /api/v1/polls/{id}:
+    get:
+      operationId: getPoll
+      summary: Get a poll
+      description: Returns a poll with options and user's stance.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Poll ID or key
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: Poll details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+                    maxItems: 1
+                  poll_options:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/PollOption'
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+                  outcomes:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Outcome'
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+    patch:
+      operationId: updatePoll
+      summary: Update a poll
+      description: Updates poll content or settings.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                poll:
+                  type: object
+                  description: Fields to update
+      responses:
+        '200':
+          description: Poll updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/polls/{id}/close:
+    post:
+      operationId: closePoll
+      summary: Close a poll
+      description: Closes a poll, preventing further votes.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Poll closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/polls/{id}/reopen:
+    post:
+      operationId: reopenPoll
+      summary: Reopen a poll
+      description: Reopens a closed poll for more voting.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                closing_at:
+                  type: string
+                  format: date-time
+                  description: New closing time
+      responses:
+        '200':
+          description: Poll reopened
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/polls/{id}/discard:
+    delete:
+      operationId: discardPoll
+      summary: Soft-delete poll
+      description: Soft-deletes a poll.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Poll discarded
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/polls/{id}/remind:
+    post:
+      operationId: remindPollVoters
+      summary: Send reminder to voters
+      description: Sends a reminder notification to voters who haven't voted.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reminders sent
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/polls/{id}/add_to_thread:
+    patch:
+      operationId: addPollToThread
+      summary: Add poll to discussion
+      description: Attaches a standalone poll to a discussion thread.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion_id:
+                  type: integer
+              required:
+                - discussion_id
+      responses:
+        '200':
+          description: Poll added to thread
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/polls/{id}/voters:
+    get:
+      operationId: getPollVoters
+      summary: Get poll voters
+      description: Returns list of users who have voted on this poll.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Voter list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/polls/{id}/receipts:
+    get:
+      operationId: getPollReceipts
+      summary: Get vote receipts
+      description: Returns email verification receipts for votes.
+      tags:
+        - Polls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Vote receipts
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/outcomes:
+    post:
+      operationId: createOutcome
+      summary: Create poll outcome
+      description: |
+        Creates an outcome/decision statement for a poll.
+        Typically created when closing a poll.
+      tags:
+        - Polls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                outcome:
+                  type: object
+                  properties:
+                    poll_id:
+                      type: integer
+                    statement:
+                      type: string
+                    statement_format:
+                      type: string
+                      enum: [md, html]
+                    review_on:
+                      type: string
+                      format: date
+                      nullable: true
+                    recipient_user_ids:
+                      type: array
+                      items:
+                        type: integer
+                    recipient_audience:
+                      type: string
+                  required:
+                    - poll_id
+                    - statement
+      responses:
+        '200':
+          description: Outcome created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  outcomes:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Outcome'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+    patch:
+      operationId: updateOutcome
+      summary: Update poll outcome
+      description: Updates an existing outcome.
+      tags:
+        - Polls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                outcome:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    statement:
+                      type: string
+                    review_on:
+                      type: string
+                      format: date
+                      nullable: true
+      responses:
+        '200':
+          description: Outcome updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  outcomes:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Outcome'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

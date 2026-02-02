@@ -1,0 +1,127 @@
+{
+  "name": "PollTemplatesController",
+  "source_file": "app/controllers/api/v1/poll_templates_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/poll_templates",
+  "inherits": "RestfulController",
+  "permitted_params_key": "poll_template",
+  "description": "Poll templates for groups",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/poll_templates",
+      "description": "List poll templates for a group",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "key_or_id": { "type": "string", "description": "Get specific template by key or ID" }
+      }
+    },
+    "show": {
+      "method": "GET",
+      "path": "/api/v1/poll_templates/:id",
+      "description": "Get a single poll template",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates",
+      "description": "Create a poll template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "root_key": "poll_template",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/poll_template" }
+    },
+    "update": {
+      "method": "PATCH",
+      "path": "/api/v1/poll_templates/:id",
+      "description": "Update a poll template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "root_key": "poll_template",
+      "path_parameters": {
+        "id": { "type": "string", "description": "Template ID or key" }
+      },
+      "parameters": { "$ref": "../permitted_params.json#/attributes/poll_template" }
+    },
+    "destroy": {
+      "method": "DELETE",
+      "path": "/api/v1/poll_templates/:id",
+      "description": "Permanently delete a poll template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "positions": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates/positions",
+      "description": "Reorder templates by position",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "ids": { "type": "array", "items": { "type": ["integer", "string"] }, "description": "Template IDs or keys in order", "required": true }
+      }
+    },
+    "settings": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates/settings",
+      "description": "Update template display settings",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "categorize_poll_templates": { "type": "boolean" }
+      }
+    },
+    "hide": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates/hide",
+      "description": "Hide a built-in template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "key": { "type": "string", "required": true }
+      }
+    },
+    "unhide": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates/unhide",
+      "description": "Unhide a built-in template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "key": { "type": "string", "required": true }
+      }
+    },
+    "discard": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates/discard",
+      "description": "Soft-delete a template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "id": { "type": "integer", "required": true }
+      }
+    },
+    "undiscard": {
+      "method": "POST",
+      "path": "/api/v1/poll_templates/undiscard",
+      "description": "Restore a soft-deleted template",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true },
+        "id": { "type": "integer", "required": true }
+      }
+    }
+  }
+}

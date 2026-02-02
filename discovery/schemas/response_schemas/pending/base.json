@@ -1,0 +1,27 @@
+{
+  "name": "Pending::BaseSerializer",
+  "source_file": "app/serializers/pending/base_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "pending",
+  "sideloaded_as": null,
+  "description": "Base serializer for pending/unauthenticated user state (login flow)",
+  "attributes": {
+    "name": { "type": "string", "source": "method", "nullable": true },
+    "email": { "type": "string", "source": "method" },
+    "email_status": { "type": "string", "source": "method", "enum": ["active", "inactive", "unused"] },
+    "email_verified": { "type": "boolean", "source": "method" },
+    "has_password": { "type": "boolean", "source": "method" },
+    "identity_type": { "type": "string", "source": "method", "note": "Returns false in base class" },
+    "avatar_kind": { "type": "string", "source": "method" },
+    "avatar_initials": { "type": "string", "source": "method" },
+    "thumb_url": { "type": "string", "source": "method", "nullable": true },
+    "avatar_url": { "type": "string", "source": "method", "nullable": true },
+    "has_token": { "type": "boolean", "source": "method", "note": "Override in subclasses" },
+    "auth_form": { "type": "string", "source": "method", "enum": ["inactive", "signIn", "signUp"], "note": "Computed based on email_status, has_token, and name" }
+  },
+  "relationships": {},
+  "notes": [
+    "Used during authentication flow to determine what UI to show",
+    "Looks up User by email to populate fields"
+  ]
+}

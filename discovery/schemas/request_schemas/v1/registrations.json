@@ -1,0 +1,30 @@
+{
+  "name": "RegistrationsController",
+  "source_file": "app/controllers/api/v1/registrations_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/registrations",
+  "inherits": "Devise::RegistrationsController",
+  "description": "User registration",
+  "actions": {
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/registrations",
+      "description": "Register a new user",
+      "authentication": "none",
+      "root_key": "user",
+      "parameters": {
+        "name": { "type": "string", "required": true },
+        "email": { "type": "string", "format": "email", "required": true },
+        "legal_accepted": { "type": "boolean" },
+        "email_newsletter": { "type": "boolean" }
+      },
+      "notes": "May require pending invitation/membership depending on config. Auto-signs in if email can be verified via pending membership/token."
+    },
+    "oauth": {
+      "method": "POST",
+      "path": "/api/v1/registrations/oauth",
+      "description": "Register/login via OAuth",
+      "authentication": "none"
+    }
+  }
+}

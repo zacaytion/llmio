@@ -1,0 +1,666 @@
+# Discussions Paths
+# Extracted from app/controllers/api/v1/discussions_controller.rb
+
+paths:
+  /api/v1/discussions:
+    get:
+      operationId: listDiscussions
+      summary: List discussions
+      description: |
+        Returns discussions visible to the current user.
+        Supports filtering by group, tags, and various criteria.
+      tags:
+        - Discussions
+      parameters:
+        - name: group_id
+          in: query
+          description: Filter by group
+          schema:
+            type: integer
+        - name: subgroups
+          in: query
+          description: Include subgroup discussions
+          schema:
+            type: string
+            enum: [all, mine, none]
+        - name: tags
+          in: query
+          description: Filter by tags
+          schema:
+            type: string
+        - name: filter
+          in: query
+          description: Filter type
+          schema:
+            type: string
+            enum: [show_closed, show_opened, show_pinned]
+        - name: xids
+          in: query
+          description: X-separated discussion IDs to fetch
+          schema:
+            type: string
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: List of discussions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+
+    post:
+      operationId: createDiscussion
+      summary: Create a new discussion
+      description: |
+        Creates a new discussion in a group or as a direct discussion.
+        Can optionally fork events from another discussion.
+      tags:
+        - Discussions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    description_format:
+                      type: string
+                      enum: [md, html]
+                    group_id:
+                      type: integer
+                      nullable: true
+                      description: Null for direct discussions
+                    private:
+                      type: boolean
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                    newest_first:
+                      type: boolean
+                    max_depth:
+                      type: integer
+                    discussion_template_id:
+                      type: integer
+                    forked_event_ids:
+                      type: array
+                      items:
+                        type: integer
+                      description: Event IDs to move to new discussion
+                    recipient_user_ids:
+                      type: array
+                      items:
+                        type: integer
+                    recipient_emails:
+                      type: array
+                      items:
+                        type: string
+                        format: email
+                    recipient_audience:
+                      type: string
+                  required:
+                    - title
+      responses:
+        '200':
+          description: Discussion created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+                    maxItems: 1
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/discussions/{id}:
+    get:
+      operationId: getDiscussion
+      summary: Get a discussion
+      description: |
+        Returns a discussion with its reader state.
+        Can fetch by ID or key.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Discussion ID or key
+          schema:
+            oneOf:
+              - type: integer
+              - type: string
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: Discussion details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+                    maxItems: 1
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+    patch:
+      operationId: updateDiscussion
+      summary: Update a discussion
+      description: Updates discussion content or settings.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discussion:
+                  type: object
+                  description: Fields to update
+      responses:
+        '200':
+          description: Discussion updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/discussions/dashboard:
+    get:
+      operationId: getDashboard
+      summary: Get dashboard discussions
+      description: Returns discussions for the user's dashboard view.
+      tags:
+        - Discussions
+      parameters:
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+        - $ref: '../components/parameters/common.yaml#/excludeTypes'
+      responses:
+        '200':
+          description: Dashboard discussions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+
+  /api/v1/discussions/inbox:
+    get:
+      operationId: getInbox
+      summary: Get inbox discussions
+      description: Returns unread/unprocessed discussions for the user.
+      tags:
+        - Discussions
+      parameters:
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Inbox discussions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+
+  /api/v1/discussions/direct:
+    get:
+      operationId: getDirectDiscussions
+      summary: Get direct discussions
+      description: Returns discussions not in any group (null group_id).
+      tags:
+        - Discussions
+      parameters:
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Direct discussions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+
+  /api/v1/discussions/search:
+    get:
+      operationId: searchDiscussions
+      summary: Search discussions
+      description: Full-text search within a group's discussions.
+      tags:
+        - Discussions
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+
+  /api/v1/discussions/{id}/mark_as_seen:
+    patch:
+      operationId: markDiscussionAsSeen
+      summary: Mark discussion as seen
+      description: Records that user has viewed this discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Marked as seen
+
+  /api/v1/discussions/{id}/mark_as_read:
+    patch:
+      operationId: markDiscussionAsRead
+      summary: Mark discussion as read
+      description: Updates read position for the current user.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: ranges
+          in: query
+          description: Sequence ID ranges to mark as read
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Read position updated
+
+  /api/v1/discussions/{id}/dismiss:
+    patch:
+      operationId: dismissDiscussion
+      summary: Dismiss from inbox
+      description: Removes discussion from user's inbox without marking as read.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion dismissed
+
+  /api/v1/discussions/{id}/recall:
+    patch:
+      operationId: recallDiscussion
+      summary: Recall to inbox
+      description: Returns a dismissed discussion to the inbox.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion recalled
+
+  /api/v1/discussions/{id}/close:
+    patch:
+      operationId: closeDiscussion
+      summary: Close discussion
+      description: Closes a discussion, preventing new comments.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion closed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussions/{id}/reopen:
+    patch:
+      operationId: reopenDiscussion
+      summary: Reopen discussion
+      description: Reopens a closed discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion reopened
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussions/{id}/pin:
+    patch:
+      operationId: pinDiscussion
+      summary: Pin discussion
+      description: Pins discussion to top of group. Visible to all members.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion pinned
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussions/{id}/unpin:
+    patch:
+      operationId: unpinDiscussion
+      summary: Unpin discussion
+      description: Removes pin from discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion unpinned
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussions/{id}/pin_reader:
+    patch:
+      operationId: pinDiscussionForReader
+      summary: Pin for current user
+      description: Pins discussion for current user only.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion pinned for user
+
+  /api/v1/discussions/{id}/unpin_reader:
+    patch:
+      operationId: unpinDiscussionForReader
+      summary: Unpin for current user
+      description: Removes personal pin from discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion unpinned for user
+
+  /api/v1/discussions/{id}/move:
+    patch:
+      operationId: moveDiscussion
+      summary: Move to another group
+      description: Moves discussion to a different group.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+              required:
+                - group_id
+      responses:
+        '200':
+          description: Discussion moved
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussions/{id}/set_volume:
+    patch:
+      operationId: setDiscussionVolume
+      summary: Set notification volume
+      description: Sets notification volume for this discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                volume:
+                  type: string
+                  enum: [normal, loud, quiet, mute]
+              required:
+                - volume
+      responses:
+        '200':
+          description: Volume updated
+
+  /api/v1/discussions/{id}/discard:
+    delete:
+      operationId: discardDiscussion
+      summary: Soft-delete discussion
+      description: |
+        Soft-deletes a discussion. Can be restored by admin.
+        Content is hidden but not permanently deleted.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Discussion discarded
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussions/{id}/move_comments:
+    patch:
+      operationId: moveComments
+      summary: Move comments to another discussion
+      description: Moves selected events/comments to a different discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                forked_event_ids:
+                  type: array
+                  items:
+                    type: integer
+              required:
+                - forked_event_ids
+      responses:
+        '200':
+          description: Comments moved
+
+  /api/v1/discussions/{id}/history:
+    get:
+      operationId: getDiscussionHistory
+      summary: Get read history
+      description: |
+        Returns read history for all discussion readers.
+        Returns 403 if discussion has anonymous polls.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reader history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_readers:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionReader'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loomio API Sideloading Patterns",
+  "description": "Documentation of how Loomio's ActiveModelSerializers 0.8 sideloading works",
+  "generated_at": "2026-02-01",
+
+  "overview": {
+    "description": "Loomio uses ActiveModelSerializers 0.8 with `embed :ids, include: true` configuration. This means related records are 'sideloaded' - included in the same response but in separate top-level arrays, referenced by ID.",
+    "example_response": {
+      "discussions": [
+        { "id": 1, "title": "...", "author_id": 10, "group_id": 5 }
+      ],
+      "users": [
+        { "id": 10, "name": "Alice" }
+      ],
+      "groups": [
+        { "id": 5, "name": "My Group" }
+      ]
+    },
+    "benefits": [
+      "Deduplication - same user appearing in multiple places is only serialized once",
+      "Flexible querying - client can request more or fewer related types",
+      "Client-side joining - Vue client stores records in LokiJS and joins by ID"
+    ]
+  },
+
+  "root_keys": {
+    "description": "Each serializer outputs to a specific root key in the response",
+    "mappings": {
+      "users": ["AuthorSerializer", "UserSerializer", "CurrentUserSerializer"],
+      "groups": ["GroupSerializer"],
+      "discussions": ["DiscussionSerializer"],
+      "polls": ["PollSerializer"],
+      "poll_options": ["PollOptionSerializer"],
+      "stances": ["StanceSerializer"],
+      "stance_choices": ["StanceChoiceSerializer"],
+      "comments": ["CommentSerializer"],
+      "events": ["EventSerializer"],
+      "memberships": ["MembershipSerializer"],
+      "notifications": ["NotificationSerializer"],
+      "outcomes": ["OutcomeSerializer"],
+      "tags": ["TagSerializer"],
+      "reactions": ["ReactionSerializer"],
+      "documents": ["DocumentSerializer"],
+      "versions": ["VersionSerializer"],
+      "translations": ["TranslationSerializer"],
+      "discussion_readers": ["DiscussionReaderSerializer"],
+      "discussion_templates": ["DiscussionTemplateSerializer"],
+      "poll_templates": ["PollTemplateSerializer"],
+      "chatbots": ["ChatbotSerializer"],
+      "membership_requests": ["MembershipRequestSerializer"],
+      "tasks": ["TaskSerializer"],
+      "attachments": ["AttachmentSerializer"],
+      "contacts": ["ContactSerializer"],
+      "demos": ["DemoSerializer"],
+      "identities": ["IdentitySerializer"],
+      "search_results": ["SearchResultSerializer"],
+      "received_emails": ["ReceivedEmailSerializer"],
+      "member_email_aliases": ["MemberEmailAliasSerializer"]
+    }
+  },
+
+  "sideload_groups": {
+    "description": "Common groupings of sideloaded types by context",
+    "discussion_context": {
+      "description": "Loading a discussion page",
+      "primary": "discussions",
+      "typically_includes": ["users", "groups", "events", "comments", "polls", "stances", "outcomes", "reactions", "tags", "discussion_readers"]
+    },
+    "poll_context": {
+      "description": "Loading a poll/vote page",
+      "primary": "polls",
+      "typically_includes": ["users", "groups", "poll_options", "stances", "outcomes", "discussions", "events"]
+    },
+    "group_context": {
+      "description": "Loading a group page",
+      "primary": "groups",
+      "typically_includes": ["users", "memberships", "tags", "discussion_templates", "poll_templates"]
+    },
+    "notification_context": {
+      "description": "Loading notifications",
+      "primary": "notifications",
+      "typically_includes": ["users", "events"]
+    },
+    "search_context": {
+      "description": "Search results",
+      "primary": "search_results",
+      "typically_includes": ["users", "polls"]
+    }
+  },
+
+  "exclusion_mechanism": {
+    "description": "Clients can exclude certain types from sideloading using scope[:exclude_types]",
+    "implementation": "ApplicationSerializer defines include_*? methods that check scope[:exclude_types]",
+    "example": "GET /api/v1/discussions/:id?exclude_types=poll,reaction",
+    "common_exclusions": [
+      "poll - exclude active polls",
+      "reaction - exclude emoji reactions",
+      "event - exclude timeline events",
+      "outcome - exclude poll outcomes",
+      "stance - exclude votes",
+      "user - exclude user details (privacy)",
+      "group - exclude group details",
+      "membership - exclude membership info"
+    ]
+  },
+
+  "cache_mechanism": {
+    "description": "ApplicationSerializer uses scope[:cache] for efficient relationship lookups",
+    "implementation": "cache_fetch(key, id) method checks scope[:cache] before loading",
+    "cache_keys": [
+      "users_by_id",
+      "groups_by_id",
+      "discussions_by_id",
+      "polls_by_id",
+      "poll_options_by_id",
+      "poll_options_by_poll_id",
+      "stances_by_id",
+      "my_stances_by_poll_id",
+      "comments_by_id",
+      "events_by_id",
+      "events_by_kind_and_eventable_id",
+      "memberships_by_id",
+      "memberships_by_group_id",
+      "outcomes_by_id",
+      "outcomes_by_poll_id",
+      "reactions_by_id",
+      "discussion_readers_by_discussion_id",
+      "tags_by_type_and_id",
+      "translations_by_type_and_id",
+      "subscriptions_by_group_id",
+      "membership_requests_by_id"
+    ]
+  },
+
+  "vue_client_consumption": {
+    "description": "How the Vue frontend consumes sideloaded responses",
+    "records_service": "vue/src/shared/services/records.js",
+    "lokijs_store": "Uses LokiJS for in-memory storage with record interfaces",
+    "pattern": [
+      "1. API response received with sideloaded data",
+      "2. Records service iterates over each root key",
+      "3. Each record is upserted into the appropriate LokiJS collection",
+      "4. Client-side models use computed properties to resolve relationships by ID"
+    ],
+    "interface_files": "vue/src/shared/interfaces/*.js define client-side models with relationship methods"
+  }
+}

@@ -1,0 +1,118 @@
+# Admin Bot API (B3) Paths
+# Extracted from app/controllers/api/b3/users_controller.rb
+# WARNING: This API has NO rate limiting - security concern
+
+paths:
+  /api/b3/users/deactivate:
+    post:
+      operationId: b3DeactivateUser
+      summary: Deactivate a user (Admin Bot API)
+      description: |
+        Deactivates a user account via the Admin Bot API.
+        Requires the B3_API_KEY environment variable (>16 characters).
+        **WARNING**: This API has NO rate limiting.
+      tags:
+        - Admin Bot API (B3)
+      security:
+        - b3ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_key:
+                  type: string
+                  description: B3_API_KEY environment variable value
+                email:
+                  type: string
+                  format: email
+                  description: Email of user to deactivate
+              required:
+                - api_key
+                - email
+            example:
+              api_key: "your-b3-api-key-here"
+              email: "user@example.com"
+      responses:
+        '200':
+          description: User deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user_id:
+                    type: integer
+        '401':
+          description: Unauthorized - Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'
+
+  /api/b3/users/reactivate:
+    post:
+      operationId: b3ReactivateUser
+      summary: Reactivate a user (Admin Bot API)
+      description: |
+        Reactivates a previously deactivated user account.
+        Requires the B3_API_KEY environment variable (>16 characters).
+        **WARNING**: This API has NO rate limiting.
+      tags:
+        - Admin Bot API (B3)
+      security:
+        - b3ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_key:
+                  type: string
+                  description: B3_API_KEY environment variable value
+                email:
+                  type: string
+                  format: email
+                  description: Email of user to reactivate
+              required:
+                - api_key
+                - email
+            example:
+              api_key: "your-b3-api-key-here"
+              email: "user@example.com"
+      responses:
+        '200':
+          description: User reactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user_id:
+                    type: integer
+        '401':
+          description: Unauthorized - Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'

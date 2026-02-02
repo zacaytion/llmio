@@ -1,0 +1,192 @@
+# OAuth Paths
+# Extracted from config/routes.rb and app/controllers/identities/*.rb
+# Loomio uses custom OAuth implementation, NOT OmniAuth
+
+paths:
+  # ==================== GENERIC OAuth FLOW ====================
+  # These routes are generated for each provider: google, oauth, nextcloud
+
+  /{provider}/oauth:
+    get:
+      operationId: initiateOAuth
+      summary: Initiate OAuth flow
+      description: |
+        Redirects to the OAuth provider's authorization page.
+        After authorization, the provider redirects back to `/{provider}/authorize`.
+
+        **Supported providers:**
+        - google: Google OAuth
+        - oauth: Generic OAuth2 (configurable)
+        - nextcloud: Nextcloud OAuth
+
+        **Security Note:** The state parameter for CSRF protection is generated
+        but verification may be incomplete in some flows.
+      tags:
+        - Authentication
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, oauth, nextcloud]
+      responses:
+        '302':
+          description: Redirect to OAuth provider
+
+  /{provider}/authorize:
+    get:
+      operationId: completeOAuth
+      summary: Complete OAuth callback
+      description: |
+        Handles the OAuth callback from the provider.
+        Creates or links the identity to the user account.
+      tags:
+        - Authentication
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, oauth, nextcloud]
+        - name: code
+          in: query
+          required: true
+          description: Authorization code from provider
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: CSRF state parameter
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to application
+        '401':
+          description: OAuth authentication failed
+
+  /{provider}:
+    get:
+      operationId: disconnectOAuth
+      summary: Disconnect OAuth identity
+      description: Removes the OAuth identity link from the user's account.
+      tags:
+        - Authentication
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, oauth, nextcloud]
+      responses:
+        '302':
+          description: Redirect after disconnect
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  # ==================== SAML ====================
+
+  /saml/oauth:
+    post:
+      operationId: samlCallback
+      summary: SAML assertion callback
+      description: |
+        Receives the SAML assertion from the identity provider.
+        Creates or links the SAML identity to the user account.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                SAMLResponse:
+                  type: string
+                  description: Base64-encoded SAML response
+                RelayState:
+                  type: string
+                  description: State parameter
+      responses:
+        '302':
+          description: Redirect to application
+        '401':
+          description: SAML authentication failed
+
+  /saml/metadata:
+    get:
+      operationId: getSamlMetadata
+      summary: Get SAML metadata
+      description: |
+        Returns the Service Provider (SP) metadata for SAML configuration.
+        Used by Identity Providers to configure the SAML integration.
+      tags:
+        - Authentication
+      security: []
+      responses:
+        '200':
+          description: SAML SP metadata
+          content:
+            application/xml:
+              schema:
+                type: string
+                description: SAML metadata XML
+
+  # ==================== INVITATION/JOIN LINKS ====================
+
+  /invitations/{token}:
+    get:
+      operationId: consumeInvitation
+      summary: Accept invitation
+      description: |
+        Accepts a membership invitation using the token.
+        If user is not logged in, redirects to login/register first.
+      tags:
+        - Memberships
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to group or login
+        '404':
+          description: Invalid or expired token
+
+  /join/{model}/{token}:
+    get:
+      operationId: joinViaToken
+      summary: Join via shared link
+      description: |
+        Joins a group or accesses content via a shared token.
+        Model can be 'group' for group invite links.
+      tags:
+        - Memberships
+      security: []
+      parameters:
+        - name: model
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [group]
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to content
+        '404':
+          description: Invalid or expired token

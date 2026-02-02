@@ -1,0 +1,17 @@
+{
+  "name": "Metadata::GroupSerializer",
+  "source_file": "app/serializers/metadata/group_serializer.rb",
+  "inherits_from": "MetadataSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "SEO/OpenGraph metadata for group pages",
+  "attributes": {
+    "title": { "type": "string", "source": "method", "note": "object.full_name" },
+    "description": { "type": "string", "source": "method", "note": "Plain text description, only if public", "nullable": true },
+    "image_urls": { "type": "array", "source": "method", "items": "string", "note": "[group.cover_url, group.logo_url]" }
+  },
+  "relationships": {},
+  "notes": [
+    "Description only included for is_visible_to_public groups"
+  ]
+}

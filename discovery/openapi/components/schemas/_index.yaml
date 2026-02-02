@@ -1,0 +1,395 @@
+# Schema Index for Loomio API
+# This file indexes all component schemas for reference from openapi.yaml
+
+# Core Resources
+User:
+  $ref: 'user.yaml#/User'
+Author:
+  $ref: 'user.yaml#/Author'
+CurrentUser:
+  $ref: 'user.yaml#/CurrentUser'
+
+Group:
+  $ref: 'group.yaml#/Group'
+Subscription:
+  $ref: 'group.yaml#/Subscription'
+Attachment:
+  $ref: 'group.yaml#/Attachment'
+LinkPreview:
+  $ref: 'group.yaml#/LinkPreview'
+
+Discussion:
+  $ref: 'discussion.yaml#/Discussion'
+DiscussionReader:
+  $ref: 'discussion.yaml#/DiscussionReader'
+DiscussionTemplate:
+  $ref: 'discussion.yaml#/DiscussionTemplate'
+
+Poll:
+  $ref: 'poll.yaml#/Poll'
+PollOption:
+  $ref: 'poll.yaml#/PollOption'
+PollTemplate:
+  $ref: 'poll.yaml#/PollTemplate'
+Outcome:
+  $ref: 'poll.yaml#/Outcome'
+
+Comment:
+  $ref: 'comment.yaml#/Comment'
+Reaction:
+  $ref: 'comment.yaml#/Reaction'
+
+Stance:
+  $ref: 'stance.yaml#/Stance'
+StanceChoice:
+  $ref: 'stance.yaml#/StanceChoice'
+
+Event:
+  $ref: 'event.yaml#/Event'
+
+Membership:
+  $ref: 'membership.yaml#/Membership'
+MembershipRequest:
+  $ref: 'membership.yaml#/MembershipRequest'
+
+Notification:
+  $ref: 'notification.yaml#/Notification'
+
+# Error Schemas
+Error:
+  $ref: 'error.yaml#/Error'
+ValidationError:
+  $ref: 'error.yaml#/ValidationError'
+ModelError:
+  $ref: 'error.yaml#/ModelError'
+
+# Sideloaded Response Wrapper
+# Used by most endpoints - includes primary resource plus related records
+SideloadedResponse:
+  type: object
+  description: |
+    Standard response format with sideloaded related records.
+    The primary resource array name varies by endpoint.
+  properties:
+    # Primary resources (name varies)
+    discussions:
+      type: array
+      items:
+        $ref: 'discussion.yaml#/Discussion'
+    polls:
+      type: array
+      items:
+        $ref: 'poll.yaml#/Poll'
+    groups:
+      type: array
+      items:
+        $ref: 'group.yaml#/Group'
+    comments:
+      type: array
+      items:
+        $ref: 'comment.yaml#/Comment'
+    stances:
+      type: array
+      items:
+        $ref: 'stance.yaml#/Stance'
+    events:
+      type: array
+      items:
+        $ref: 'event.yaml#/Event'
+
+    # Commonly sideloaded
+    users:
+      type: array
+      items:
+        $ref: 'user.yaml#/User'
+    memberships:
+      type: array
+      items:
+        $ref: 'membership.yaml#/Membership'
+    tags:
+      type: array
+      items:
+        $ref: '#/Tag'
+    outcomes:
+      type: array
+      items:
+        $ref: 'poll.yaml#/Outcome'
+    poll_options:
+      type: array
+      items:
+        $ref: 'poll.yaml#/PollOption'
+    reactions:
+      type: array
+      items:
+        $ref: 'comment.yaml#/Reaction'
+    notifications:
+      type: array
+      items:
+        $ref: 'notification.yaml#/Notification'
+
+# Additional simple schemas
+Tag:
+  type: object
+  properties:
+    id:
+      type: integer
+    group_id:
+      type: integer
+    name:
+      type: string
+    color:
+      type: string
+    position:
+      type: integer
+    created_at:
+      type: string
+      format: date-time
+  required:
+    - id
+    - group_id
+    - name
+    - color
+
+Document:
+  type: object
+  description: Document/file attached to a model
+  properties:
+    id:
+      type: integer
+    model_id:
+      type: integer
+    model_type:
+      type: string
+    title:
+      type: string
+    icon:
+      type: string
+    url:
+      type: string
+      format: uri
+    web_url:
+      type: string
+      format: uri
+      nullable: true
+    thumb_url:
+      type: string
+      format: uri
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+
+Version:
+  type: object
+  description: Paper Trail version record for auditing
+  properties:
+    id:
+      type: integer
+    item_id:
+      type: integer
+    item_type:
+      type: string
+    event:
+      type: string
+      enum: [create, update, destroy]
+    whodunnit:
+      type: string
+      nullable: true
+    object_changes:
+      type: object
+      additionalProperties: true
+    created_at:
+      type: string
+      format: date-time
+
+Translation:
+  type: object
+  description: Translated content for a model
+  properties:
+    id:
+      type: integer
+    translatable_id:
+      type: integer
+    translatable_type:
+      type: string
+    fields:
+      type: object
+      additionalProperties:
+        type: string
+    language:
+      type: string
+
+SearchResult:
+  type: object
+  description: Search result item
+  properties:
+    id:
+      type: integer
+    discussion_id:
+      type: integer
+      nullable: true
+    poll_id:
+      type: integer
+      nullable: true
+    comment_id:
+      type: integer
+      nullable: true
+    rank:
+      type: number
+    blurb:
+      type: string
+      description: Highlighted search snippet
+    result_group_name:
+      type: string
+      nullable: true
+    result_group_key:
+      type: string
+      nullable: true
+    query:
+      type: string
+
+Chatbot:
+  type: object
+  description: Chatbot/webhook integration
+  properties:
+    id:
+      type: integer
+    group_id:
+      type: integer
+    name:
+      type: string
+    kind:
+      type: string
+      enum: [webhook, slack, discord, teams, matrix, mattermost]
+    server:
+      type: string
+      nullable: true
+    channel:
+      type: string
+      nullable: true
+    notification_only:
+      type: boolean
+    event_kinds:
+      type: array
+      items:
+        type: string
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+Webhook:
+  type: object
+  description: Outbound webhook configuration
+  properties:
+    id:
+      type: integer
+    group_id:
+      type: integer
+    name:
+      type: string
+    url:
+      type: string
+      format: uri
+    format:
+      type: string
+      enum: [markdown, slack, microsoft, discord]
+    event_kinds:
+      type: array
+      items:
+        type: string
+    permissions:
+      type: array
+      items:
+        type: string
+    include_subgroups:
+      type: boolean
+    is_broken:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+Task:
+  type: object
+  description: Task item extracted from discussion/poll content
+  properties:
+    id:
+      type: integer
+    record_id:
+      type: integer
+    record_type:
+      type: string
+    name:
+      type: string
+    author_id:
+      type: integer
+    uid:
+      type: string
+    done:
+      type: boolean
+    done_at:
+      type: string
+      format: date-time
+      nullable: true
+    due_on:
+      type: string
+      format: date
+      nullable: true
+    remind_at:
+      type: string
+      format: date-time
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+ReceivedEmail:
+  type: object
+  description: Email received and processed by the system
+  properties:
+    id:
+      type: integer
+    sender_email:
+      type: string
+      format: email
+    dkim_valid:
+      type: boolean
+    spf_valid:
+      type: boolean
+    spam_score:
+      type: number
+      nullable: true
+    released_at:
+      type: string
+      format: date-time
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+
+Identity:
+  type: object
+  description: OAuth identity linked to a user
+  properties:
+    id:
+      type: integer
+    user_id:
+      type: integer
+    identity_type:
+      type: string
+      enum: [google, slack, microsoft, saml, nextcloud]
+    custom_fields:
+      type: object
+      additionalProperties: true
+    created_at:
+      type: string
+      format: date-time

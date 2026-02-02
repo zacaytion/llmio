@@ -1,0 +1,61 @@
+{
+  "name": "ChatbotsController",
+  "source_file": "app/controllers/api/v1/chatbots_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/chatbots",
+  "inherits": "RestfulController",
+  "permitted_params_key": "chatbot",
+  "description": "Chatbot integrations for groups (Slack, Discord, Matrix, etc.)",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/chatbots",
+      "description": "List chatbots for a group",
+      "authentication": "required",
+      "authorization": "show_chatbots on Group",
+      "query_parameters": {
+        "group_id": { "type": "integer", "required": true }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/chatbots",
+      "description": "Create a chatbot integration",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "root_key": "chatbot",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/chatbot" }
+    },
+    "update": {
+      "method": "PATCH",
+      "path": "/api/v1/chatbots/:id",
+      "description": "Update a chatbot",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "root_key": "chatbot",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "parameters": { "$ref": "../permitted_params.json#/attributes/chatbot" }
+    },
+    "destroy": {
+      "method": "DELETE",
+      "path": "/api/v1/chatbots/:id",
+      "description": "Delete a chatbot",
+      "authentication": "required",
+      "authorization": "admin on Group",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "test": {
+      "method": "POST",
+      "path": "/api/v1/chatbots/test",
+      "description": "Send a test message to a chatbot",
+      "authentication": "required",
+      "parameters": {
+        "chatbot_id": { "type": "integer", "required": true }
+      }
+    }
+  }
+}

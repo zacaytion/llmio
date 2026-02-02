@@ -1,0 +1,13 @@
+{
+  "name": "SearchResults::CommentSerializer",
+  "source_file": "app/serializers/search_results/comment_serializer.rb",
+  "inherits_from": "SearchResults::BaseSerializer",
+  "root_key": "search_results",
+  "sideloaded_as": null,
+  "description": "Comment search result",
+  "inherited_attributes": ["id", "blurb"],
+  "attributes": {},
+  "relationships": {
+    "author": { "serializer": "UserSerializer", "type": "has_one", "note": "User.find_by(id: object.user_id)" }
+  }
+}

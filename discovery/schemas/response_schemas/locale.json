@@ -1,0 +1,16 @@
+{
+  "name": "LocaleSerializer",
+  "source_file": "app/serializers/locale_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "locales",
+  "sideloaded_as": "locales",
+  "description": "Available locale/language option",
+  "attributes": {
+    "key": { "type": "string", "source": "method", "note": "The locale code (object itself)" },
+    "name": { "type": "string", "source": "method", "note": "Native language name from I18n" }
+  },
+  "relationships": {},
+  "notes": [
+    "Object is the locale string itself, not a model"
+  ]
+}

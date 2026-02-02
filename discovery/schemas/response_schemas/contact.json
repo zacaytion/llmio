@@ -1,0 +1,17 @@
+{
+  "name": "ContactSerializer",
+  "source_file": "app/serializers/contact_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "contacts",
+  "sideloaded_as": "contacts",
+  "description": "Contact for invitations (email contacts)",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "email": { "type": "string", "source": "column" },
+    "source": { "type": "string", "source": "column" }
+  },
+  "relationships": {
+    "user": { "serializer": "UserSerializer", "type": "has_one", "root": "users" }
+  }
+}

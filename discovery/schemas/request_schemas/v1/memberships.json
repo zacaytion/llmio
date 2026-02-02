@@ -1,0 +1,186 @@
+{
+  "name": "MembershipsController",
+  "source_file": "app/controllers/api/v1/memberships_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/memberships",
+  "inherits": "RestfulController",
+  "permitted_params_key": "membership",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/memberships",
+      "description": "List memberships (for a group, discussion, or poll)",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "user_xids": { "type": "string", "description": "x-separated user IDs" },
+        "from": { "type": "integer" },
+        "per": { "type": "integer", "default": 50 },
+        "order": {
+          "type": "string",
+          "enum": ["memberships.created_at", "memberships.created_at desc", "users.name", "admin desc", "accepted_at desc", "accepted_at"]
+        }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/memberships",
+      "description": "Create a membership (invite user to group)",
+      "authentication": "required",
+      "authorization": "add_members on Group",
+      "root_key": "membership",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/membership" }
+    },
+    "update": {
+      "method": "PATCH",
+      "path": "/api/v1/memberships/:id",
+      "description": "Update a membership",
+      "authentication": "required",
+      "authorization": "update on Membership",
+      "root_key": "membership",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "parameters": { "$ref": "../permitted_params.json#/attributes/membership" }
+    },
+    "destroy": {
+      "method": "DELETE",
+      "path": "/api/v1/memberships/:id",
+      "description": "Remove a membership (revoke)",
+      "authentication": "required",
+      "authorization": "destroy on Membership",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "for_user": {
+      "method": "GET",
+      "path": "/api/v1/memberships/for_user",
+      "description": "Get memberships for a specific user",
+      "authentication": "required",
+      "query_parameters": {
+        "user_id": { "type": "integer", "required": true }
+      }
+    },
+    "my_memberships": {
+      "method": "GET",
+      "path": "/api/v1/memberships/my_memberships",
+      "description": "Get all memberships for the current user",
+      "authentication": "required"
+    },
+    "invitables": {
+      "method": "GET",
+      "path": "/api/v1/memberships/invitables",
+      "description": "Get users who can be invited to a group",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer", "required": true }
+      }
+    },
+    "undecided": {
+      "method": "GET",
+      "path": "/api/v1/memberships/undecided",
+      "description": "Get members who haven't voted on a poll",
+      "authentication": "required",
+      "query_parameters": {
+        "poll_id": { "type": "integer", "required": true }
+      }
+    },
+    "join_group": {
+      "method": "POST",
+      "path": "/api/v1/memberships/join_group",
+      "description": "Join a group (for open groups)",
+      "authentication": "required",
+      "parameters": {
+        "group_id": { "type": "integer", "required": true }
+      }
+    },
+    "make_admin": {
+      "method": "POST",
+      "path": "/api/v1/memberships/:id/make_admin",
+      "description": "Promote member to admin",
+      "authentication": "required",
+      "authorization": "make_admin on Membership",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "remove_admin": {
+      "method": "POST",
+      "path": "/api/v1/memberships/:id/remove_admin",
+      "description": "Remove admin status from member",
+      "authentication": "required",
+      "authorization": "remove_admin on Membership",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "make_delegate": {
+      "method": "POST",
+      "path": "/api/v1/memberships/:id/make_delegate",
+      "description": "Make member a delegate",
+      "authentication": "required",
+      "authorization": "make_admin on Membership",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "remove_delegate": {
+      "method": "POST",
+      "path": "/api/v1/memberships/:id/remove_delegate",
+      "description": "Remove delegate status",
+      "authentication": "required",
+      "authorization": "remove_admin on Membership",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "set_volume": {
+      "method": "PATCH",
+      "path": "/api/v1/memberships/:id/set_volume",
+      "description": "Set notification volume for membership",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "parameters": {
+        "volume": { "type": "string", "enum": ["normal", "loud", "quiet", "mute"], "required": true },
+        "apply_to_all": { "type": "boolean", "description": "Apply to all memberships" }
+      }
+    },
+    "save_experience": {
+      "method": "POST",
+      "path": "/api/v1/memberships/:id/save_experience",
+      "description": "Save onboarding experience state",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "parameters": {
+        "experience": { "type": "string", "required": true }
+      }
+    },
+    "resend": {
+      "method": "POST",
+      "path": "/api/v1/memberships/:id/resend",
+      "description": "Resend invitation email",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "user_name": {
+      "method": "POST",
+      "path": "/api/v1/memberships/user_name",
+      "description": "Set name for an unverified user (admin only)",
+      "authentication": "required",
+      "parameters": {
+        "id": { "type": "integer", "description": "User ID", "required": true },
+        "name": { "type": "string", "required": true },
+        "username": { "type": "string" }
+      }
+    }
+  }
+}

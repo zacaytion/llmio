@@ -1,0 +1,17 @@
+{
+  "name": "SearchResults::DiscussionSerializer",
+  "source_file": "app/serializers/search_results/discussion_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "search_results",
+  "sideloaded_as": null,
+  "description": "Discussion search result",
+  "attributes": {
+    "title": { "type": "string", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "group_name": { "type": "string", "source": "column" },
+    "group_full_name": { "type": "string", "source": "column" },
+    "key": { "type": "string", "source": "column" },
+    "last_activity_at": { "type": "datetime", "source": "column" }
+  },
+  "relationships": {}
+}

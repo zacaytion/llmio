@@ -1,0 +1,15 @@
+{
+  "name": "Restricted::GroupSerializer",
+  "source_file": "app/serializers/restricted/group_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "groups",
+  "sideloaded_as": "groups",
+  "description": "Minimal group info for unsubscribe pages",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "logo_url": { "type": "string", "source": "column", "nullable": true },
+    "cover_url": { "type": "string", "source": "column", "nullable": true }
+  },
+  "relationships": {}
+}

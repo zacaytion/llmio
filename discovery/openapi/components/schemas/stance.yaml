@@ -1,0 +1,123 @@
+# Stance Schema
+# Extracted from app/serializers/stance_serializer.rb
+
+Stance:
+  type: object
+  description: |
+    User's vote/response to a poll. A stance represents a user's participation
+    in a poll, containing their choices and optional reason.
+
+    **Vote Revision Rule**: New stance records are only created if:
+    1. More than 15 minutes have elapsed since the last stance
+    2. The choices have actually changed
+    3. The poll is attached to a discussion
+  properties:
+    id:
+      type: integer
+    poll_id:
+      type: integer
+    participant_id:
+      type: integer
+      description: User who cast this stance
+    latest:
+      type: boolean
+      description: Whether this is the user's current stance
+    admin:
+      type: boolean
+      description: Whether the voter is an admin of the poll
+    inviter_id:
+      type: integer
+      nullable: true
+    revoked_at:
+      type: string
+      format: date-time
+      nullable: true
+    reason:
+      type: string
+      nullable: true
+      description: Optional explanation for the vote
+    reason_format:
+      type: string
+      enum: [md, html]
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    cast_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When vote was actually cast (for tracking revisions)
+    versions_count:
+      type: integer
+    volume:
+      type: integer
+      description: Notification volume for this poll
+    attachments:
+      type: array
+      items:
+        $ref: 'group.yaml#/Attachment'
+    link_previews:
+      type: array
+      items:
+        $ref: 'group.yaml#/LinkPreview'
+    mentioned_usernames:
+      type: array
+      items:
+        type: string
+    translation_id:
+      type: integer
+      nullable: true
+
+    # Choice aggregations
+    option_scores:
+      type: object
+      additionalProperties:
+        type: integer
+      description: |
+        Map of poll_option_id to score. Format depends on poll type:
+        - proposal: { option_id: 1 } (agree/disagree/abstain)
+        - score: { option_id: 7 } (score value)
+        - ranked_choice: { option_id: rank }
+    my_stance:
+      type: boolean
+      description: Whether this is the current user's stance
+
+  required:
+    - id
+    - poll_id
+    - participant_id
+
+StanceChoice:
+  type: object
+  description: |
+    Individual choice within a stance. For multi-option polls,
+    each selected option gets a StanceChoice record.
+  properties:
+    id:
+      type: integer
+    stance_id:
+      type: integer
+    poll_option_id:
+      type: integer
+    score:
+      type: integer
+      description: |
+        Meaning varies by poll type:
+        - proposal: 1 (agree), 0 (abstain), -1 (disagree), -2 (block)
+        - count: 1 (yes)
+        - poll: 1 (selected)
+        - score: actual score value
+        - dot_vote: number of dots
+        - ranked_choice: rank (1 = first choice)
+        - meeting: 1 (yes), 0 (maybe, if allowed)
+    created_at:
+      type: string
+      format: date-time
+  required:
+    - id
+    - stance_id
+    - poll_option_id
+    - score

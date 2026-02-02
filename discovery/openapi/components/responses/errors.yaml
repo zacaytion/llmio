@@ -1,0 +1,170 @@
+# Error Response Schemas for Loomio API
+# Extracted from app/controllers/application_controller.rb and serializers
+
+# Error Response Components
+BadRequest:
+  description: Bad Request - Invalid parameters or malformed request
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+      example:
+        errors:
+          base: ["Invalid request format"]
+
+Unauthorized:
+  description: Unauthorized - Authentication required or invalid credentials
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+      example:
+        errors:
+          base: ["You need to sign in or sign up before continuing"]
+
+Forbidden:
+  description: Forbidden - User lacks permission to perform this action
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+      example:
+        errors:
+          base: ["Access denied"]
+
+NotFound:
+  description: Not Found - Requested resource does not exist
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+      example:
+        errors:
+          base: ["Record not found"]
+
+UnprocessableEntity:
+  description: Unprocessable Entity - Validation errors
+  content:
+    application/json:
+      schema:
+        $ref: '#/ValidationErrorResponse'
+      example:
+        errors:
+          title: ["can't be blank"]
+          group_id: ["must exist"]
+
+TooManyRequests:
+  description: |
+    Too Many Requests - Rate limit exceeded.
+    **Note**: ThrottleService currently returns HTTP 500 instead of 429 (known bug).
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+      example:
+        errors:
+          base: ["Rate limit exceeded. Please try again later."]
+
+InternalServerError:
+  description: Internal Server Error - Unexpected server error
+  content:
+    application/json:
+      schema:
+        $ref: '#/ErrorResponse'
+      example:
+        errors:
+          base: ["An unexpected error occurred"]
+
+# Schema Definitions
+ErrorResponse:
+  type: object
+  description: Standard error response format
+  properties:
+    errors:
+      type: object
+      description: Error messages keyed by field or 'base' for general errors
+      additionalProperties:
+        type: array
+        items:
+          type: string
+  required:
+    - errors
+  example:
+    errors:
+      base: ["Something went wrong"]
+
+ValidationErrorResponse:
+  type: object
+  description: Validation error response with field-specific messages
+  properties:
+    errors:
+      type: object
+      description: |
+        Validation error messages keyed by field name.
+        Each field maps to an array of error messages.
+      additionalProperties:
+        type: array
+        items:
+          type: string
+  required:
+    - errors
+  example:
+    errors:
+      title: ["can't be blank", "is too short (minimum is 1 character)"]
+      group_id: ["must exist"]
+
+ModelErrorResponse:
+  type: object
+  description: |
+    Error response when a model operation fails.
+    Used by ModelErrorSerializer.
+  properties:
+    model_errors:
+      type: array
+      items:
+        type: object
+        properties:
+          key:
+            type: string
+            description: Error key for i18n lookup
+          vars:
+            type: object
+            description: Variables for error message interpolation
+            additionalProperties: true
+  example:
+    model_errors:
+      - key: "poll.closing_at_must_be_in_future"
+        vars:
+          closing_at: "2024-01-01T00:00:00Z"
+
+# Common Error Codes Reference
+# HTTP 400 - Bad Request
+#   - Missing required parameters
+#   - Invalid parameter types
+#   - Malformed JSON
+#
+# HTTP 401 - Unauthorized
+#   - No session/token provided
+#   - Expired session
+#   - Invalid credentials
+#
+# HTTP 403 - Forbidden
+#   - User lacks permission (CanCanCan AccessDenied)
+#   - Resource belongs to another user
+#   - Group membership required
+#
+# HTTP 404 - Not Found
+#   - Resource doesn't exist
+#   - User doesn't have read access
+#
+# HTTP 422 - Unprocessable Entity
+#   - Model validation failures
+#   - Business logic constraints (e.g., can't close already closed poll)
+#
+# HTTP 429 - Too Many Requests (should be, but often returns 500)
+#   - Rate limit exceeded
+#   - Too many login attempts
+#
+# HTTP 500 - Internal Server Error
+#   - Unexpected exceptions
+#   - ThrottleService limit exceeded (bug - should be 429)

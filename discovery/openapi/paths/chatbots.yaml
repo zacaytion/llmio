@@ -1,0 +1,201 @@
+# Chatbots Paths
+# Extracted from app/controllers/api/v1/chatbots_controller.rb
+
+paths:
+  /api/v1/chatbots:
+    get:
+      operationId: listChatbots
+      summary: List chatbots
+      description: Returns chatbot integrations for a group.
+      tags:
+        - Webhooks
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          description: Group ID to list chatbots for
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of chatbots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatbots:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Chatbot'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    post:
+      operationId: createChatbot
+      summary: Create a chatbot integration
+      description: |
+        Creates a new chatbot integration for a group.
+        Supports various platforms: Slack, Discord, Matrix, Teams, Mattermost, and generic webhooks.
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chatbot:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    name:
+                      type: string
+                      description: Display name for the chatbot
+                    kind:
+                      type: string
+                      enum: [webhook, slack, discord, teams, matrix, mattermost]
+                      description: Platform type
+                    webhook_url:
+                      type: string
+                      format: uri
+                      description: URL to send messages to
+                    server:
+                      type: string
+                      description: Server URL (for Matrix)
+                    channel:
+                      type: string
+                      description: Channel/room name
+                    access_token:
+                      type: string
+                      description: API token for authentication
+                    notification_only:
+                      type: boolean
+                      description: Only send notifications, don't receive commands
+                    event_kinds:
+                      type: array
+                      items:
+                        type: string
+                      description: Event types to forward to chatbot
+                  required:
+                    - group_id
+                    - name
+                    - kind
+            example:
+              chatbot:
+                group_id: 123
+                name: "Team Slack"
+                kind: "slack"
+                webhook_url: "https://hooks.slack.com/services/..."
+                event_kinds: ["poll_created", "poll_closed", "outcome_created"]
+      responses:
+        '200':
+          description: Chatbot created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatbots:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Chatbot'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/chatbots/{id}:
+    patch:
+      operationId: updateChatbot
+      summary: Update a chatbot
+      description: Updates chatbot configuration.
+      tags:
+        - Webhooks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chatbot:
+                  type: object
+                  description: Fields to update
+      responses:
+        '200':
+          description: Chatbot updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatbots:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Chatbot'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    delete:
+      operationId: destroyChatbot
+      summary: Delete a chatbot
+      description: Permanently deletes a chatbot integration.
+      tags:
+        - Webhooks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Chatbot deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/chatbots/test:
+    post:
+      operationId: testChatbot
+      summary: Test a chatbot
+      description: Sends a test message to verify chatbot configuration.
+      tags:
+        - Webhooks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chatbot_id:
+                  type: integer
+              required:
+                - chatbot_id
+      responses:
+        '200':
+          description: Test message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          description: Failed to send test message
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/error.yaml#/Error'

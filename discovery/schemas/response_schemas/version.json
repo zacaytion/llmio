@@ -1,0 +1,22 @@
+{
+  "name": "VersionSerializer",
+  "source_file": "app/serializers/version_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "versions",
+  "sideloaded_as": "versions",
+  "description": "PaperTrail version history for audit trail",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "whodunnit": { "type": "integer", "source": "method", "note": "User ID who made the change (converted to integer)" },
+    "previous_id": { "type": "integer", "source": "method", "nullable": true, "note": "Previous version ID" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "item_id": { "type": "integer", "source": "column" },
+    "item_type": { "type": "string", "source": "column", "enum": ["Discussion", "Poll", "Comment", "Stance"] },
+    "object_changes": { "type": "object", "source": "column", "note": "YAML-serialized diff of changed attributes" }
+  },
+  "relationships": {},
+  "notes": [
+    "item relationship is polymorphic but commented out in serializer",
+    "include_discussion?, include_poll?, include_comment?, include_stance? methods exist but has_one declarations are commented"
+  ]
+}

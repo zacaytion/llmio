@@ -1,0 +1,20 @@
+{
+  "name": "MemberEmailAliasSerializer",
+  "source_file": "app/serializers/member_email_alias_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "member_email_aliases",
+  "sideloaded_as": "member_email_aliases",
+  "description": "Email alias for group members (alternative email addresses)",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "email": { "type": "string", "source": "column" },
+    "group_id": { "type": "integer", "source": "column" },
+    "user_id": { "type": "integer", "source": "column" },
+    "author_id": { "type": "integer", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" }
+  },
+  "relationships": {
+    "user": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "key": "user_id" },
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" }
+  }
+}

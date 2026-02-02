@@ -1,0 +1,40 @@
+{
+  "name": "MembershipsController",
+  "source_file": "app/controllers/api/b2/memberships_controller.rb",
+  "namespace": "Api::B2",
+  "base_path": "/api/b2/memberships",
+  "inherits": "BaseController",
+  "authentication": "api_key",
+  "description": "Bot API for managing group memberships (bulk sync)",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/b2/memberships",
+      "description": "List memberships for a group",
+      "query_parameters": {
+        "api_key": { "type": "string", "required": true },
+        "group_id": { "type": "integer", "required": true },
+        "from": { "type": "integer" },
+        "per": { "type": "integer" }
+      },
+      "notes": "Includes email addresses in response"
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/b2/memberships",
+      "description": "Sync group membership list (bulk add/remove)",
+      "parameters": {
+        "api_key": { "type": "string", "required": true },
+        "group_id": { "type": "integer", "required": true },
+        "emails": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "Full list of member emails", "required": true },
+        "remove_absent": { "type": "integer", "enum": [0, 1], "description": "Set to 1 to remove members not in emails list" }
+      },
+      "response": {
+        "added_emails": { "type": "array", "description": "Emails that were added" },
+        "removed_emails": { "type": "array", "description": "Emails that were removed (if remove_absent=1)" }
+      },
+      "notes": "Powerful sync endpoint. Current user must be admin of the group."
+    }
+  },
+  "authentication_notes": "Requires api_key parameter. User must be admin of the group. Includes email addresses in response."
+}

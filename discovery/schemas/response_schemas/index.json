@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loomio Response Schema Index",
+  "description": "Index of all serializer schemas extracted from app/serializers/",
+  "generated_at": "2026-02-01",
+  "source_directory": "app/serializers/",
+  "total_serializers": 65,
+  "ams_version": "0.8 (legacy)",
+
+  "serializers": {
+    "core": {
+      "description": "Primary domain model serializers",
+      "count": 10,
+      "files": {
+        "AuthorSerializer": { "file": "author.json", "root_key": "users", "source": "app/serializers/author_serializer.rb" },
+        "UserSerializer": { "file": "user.json", "root_key": "users", "source": "app/serializers/user_serializer.rb" },
+        "CurrentUserSerializer": { "file": "current_user.json", "root_key": "users", "source": "app/serializers/current_user_serializer.rb" },
+        "GroupSerializer": { "file": "group.json", "root_key": "groups", "source": "app/serializers/group_serializer.rb" },
+        "DiscussionSerializer": { "file": "discussion.json", "root_key": "discussions", "source": "app/serializers/discussion_serializer.rb" },
+        "PollSerializer": { "file": "poll.json", "root_key": "polls", "source": "app/serializers/poll_serializer.rb" },
+        "CommentSerializer": { "file": "comment.json", "root_key": "comments", "source": "app/serializers/comment_serializer.rb" },
+        "StanceSerializer": { "file": "stance.json", "root_key": "stances", "source": "app/serializers/stance_serializer.rb" },
+        "EventSerializer": { "file": "event.json", "root_key": "events", "source": "app/serializers/event_serializer.rb" },
+        "MembershipSerializer": { "file": "membership.json", "root_key": "memberships", "source": "app/serializers/membership_serializer.rb" }
+      }
+    },
+    "supporting": {
+      "description": "Supporting domain model serializers",
+      "count": 8,
+      "files": {
+        "NotificationSerializer": { "file": "notification.json", "root_key": "notifications", "source": "app/serializers/notification_serializer.rb" },
+        "PollOptionSerializer": { "file": "poll_option.json", "root_key": "poll_options", "source": "app/serializers/poll_option_serializer.rb" },
+        "OutcomeSerializer": { "file": "outcome.json", "root_key": "outcomes", "source": "app/serializers/outcome_serializer.rb" },
+        "DiscussionReaderSerializer": { "file": "discussion_reader.json", "root_key": "discussion_readers", "source": "app/serializers/discussion_reader_serializer.rb" },
+        "TagSerializer": { "file": "tag.json", "root_key": "tags", "source": "app/serializers/tag_serializer.rb" },
+        "DocumentSerializer": { "file": "document.json", "root_key": "documents", "source": "app/serializers/document_serializer.rb" },
+        "ReactionSerializer": { "file": "reaction.json", "root_key": "reactions", "source": "app/serializers/reaction_serializer.rb" },
+        "StanceChoiceSerializer": { "file": "stance_choice.json", "root_key": "stance_choices", "source": "app/serializers/stance_choice_serializer.rb" }
+      }
+    },
+    "templates": {
+      "description": "Template/configuration serializers",
+      "count": 3,
+      "files": {
+        "DiscussionTemplateSerializer": { "file": "discussion_template.json", "root_key": "discussion_templates", "source": "app/serializers/discussion_template_serializer.rb" },
+        "PollTemplateSerializer": { "file": "poll_template.json", "root_key": "poll_templates", "source": "app/serializers/poll_template_serializer.rb" },
+        "ChatbotSerializer": { "file": "chatbot.json", "root_key": "chatbots", "source": "app/serializers/chatbot_serializer.rb" }
+      }
+    },
+    "utility": {
+      "description": "Utility and miscellaneous serializers",
+      "count": 16,
+      "files": {
+        "TranslationSerializer": { "file": "translation.json", "root_key": "translations", "source": "app/serializers/translation_serializer.rb" },
+        "VersionSerializer": { "file": "version.json", "root_key": "versions", "source": "app/serializers/version_serializer.rb" },
+        "TaskSerializer": { "file": "task.json", "root_key": "tasks", "source": "app/serializers/task_serializer.rb" },
+        "AttachmentSerializer": { "file": "attachment.json", "root_key": "attachments", "source": "app/serializers/attachment_serializer.rb" },
+        "ContactSerializer": { "file": "contact.json", "root_key": "contacts", "source": "app/serializers/contact_serializer.rb" },
+        "ContactMessageSerializer": { "file": "contact_message.json", "root_key": null, "source": "app/serializers/contact_message_serializer.rb" },
+        "DemoSerializer": { "file": "demo.json", "root_key": "demos", "source": "app/serializers/demo_serializer.rb" },
+        "IdentitySerializer": { "file": "identity.json", "root_key": "identities", "source": "app/serializers/identity_serializer.rb" },
+        "LocaleSerializer": { "file": "locale.json", "root_key": "locales", "source": "app/serializers/locale_serializer.rb" },
+        "MemberSerializer": { "file": "member.json", "root_key": "members", "source": "app/serializers/member_serializer.rb" },
+        "MemberEmailAliasSerializer": { "file": "member_email_alias.json", "root_key": "member_email_aliases", "source": "app/serializers/member_email_alias_serializer.rb" },
+        "MembershipRequestSerializer": { "file": "membership_request.json", "root_key": "membership_requests", "source": "app/serializers/membership_request_serializer.rb" },
+        "ModelErrorSerializer": { "file": "model_error.json", "root_key": "errors", "source": "app/serializers/model_error_serializer.rb" },
+        "PluginSerializer": { "file": "plugin.json", "root_key": "plugins", "source": "app/serializers/plugin_serializer.rb" },
+        "ReceivedEmailSerializer": { "file": "received_email.json", "root_key": "received_emails", "source": "app/serializers/received_email_serializer.rb" },
+        "SearchResultSerializer": { "file": "search_result.json", "root_key": "search_results", "source": "app/serializers/search_result_serializer.rb" }
+      }
+    },
+    "pending": {
+      "description": "Pending/unauthenticated state serializers (login flow)",
+      "count": 8,
+      "directory": "pending/",
+      "files": {
+        "Pending::BaseSerializer": { "file": "pending/base.json", "root_key": "pending", "source": "app/serializers/pending/base_serializer.rb" },
+        "Pending::UserSerializer": { "file": "pending/user.json", "root_key": "pending", "source": "app/serializers/pending/user_serializer.rb" },
+        "Pending::GroupSerializer": { "file": "pending/group.json", "root_key": "pending", "source": "app/serializers/pending/group_serializer.rb" },
+        "Pending::MembershipSerializer": { "file": "pending/membership.json", "root_key": "pending", "source": "app/serializers/pending/membership_serializer.rb" },
+        "Pending::StanceSerializer": { "file": "pending/stance.json", "root_key": "pending", "source": "app/serializers/pending/stance_serializer.rb" },
+        "Pending::DiscussionReaderSerializer": { "file": "pending/discussion_reader.json", "root_key": "pending", "source": "app/serializers/pending/discussion_reader_serializer.rb" },
+        "Pending::IdentitySerializer": { "file": "pending/identity.json", "root_key": "pending", "source": "app/serializers/pending/identity_serializer.rb" },
+        "Pending::TokenSerializer": { "file": "pending/token.json", "root_key": "pending", "source": "app/serializers/pending/token_serializer.rb" }
+      }
+    },
+    "restricted": {
+      "description": "Minimal serializers for unauthenticated access (unsubscribe pages)",
+      "count": 3,
+      "directory": "restricted/",
+      "files": {
+        "Restricted::UserSerializer": { "file": "restricted/user.json", "root_key": "users", "source": "app/serializers/restricted/user_serializer.rb" },
+        "Restricted::GroupSerializer": { "file": "restricted/group.json", "root_key": "groups", "source": "app/serializers/restricted/group_serializer.rb" },
+        "Restricted::MembershipSerializer": { "file": "restricted/membership.json", "root_key": "memberships", "source": "app/serializers/restricted/membership_serializer.rb" }
+      }
+    },
+    "metadata": {
+      "description": "SEO/OpenGraph metadata serializers",
+      "count": 4,
+      "directory": "metadata/",
+      "files": {
+        "Metadata::DiscussionSerializer": { "file": "metadata/discussion.json", "root_key": null, "source": "app/serializers/metadata/discussion_serializer.rb" },
+        "Metadata::GroupSerializer": { "file": "metadata/group.json", "root_key": null, "source": "app/serializers/metadata/group_serializer.rb" },
+        "Metadata::PollSerializer": { "file": "metadata/poll.json", "root_key": null, "source": "app/serializers/metadata/poll_serializer.rb" },
+        "Metadata::UserSerializer": { "file": "metadata/user.json", "root_key": null, "source": "app/serializers/metadata/user_serializer.rb" }
+      }
+    },
+    "search_results": {
+      "description": "Search result serializers",
+      "count": 3,
+      "directory": "search_results/",
+      "files": {
+        "SearchResults::BaseSerializer": { "file": "search_results/base.json", "root_key": "search_results", "source": "app/serializers/search_results/base_serializer.rb" },
+        "SearchResults::CommentSerializer": { "file": "search_results/comment.json", "root_key": "search_results", "source": "app/serializers/search_results/comment_serializer.rb" },
+        "SearchResults::DiscussionSerializer": { "file": "search_results/discussion.json", "root_key": "search_results", "source": "app/serializers/search_results/discussion_serializer.rb" }
+      }
+    },
+    "notification": {
+      "description": "Notification-specific serializers",
+      "count": 1,
+      "directory": "notification/",
+      "files": {
+        "Notification::EventSerializer": { "file": "notification/event.json", "root_key": "events", "source": "app/serializers/notification/event_serializer.rb" }
+      }
+    },
+    "marked_as_read": {
+      "description": "Minimal serializers for mark-as-read responses",
+      "count": 1,
+      "directory": "marked_as_read/",
+      "files": {
+        "MarkedAsRead::DiscussionSerializer": { "file": "marked_as_read/discussion.json", "root_key": "discussions", "source": "app/serializers/marked_as_read/discussion_serializer.rb" }
+      }
+    },
+    "webhook": {
+      "description": "Webhook payload serializers for external integrations",
+      "count": 5,
+      "directory": "webhook/",
+      "files": {
+        "Webhook::Markdown::EventSerializer": { "file": "webhook/markdown_event.json", "root_key": null, "source": "app/serializers/webhook/markdown/event_serializer.rb" },
+        "Webhook::Slack::EventSerializer": { "file": "webhook/slack_event.json", "root_key": null, "source": "app/serializers/webhook/slack/event_serializer.rb" },
+        "Webhook::Discord::EventSerializer": { "file": "webhook/discord_event.json", "root_key": null, "source": "app/serializers/webhook/discord/event_serializer.rb" },
+        "Webhook::Microsoft::EventSerializer": { "file": "webhook/microsoft_event.json", "root_key": null, "source": "app/serializers/webhook/microsoft/event_serializer.rb" },
+        "Webhook::Webex::EventSerializer": { "file": "webhook/webex_event.json", "root_key": null, "source": "app/serializers/webhook/webex/event_serializer.rb" }
+      }
+    }
+  },
+
+  "base_classes": {
+    "ApplicationSerializer": {
+      "source": "app/serializers/application_serializer.rb",
+      "description": "Base serializer with caching, sideloading control, and relationship helpers",
+      "key_features": [
+        "embed :ids, include: true - enables sideloading",
+        "cache_fetch - efficient relationship loading",
+        "hide_when_discarded - soft delete support",
+        "include_*? methods - conditional sideloading"
+      ]
+    },
+    "MetadataSerializer": {
+      "source": "app/serializers/metadata_serializer.rb",
+      "description": "Base for SEO metadata serializers",
+      "key_features": [
+        "root false - no JSON wrapper",
+        "EmailHelper included for text formatting"
+      ]
+    }
+  },
+
+  "additional_files": {
+    "sideloading_patterns.json": "Documentation of sideloading mechanism and patterns"
+  },
+
+  "not_documented": {
+    "description": "Serializers with minimal complexity or are base classes already covered",
+    "files": [
+      "app/serializers/metadata_serializer.rb - base class (4 lines)",
+      "app/serializers/permitted_params_serializer.rb - dynamic attribute generation for permitted params"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Webhook::Discord::EventSerializer",
+  "source_file": "app/serializers/webhook/discord/event_serializer.rb",
+  "inherits_from": "Webhook::Markdown::EventSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "Discord webhook event serializer",
+  "inherited_attributes": ["text", "icon_url", "username"],
+  "attributes": {
+    "content": { "type": "string", "source": "method", "note": "text truncated to 1900 chars (Discord 2000 limit)" }
+  },
+  "relationships": {},
+  "notes": [
+    "Discord has 2000 char webhook limit",
+    "content is truncated version of text"
+  ]
+}

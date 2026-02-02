@@ -1,0 +1,18 @@
+{
+  "name": "IdentitySerializer",
+  "source_file": "app/serializers/identity_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "identities",
+  "sideloaded_as": "identities",
+  "description": "OAuth/SSO identity linked to user account",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "identity_type": { "type": "string", "source": "column", "note": "Provider type (google, saml, etc.)" },
+    "user_id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "email": { "type": "string", "source": "column" },
+    "logo": { "type": "string", "source": "column", "nullable": true },
+    "custom_fields": { "type": "object", "source": "column" }
+  },
+  "relationships": {}
+}

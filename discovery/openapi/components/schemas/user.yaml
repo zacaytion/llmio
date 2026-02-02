@@ -1,0 +1,139 @@
+# User Schema
+# Extracted from app/serializers/user_serializer.rb, author_serializer.rb, current_user_serializer.rb
+
+User:
+  type: object
+  description: Basic user representation used in sideloaded responses
+  properties:
+    id:
+      type: integer
+      description: Unique user identifier
+    key:
+      type: string
+      description: Public user key (for URLs)
+    name:
+      type: string
+      description: User's display name
+    email:
+      type: string
+      format: email
+      description: User's email (only visible to self or admins)
+    username:
+      type: string
+      description: Unique username for @mentions
+    avatar_initials:
+      type: string
+      description: Initials for avatar fallback
+    avatar_kind:
+      type: string
+      enum: [initials, uploaded, gravatar]
+      description: Type of avatar to display
+    avatar_url:
+      type: string
+      format: uri
+      nullable: true
+      description: URL to user's avatar image
+    thumb_url:
+      type: string
+      format: uri
+      nullable: true
+      description: URL to thumbnail avatar
+    time_zone:
+      type: string
+      description: User's timezone (IANA format)
+    locale:
+      type: string
+      description: User's preferred locale
+    created_at:
+      type: string
+      format: date-time
+    email_verified:
+      type: boolean
+    bot:
+      type: boolean
+      description: Whether this is a bot user
+    deactivated_at:
+      type: string
+      format: date-time
+      nullable: true
+  required:
+    - id
+    - name
+    - username
+
+Author:
+  type: object
+  description: |
+    Minimal user representation for authorship. Uses AuthorSerializer
+    which returns less data than full UserSerializer.
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+    username:
+      type: string
+    avatar_initials:
+      type: string
+    avatar_kind:
+      type: string
+      enum: [initials, uploaded, gravatar]
+    avatar_url:
+      type: string
+      format: uri
+      nullable: true
+    thumb_url:
+      type: string
+      format: uri
+      nullable: true
+  required:
+    - id
+    - name
+    - username
+
+CurrentUser:
+  type: object
+  description: |
+    Extended user representation for the logged-in user.
+    Includes additional fields like email settings and experiences.
+  allOf:
+    - $ref: '#/User'
+    - type: object
+      properties:
+        email:
+          type: string
+          format: email
+        email_newsletter:
+          type: boolean
+        email_when_mentioned:
+          type: boolean
+        email_catch_up:
+          type: string
+          enum: [off, daily, weekly]
+        email_catch_up_day:
+          type: integer
+          minimum: 0
+          maximum: 6
+        default_membership_volume:
+          type: integer
+        experiences:
+          type: object
+          description: Feature experience flags (onboarding, tips, etc.)
+          additionalProperties:
+            type: boolean
+        has_password:
+          type: boolean
+        require_password_change:
+          type: boolean
+        is_admin:
+          type: boolean
+          description: Site-wide admin flag
+        legal_accepted:
+          type: boolean
+        legal_accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+        email_api_key:
+          type: string
+          description: API key for email-based reply functionality

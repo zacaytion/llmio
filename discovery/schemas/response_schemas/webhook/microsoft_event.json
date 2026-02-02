@@ -1,0 +1,20 @@
+{
+  "name": "Webhook::Microsoft::EventSerializer",
+  "source_file": "app/serializers/webhook/microsoft/event_serializer.rb",
+  "inherits_from": "Webhook::Markdown::EventSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "Microsoft Teams webhook event serializer (MessageCard format)",
+  "attributes": {
+    "@type": { "type": "string", "source": "method", "value": "MessageCard" },
+    "@context": { "type": "string", "source": "method", "value": "http://schema.org/extensions" },
+    "themeColor": { "type": "string", "source": "method", "note": "AppConfig.theme[:primary_color]" },
+    "text": { "type": "string", "source": "method" },
+    "sections": { "type": "array", "source": "method", "note": "Currently returns [] - structure defined but not populated" }
+  },
+  "relationships": {},
+  "notes": [
+    "Uses Microsoft Teams MessageCard format",
+    "sections structure prepared but returns empty array"
+  ]
+}

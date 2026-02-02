@@ -1,0 +1,19 @@
+{
+  "name": "Pending::MembershipSerializer",
+  "source_file": "app/serializers/pending/membership_serializer.rb",
+  "inherits_from": "Pending::BaseSerializer",
+  "root_key": "pending",
+  "sideloaded_as": null,
+  "description": "Pending state for membership invitation acceptance",
+  "attributes": {
+    "token": { "type": "string", "source": "column" },
+    "group_id": { "type": "integer", "source": "method" },
+    "identity_type": { "type": "string", "source": "method", "value": "membership" },
+    "auth_form": { "type": "boolean", "source": "method", "value": false },
+    "has_token": { "type": "boolean", "source": "method", "value": true },
+    "avatar_initials": { "type": "string", "source": "method", "conditional": "object.user&.name.present?" },
+    "name": { "type": "string", "source": "method", "note": "object.user&.name" },
+    "email": { "type": "string", "source": "method", "note": "object.user&.email" }
+  },
+  "relationships": {}
+}

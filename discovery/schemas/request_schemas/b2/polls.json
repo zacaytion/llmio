@@ -1,0 +1,45 @@
+{
+  "name": "PollsController",
+  "source_file": "app/controllers/api/b2/polls_controller.rb",
+  "namespace": "Api::B2",
+  "base_path": "/api/b2/polls",
+  "inherits": "BaseController",
+  "authentication": "api_key",
+  "description": "Bot API for creating polls",
+  "actions": {
+    "show": {
+      "method": "GET",
+      "path": "/api/b2/polls/:id",
+      "description": "Get a poll by ID or key",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "query_parameters": {
+        "api_key": { "type": "string", "required": true }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/b2/polls",
+      "description": "Create a new poll and optionally invite voters",
+      "parameters": {
+        "api_key": { "type": "string", "required": true },
+        "title": { "type": "string", "required": true },
+        "details": { "type": "string" },
+        "details_format": { "type": "string", "enum": ["html", "md"] },
+        "poll_type": { "type": "string", "required": true },
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "closing_at": { "type": "string", "format": "date-time" },
+        "anonymous": { "type": "boolean" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "notify_recipients": { "type": "boolean" },
+        "recipient_audience": { "type": "string" },
+        "recipient_user_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_emails": { "type": "array", "items": { "type": "string" } }
+      },
+      "notes": "Automatically invites specified recipients after creation"
+    }
+  },
+  "authentication_notes": "Requires api_key parameter. User must have API key set in profile. No rate limiting."
+}

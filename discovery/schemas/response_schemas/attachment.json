@@ -1,0 +1,24 @@
+{
+  "name": "AttachmentSerializer",
+  "source_file": "app/serializers/attachment_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "attachments",
+  "sideloaded_as": "attachments",
+  "description": "ActiveStorage attachment serializer",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "filename": { "type": "string", "source": "method", "note": "object.blob.filename" },
+    "content_type": { "type": "string", "source": "method", "note": "object.blob.content_type" },
+    "byte_size": { "type": "integer", "source": "method", "note": "object.blob.byte_size" },
+    "icon": { "type": "string", "source": "method", "note": "Detected from AppConfig.doctypes based on content_type/filename" },
+    "preview_url": { "type": "string", "source": "method", "nullable": true, "note": "Rails representation path if representable" },
+    "download_url": { "type": "string", "source": "method", "note": "Rails blob path" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "record_type": { "type": "string", "source": "column" },
+    "record_id": { "type": "integer", "source": "column" }
+  },
+  "relationships": {
+    "record": { "type": "has_one", "polymorphic": true },
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "note": "Derived from object.record.author" }
+  }
+}

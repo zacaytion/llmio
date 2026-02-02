@@ -1,0 +1,20 @@
+{
+  "name": "StanceChoiceSerializer",
+  "source_file": "app/serializers/stance_choice_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "stance_choices",
+  "sideloaded_as": "stance_choices",
+  "description": "Individual choice within a stance/vote",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "score": { "type": "integer", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "stance_id": { "type": "integer", "source": "column" },
+    "rank": { "type": "integer", "source": "method", "nullable": true, "note": "Only computed for ranked_choice polls: minimum_stance_choices - score + 1" },
+    "rank_or_score": { "type": "integer", "source": "method", "note": "Returns rank for ranked_choice, score otherwise" },
+    "poll_option_id": { "type": "integer", "source": "column" }
+  },
+  "relationships": {
+    "poll_option": { "serializer": "PollOptionSerializer", "type": "has_one" }
+  }
+}

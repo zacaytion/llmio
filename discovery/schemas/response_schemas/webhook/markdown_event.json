@@ -1,0 +1,19 @@
+{
+  "name": "Webhook::Markdown::EventSerializer",
+  "source_file": "app/serializers/webhook/markdown/event_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "Base webhook event serializer for Markdown-based integrations",
+  "attributes": {
+    "text": { "type": "string", "source": "method", "note": "Rendered from chatbot/markdown/#{template_name} template" },
+    "icon_url": { "type": "string", "source": "method", "note": "Group logo URL with canonical host" },
+    "username": { "type": "string", "source": "method", "note": "AppConfig.theme[:site_name]" }
+  },
+  "relationships": {},
+  "notes": [
+    "Used for generic webhook payloads",
+    "Template selected via scope[:template_name]",
+    "Locale set from group.locale"
+  ]
+}

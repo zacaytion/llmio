@@ -1,0 +1,149 @@
+# Tags Paths
+# Extracted from app/controllers/api/v1/tags_controller.rb
+
+paths:
+  /api/v1/tags:
+    post:
+      operationId: createTag
+      summary: Create a tag
+      description: |
+        Creates a new tag for a group. Requires group update permission.
+        Tags are used to categorize discussions.
+      tags:
+        - Tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    name:
+                      type: string
+                    color:
+                      type: string
+                      description: Hex color code (e.g., "#FF5733")
+                  required:
+                    - group_id
+                    - name
+                    - color
+            example:
+              tag:
+                group_id: 123
+                name: "urgent"
+                color: "#FF0000"
+      responses:
+        '200':
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Tag'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/tags/{id}:
+    patch:
+      operationId: updateTag
+      summary: Update a tag
+      description: Updates a tag's name or color.
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    color:
+                      type: string
+      responses:
+        '200':
+          description: Tag updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Tag'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+    delete:
+      operationId: destroyTag
+      summary: Delete a tag
+      description: |
+        Permanently deletes a tag. Removes the tag from all discussions.
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tag deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/tags/priority:
+    post:
+      operationId: setTagPriority
+      summary: Reorder tags
+      description: Sets the display order of tags for a group.
+      tags:
+        - Tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                  description: Tag IDs in priority order
+              required:
+                - group_id
+                - ids
+            example:
+              group_id: 123
+              ids: [5, 3, 7, 1]
+      responses:
+        '200':
+          description: Tag order updated
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

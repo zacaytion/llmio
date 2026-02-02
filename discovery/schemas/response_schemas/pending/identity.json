@@ -1,0 +1,15 @@
+{
+  "name": "Pending::IdentitySerializer",
+  "source_file": "app/serializers/pending/identity_serializer.rb",
+  "inherits_from": "Pending::BaseSerializer",
+  "root_key": "pending",
+  "sideloaded_as": null,
+  "description": "Pending state for OAuth identity during login",
+  "attributes": {
+    "auth_form": { "type": "string", "source": "method", "value": "identity" },
+    "identity_type": { "type": "string", "source": "method", "note": "object.identity_type (google, saml, etc.)" },
+    "avatar_kind": { "type": "string", "source": "method", "note": "'uploaded' if logo present, else 'initials'" },
+    "avatar_url": { "type": "string", "source": "method", "note": "object.logo" }
+  },
+  "relationships": {}
+}

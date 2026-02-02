@@ -1,0 +1,55 @@
+{
+  "name": "SearchController",
+  "source_file": "app/controllers/api/v1/search_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/search",
+  "inherits": "RestfulController",
+  "description": "Full-text search across discussions, comments, polls, stances, outcomes",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/search",
+      "description": "Search across all content types",
+      "authentication": "required",
+      "query_parameters": {
+        "query": { "type": "string", "required": true, "description": "Search query" },
+        "group_id": { "type": "integer", "description": "Limit to specific group" },
+        "org_id": { "type": "integer", "description": "Limit to organization and subgroups (0 = direct threads only)" },
+        "tag": { "type": "string", "description": "Filter by tag" },
+        "type": {
+          "type": "string",
+          "enum": ["Discussion", "Comment", "Poll", "Stance", "Outcome"],
+          "description": "Limit to specific content type"
+        },
+        "order": {
+          "type": "string",
+          "enum": ["authored_at_desc", "authored_at_asc"],
+          "description": "Sort order"
+        }
+      },
+      "response": {
+        "root": "search_results",
+        "fields": {
+          "id": "integer",
+          "searchable_type": "string",
+          "searchable_id": "integer",
+          "poll_title": "string",
+          "discussion_title": "string",
+          "discussion_key": "string",
+          "highlight": "string",
+          "poll_id": "integer",
+          "poll_key": "string",
+          "sequence_id": "integer",
+          "group_handle": "string",
+          "group_key": "string",
+          "group_id": "integer",
+          "group_name": "string",
+          "author_name": "string",
+          "author_id": "integer",
+          "authored_at": "datetime",
+          "tags": "array"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "CurrentUserSerializer",
+  "source_file": "app/serializers/current_user_serializer.rb",
+  "inherits_from": "UserSerializer",
+  "root_key": "users",
+  "sideloaded_as": "users",
+  "description": "Full user serializer for the authenticated user only - includes sensitive settings",
+  "inherited_attributes": ["id", "name", "email", "username", "avatar_initials", "avatar_kind", "thumb_url", "time_zone", "locale", "created_at", "titles", "delegates", "placeholder_name", "email_verified", "bot", "short_bio", "short_bio_format", "content_locale", "location", "has_password", "autodetect_time_zone", "avatar_url", "attachments", "date_time_pref", "complaints_count", "sign_in_count"],
+  "attributes": {
+    "email": { "type": "string", "source": "column", "note": "Always included for current user" },
+    "email_when_proposal_closing_soon": { "type": "boolean", "source": "column" },
+    "email_catch_up_day": { "type": "integer", "source": "column", "nullable": true, "note": "0=Sun, 1=Mon, ..., 6=Sat, null=disabled" },
+    "email_when_mentioned": { "type": "boolean", "source": "column" },
+    "email_on_participation": { "type": "boolean", "source": "column" },
+    "selected_locale": { "type": "string", "source": "column", "nullable": true },
+    "locale": { "type": "string", "source": "column" },
+    "default_membership_volume": { "type": "integer", "source": "column", "enum_values": { "0": "mute", "1": "quiet", "2": "normal", "3": "loud" } },
+    "experiences": { "type": "object", "source": "column" },
+    "email_newsletter": { "type": "boolean", "source": "column" },
+    "is_admin": { "type": "boolean", "source": "column" },
+    "memberships_count": { "type": "integer", "source": "column" },
+    "secret_token": { "type": "string", "source": "column" },
+    "auto_translate": { "type": "boolean", "source": "column" },
+    "has_password": { "type": "boolean", "source": "column", "note": "Always included for current user" }
+  },
+  "relationships": {}
+}

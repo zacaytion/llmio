@@ -1,0 +1,14 @@
+{
+  "name": "Metadata::UserSerializer",
+  "source_file": "app/serializers/metadata/user_serializer.rb",
+  "inherits_from": "MetadataSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "SEO/OpenGraph metadata for user profile pages",
+  "attributes": {
+    "title": { "type": "string", "source": "method", "note": "object.name" },
+    "description": { "type": "string", "source": "method", "note": "Plain text conversion of short_bio" },
+    "image_urls": { "type": "array", "source": "method", "items": "string", "note": "[object.avatar_url]" }
+  },
+  "relationships": {}
+}

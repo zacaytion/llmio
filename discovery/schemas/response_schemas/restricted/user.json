@@ -1,0 +1,30 @@
+{
+  "name": "Restricted::UserSerializer",
+  "source_file": "app/serializers/restricted/user_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "users",
+  "sideloaded_as": "users",
+  "description": "Restricted user serializer for email unsubscribe pages (unauthenticated)",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "restricted": { "type": "boolean", "source": "method", "value": true, "note": "Always true - indicates limited data" },
+    "username": { "type": "string", "source": "column" },
+    "email": { "type": "string", "source": "column" },
+    "email_when_proposal_closing_soon": { "type": "boolean", "source": "column" },
+    "email_catch_up_day": { "type": "integer", "source": "column", "nullable": true },
+    "email_newsletter": { "type": "boolean", "source": "column" },
+    "email_when_mentioned": { "type": "boolean", "source": "column" },
+    "email_on_participation": { "type": "boolean", "source": "column" },
+    "default_membership_volume": { "type": "integer", "source": "column" },
+    "unsubscribe_token": { "type": "string", "source": "column" },
+    "locale": { "type": "string", "source": "column" },
+    "deactivated_at": { "type": "datetime", "source": "column", "nullable": true }
+  },
+  "relationships": {
+    "memberships": { "serializer": "Restricted::MembershipSerializer", "type": "has_many", "root": "memberships" }
+  },
+  "notes": [
+    "Used for unsubscribe pages accessed via unsubscribe_token",
+    "No authentication required - accessed via token"
+  ]
+}

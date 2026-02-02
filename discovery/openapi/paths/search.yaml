@@ -1,0 +1,64 @@
+# Search Paths
+# Extracted from app/controllers/api/v1/search_controller.rb
+
+paths:
+  /api/v1/search:
+    get:
+      operationId: search
+      summary: Full-text search
+      description: |
+        Performs full-text search across discussions, polls, and comments.
+        Uses PostgreSQL's tsvector search with ranking.
+
+        Access control filters results to only show content the user can access.
+      tags:
+        - Search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query string
+          schema:
+            type: string
+        - name: group_id
+          in: query
+          description: Limit search to a specific group
+          schema:
+            type: integer
+        - name: discussion_id
+          in: query
+          description: Limit search to a specific discussion
+          schema:
+            type: integer
+        - name: subgroups
+          in: query
+          description: Include subgroups in search
+          schema:
+            type: string
+            enum: [all, mine, none]
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  search_results:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/SearchResult'
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'

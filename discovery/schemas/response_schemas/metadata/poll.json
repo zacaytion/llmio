@@ -1,0 +1,14 @@
+{
+  "name": "Metadata::PollSerializer",
+  "source_file": "app/serializers/metadata/poll_serializer.rb",
+  "inherits_from": "MetadataSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "SEO/OpenGraph metadata for poll pages",
+  "attributes": {
+    "title": { "type": "string", "source": "column" },
+    "description": { "type": "string", "source": "method", "note": "Plain text conversion of details" },
+    "image_urls": { "type": "array", "source": "method", "items": "string", "note": "[group.cover_url, group.logo_url] or [] if no group" }
+  },
+  "relationships": {}
+}

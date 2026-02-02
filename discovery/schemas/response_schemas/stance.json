@@ -1,0 +1,41 @@
+{
+  "name": "StanceSerializer",
+  "source_file": "app/serializers/stance_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "stances",
+  "sideloaded_as": "stances",
+  "description": "Vote/stance serializer with conditional visibility based on poll settings",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "poll_id": { "type": "integer", "source": "column" },
+    "participant_id": { "type": "integer", "source": "method", "nullable": true, "note": "Returns nil if poll.anonymous?" },
+    "none_of_the_above": { "type": "boolean", "source": "column" },
+    "reason": { "type": "string", "source": "column", "nullable": true, "conditional": "include_reason? (not revoked AND (own stance OR results visible))" },
+    "reason_format": { "type": "string", "source": "column", "enum": ["md", "html"] },
+    "content_locale": { "type": "string", "source": "column", "nullable": true },
+    "latest": { "type": "boolean", "source": "column" },
+    "admin": { "type": "boolean", "source": "column" },
+    "cast_at": { "type": "datetime", "source": "column", "nullable": true },
+    "mentioned_usernames": { "type": "array", "source": "column", "items": "string", "conditional": "include_reason? && reason_format == 'md'" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "updated_at": { "type": "datetime", "source": "column" },
+    "locale": { "type": "string", "source": "method", "note": "participant?.locale || group?.locale" },
+    "versions_count": { "type": "integer", "source": "column" },
+    "attachments": { "type": "array", "source": "column", "items": "attachment_object", "conditional": "include_reason?" },
+    "link_previews": { "type": "array", "source": "column", "items": "link_preview_object", "conditional": "include_reason?" },
+    "volume": { "type": "integer", "source": "column", "enum_values": { "0": "mute", "1": "quiet", "2": "normal", "3": "loud" } },
+    "inviter_id": { "type": "integer", "source": "column", "nullable": true },
+    "revoked_at": { "type": "datetime", "source": "column", "nullable": true },
+    "order_at": { "type": "datetime", "source": "method", "note": "cast_at || created_at" },
+    "option_scores": { "type": "object", "source": "method", "conditional": "include_reason?", "note": "Map of poll_option_id -> score" }
+  },
+  "relationships": {
+    "poll": { "serializer": "PollSerializer", "type": "has_one", "root": "polls", "conditional": "include_type?('poll')" },
+    "participant": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "note": "Returns nil if poll.anonymous?" }
+  },
+  "notes": [
+    "participant and participant_id are hidden for anonymous polls",
+    "reason, attachments, link_previews, option_scores only visible when include_reason? is true",
+    "include_reason? = !revoked_at && (own stance OR poll.show_results?(voted: true))"
+  ]
+}

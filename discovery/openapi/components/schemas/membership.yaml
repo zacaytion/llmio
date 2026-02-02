@@ -1,0 +1,106 @@
+# Membership Schema
+# Extracted from app/serializers/membership_serializer.rb
+
+Membership:
+  type: object
+  description: |
+    User's membership in a group. Tracks role (member, admin, delegate),
+    notification preferences, and invitation state.
+  properties:
+    id:
+      type: integer
+    group_id:
+      type: integer
+    user_id:
+      type: integer
+    inviter_id:
+      type: integer
+      nullable: true
+    volume:
+      type: integer
+      description: |
+        Notification volume level:
+        0 = mute
+        1 = quiet
+        2 = normal (default)
+        3 = loud
+    admin:
+      type: boolean
+      description: Whether user is a group admin
+    delegate:
+      type: boolean
+      description: Whether user can act as delegate (for counted decisions)
+    title:
+      type: string
+      nullable: true
+      description: Custom title for this member in the group
+    accepted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When invitation was accepted
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    saml_session_expires_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: For SAML auth - when session expires
+    experiences:
+      type: object
+      additionalProperties:
+        type: boolean
+      description: Feature experience flags for this membership
+  required:
+    - id
+    - group_id
+    - user_id
+
+MembershipRequest:
+  type: object
+  description: Request to join a group (for groups requiring approval)
+  properties:
+    id:
+      type: integer
+    group_id:
+      type: integer
+    requestor_id:
+      type: integer
+    responder_id:
+      type: integer
+      nullable: true
+    name:
+      type: string
+      description: Name provided by requestor
+    email:
+      type: string
+      format: email
+      description: Email provided by requestor
+    introduction:
+      type: string
+      nullable: true
+      description: Optional message from requestor
+    response:
+      type: string
+      nullable: true
+      enum: [approved, ignored]
+    responded_at:
+      type: string
+      format: date-time
+      nullable: true
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+  required:
+    - id
+    - group_id
+    - requestor_id
+    - name
+    - email

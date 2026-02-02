@@ -1,0 +1,33 @@
+{
+  "name": "UsersController",
+  "source_file": "app/controllers/api/b3/users_controller.rb",
+  "namespace": "Api::B3",
+  "base_path": "/api/b3/users",
+  "inherits": "SnorlaxBase",
+  "authentication": "b3_api_key",
+  "description": "Admin Bot API for user lifecycle management",
+  "actions": {
+    "deactivate": {
+      "method": "POST",
+      "path": "/api/b3/users/deactivate",
+      "description": "Deactivate a user account",
+      "parameters": {
+        "b3_api_key": { "type": "string", "required": true },
+        "id": { "type": "integer", "description": "User ID", "required": true }
+      },
+      "notes": "Queues DeactivateUserWorker async job. User must be active."
+    },
+    "reactivate": {
+      "method": "POST",
+      "path": "/api/b3/users/reactivate",
+      "description": "Reactivate a deactivated user account",
+      "parameters": {
+        "b3_api_key": { "type": "string", "required": true },
+        "id": { "type": "integer", "description": "User ID", "required": true }
+      },
+      "notes": "User must be deactivated. Synchronous operation."
+    }
+  },
+  "authentication_notes": "Requires b3_api_key parameter matching ENV['B3_API_KEY']. Key must be >16 characters. No user context - operates with system privileges.",
+  "security_warning": "No rate limiting. Sensitive admin operations."
+}

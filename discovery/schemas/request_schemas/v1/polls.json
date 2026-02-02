@@ -1,0 +1,142 @@
+{
+  "name": "PollsController",
+  "source_file": "app/controllers/api/v1/polls_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/polls",
+  "inherits": "RestfulController",
+  "permitted_params_key": "poll",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/polls",
+      "description": "List polls visible to the current user",
+      "authentication": "optional",
+      "query_parameters": {
+        "discussion_id": { "type": "integer" },
+        "group_id": { "type": "integer" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "author_id": { "type": "integer" },
+        "from": { "type": "integer" },
+        "per": { "type": "integer", "default": 50 },
+        "exclude_types": { "type": "string" }
+      }
+    },
+    "show": {
+      "method": "GET",
+      "path": "/api/v1/polls/:id",
+      "description": "Get a single poll by ID or key",
+      "authentication": "optional",
+      "path_parameters": {
+        "id": { "type": "string", "description": "Poll ID or key" }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/polls",
+      "description": "Create a new poll",
+      "authentication": "required",
+      "root_key": "poll",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/poll" }
+    },
+    "update": {
+      "method": "PATCH",
+      "path": "/api/v1/polls/:id",
+      "description": "Update a poll",
+      "authentication": "required",
+      "authorization": "update on Poll",
+      "root_key": "poll",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": { "$ref": "../permitted_params.json#/attributes/poll" }
+    },
+    "close": {
+      "method": "POST",
+      "path": "/api/v1/polls/:id/close",
+      "description": "Close a poll early",
+      "authentication": "required",
+      "authorization": "close on Poll",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "reopen": {
+      "method": "POST",
+      "path": "/api/v1/polls/:id/reopen",
+      "description": "Reopen a closed poll",
+      "authentication": "required",
+      "authorization": "reopen on Poll",
+      "root_key": "poll",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": {
+        "closing_at": { "type": "string", "format": "date-time", "required": true }
+      }
+    },
+    "discard": {
+      "method": "DELETE",
+      "path": "/api/v1/polls/:id/discard",
+      "description": "Soft-delete a poll",
+      "authentication": "required",
+      "authorization": "destroy on Poll",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "remind": {
+      "method": "POST",
+      "path": "/api/v1/polls/:id/remind",
+      "description": "Send reminders to undecided voters",
+      "authentication": "required",
+      "authorization": "remind on Poll",
+      "root_key": "poll",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "add_to_thread": {
+      "method": "PATCH",
+      "path": "/api/v1/polls/:id/add_to_thread",
+      "description": "Add a standalone poll to a discussion thread",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "parameters": {
+        "discussion_id": { "type": "integer", "required": true }
+      }
+    },
+    "voters": {
+      "method": "GET",
+      "path": "/api/v1/polls/:id/voters",
+      "description": "Get list of users who have voted (non-anonymous polls only)",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "string" }
+      }
+    },
+    "receipts": {
+      "method": "GET",
+      "path": "/api/v1/polls/:id/receipts",
+      "description": "Get voting receipts for audit purposes",
+      "authentication": "required",
+      "authorization": "show on Poll",
+      "path_parameters": {
+        "id": { "type": "string" }
+      },
+      "notes": "Returns shuffled list to preserve anonymity. Emails partially masked for non-admins."
+    },
+    "closed": {
+      "method": "GET",
+      "path": "/api/v1/polls/closed",
+      "description": "List closed polls",
+      "authentication": "optional",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "from": { "type": "integer" },
+        "per": { "type": "integer" }
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+# Notification Schema
+# Extracted from app/serializers/notification_serializer.rb
+
+Notification:
+  type: object
+  description: |
+    User notification triggered by events. Notifications are created
+    based on user's notification preferences and event types.
+  properties:
+    id:
+      type: integer
+    user_id:
+      type: integer
+    actor_id:
+      type: integer
+      nullable: true
+      description: User who triggered the notification
+    event_id:
+      type: integer
+    url:
+      type: string
+      description: URL to the relevant content
+    created_at:
+      type: string
+      format: date-time
+    viewed:
+      type: boolean
+      description: Whether notification has been viewed
+
+    # Event context (denormalized)
+    event_kind:
+      type: string
+      description: Type of event that triggered this notification
+    eventable_id:
+      type: integer
+    eventable_type:
+      type: string
+
+    # Actor info (denormalized)
+    actor_name:
+      type: string
+      nullable: true
+    actor_username:
+      type: string
+      nullable: true
+    actor_avatar_url:
+      type: string
+      format: uri
+      nullable: true
+
+    # Translation support
+    translation_values:
+      type: object
+      additionalProperties: true
+      description: Values for i18n interpolation in notification text
+
+  required:
+    - id
+    - user_id
+    - event_id
+    - viewed

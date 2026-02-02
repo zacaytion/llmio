@@ -1,0 +1,265 @@
+# Comments Paths
+# Extracted from app/controllers/api/v1/comments_controller.rb
+
+paths:
+  /api/v1/comments:
+    post:
+      operationId: createComment
+      summary: Create a comment
+      description: |
+        Creates a new comment in a discussion.
+        Can be a reply to another comment via parent_id.
+      tags:
+        - Comments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: object
+                  properties:
+                    discussion_id:
+                      type: integer
+                    parent_id:
+                      type: integer
+                      nullable: true
+                      description: Parent comment ID for replies
+                    body:
+                      type: string
+                    body_format:
+                      type: string
+                      enum: [md, html]
+                  required:
+                    - discussion_id
+                    - body
+            example:
+              comment:
+                discussion_id: 123
+                body: "This is my comment"
+                body_format: "md"
+      responses:
+        '200':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Comment'
+                    maxItems: 1
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+    patch:
+      operationId: updateComment
+      summary: Update a comment
+      description: Updates comment body. Creates a version history entry.
+      tags:
+        - Comments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    body:
+                      type: string
+                    body_format:
+                      type: string
+                      enum: [md, html]
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Comment'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/comments/{id}:
+    delete:
+      operationId: destroyComment
+      summary: Delete a comment
+      description: |
+        Permanently deletes a comment.
+        Requires permission (author or admin with admins_can_edit_user_content).
+      tags:
+        - Comments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment deleted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/comments/{id}/discard:
+    delete:
+      operationId: discardComment
+      summary: Soft-delete a comment
+      description: Soft-deletes a comment. Content is hidden but can be restored.
+      tags:
+        - Comments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment discarded
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/comments/{id}/undiscard:
+    post:
+      operationId: undiscardComment
+      summary: Restore a discarded comment
+      description: Restores a soft-deleted comment.
+      tags:
+        - Comments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment restored
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/reactions:
+    get:
+      operationId: listReactions
+      summary: List reactions
+      description: Returns reactions for specified resources.
+      tags:
+        - Comments
+      parameters:
+        - name: reactable_type
+          in: query
+          schema:
+            type: string
+            enum: [Comment, Poll, Discussion, Stance, Outcome]
+        - name: reactable_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of reactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Reaction'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+    post:
+      operationId: createReaction
+      summary: Add a reaction
+      description: Adds an emoji reaction to a record.
+      tags:
+        - Comments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reaction:
+                  type: object
+                  properties:
+                    reactable_type:
+                      type: string
+                      enum: [Comment, Poll, Discussion, Stance, Outcome]
+                    reactable_id:
+                      type: integer
+                    reaction:
+                      type: string
+                      description: Emoji character or shortcode
+                  required:
+                    - reactable_type
+                    - reactable_id
+                    - reaction
+            example:
+              reaction:
+                reactable_type: "Comment"
+                reactable_id: 123
+                reaction: "👍"
+      responses:
+        '200':
+          description: Reaction added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reactions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Reaction'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/reactions/{id}:
+    delete:
+      operationId: destroyReaction
+      summary: Remove a reaction
+      description: Removes a reaction from a record.
+      tags:
+        - Comments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reaction removed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

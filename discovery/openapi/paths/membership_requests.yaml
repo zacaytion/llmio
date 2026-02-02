@@ -1,0 +1,216 @@
+# Membership Requests Paths
+# Extracted from app/controllers/api/v1/membership_requests_controller.rb
+
+paths:
+  /api/v1/membership_requests:
+    post:
+      operationId: createMembershipRequest
+      summary: Request to join a group
+      description: |
+        Creates a request to join a group.
+        Used when group requires approval (`membership_granted_upon: approval`).
+      tags:
+        - Memberships
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                membership_request:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    name:
+                      type: string
+                      description: Requestor's name
+                    email:
+                      type: string
+                      format: email
+                      description: Requestor's email
+                    introduction:
+                      type: string
+                      description: Optional message explaining why they want to join
+                  required:
+                    - group_id
+            example:
+              membership_request:
+                group_id: 123
+                name: "John Doe"
+                email: "john@example.com"
+                introduction: "I'm interested in participating in your community discussions."
+      responses:
+        '200':
+          description: Request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  membership_requests:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/MembershipRequest'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/membership_requests/pending:
+    get:
+      operationId: listPendingMembershipRequests
+      summary: List pending requests
+      description: Returns pending membership requests for a group. Requires manage permission.
+      tags:
+        - Memberships
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Pending requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  membership_requests:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/MembershipRequest'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/membership_requests/my_pending:
+    get:
+      operationId: getMyPendingRequest
+      summary: Get current user's pending request
+      description: Returns the current user's pending request for a group, if any.
+      tags:
+        - Memberships
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User's pending request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  membership_requests:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/MembershipRequest'
+                    maxItems: 1
+
+  /api/v1/membership_requests/previous:
+    get:
+      operationId: listPreviousMembershipRequests
+      summary: List responded-to requests
+      description: Returns membership requests that have been approved or ignored.
+      tags:
+        - Memberships
+      parameters:
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: Previous requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  membership_requests:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/MembershipRequest'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/membership_requests/{id}/approve:
+    post:
+      operationId: approveMembershipRequest
+      summary: Approve a request
+      description: |
+        Approves a membership request, creating a membership for the requestor.
+        Sends a notification to the requestor.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Request approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  membership_requests:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/MembershipRequest'
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/membership_requests/{id}/ignore:
+    post:
+      operationId: ignoreMembershipRequest
+      summary: Ignore/reject a request
+      description: |
+        Ignores (rejects) a membership request.
+        The requestor is not notified of the rejection.
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Request ignored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  membership_requests:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/MembershipRequest'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

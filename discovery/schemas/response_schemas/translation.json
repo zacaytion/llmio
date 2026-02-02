@@ -1,0 +1,16 @@
+{
+  "name": "TranslationSerializer",
+  "source_file": "app/serializers/translation_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "translations",
+  "sideloaded_as": "translations",
+  "description": "Translated content for discussions, polls, etc.",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "translatable_id": { "type": "integer", "source": "column" },
+    "translatable_type": { "type": "string", "source": "column" },
+    "fields": { "type": "object", "source": "column", "note": "Map of field name to translated text" },
+    "language": { "type": "string", "source": "column" }
+  },
+  "relationships": {}
+}

@@ -1,0 +1,116 @@
+{
+  "name": "AnnouncementsController",
+  "source_file": "app/controllers/api/v1/announcements_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/announcements",
+  "inherits": "RestfulController",
+  "description": "Announcements/invitations for groups, discussions, polls, outcomes",
+  "actions": {
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/announcements",
+      "description": "Send announcements/invitations to users",
+      "authentication": "required",
+      "authorization": "announce on target model",
+      "parameters": {
+        "group_id": { "type": "integer", "description": "Target group" },
+        "discussion_id": { "type": "integer", "description": "Target discussion" },
+        "poll_id": { "type": "integer", "description": "Target poll" },
+        "outcome_id": { "type": "integer", "description": "Target outcome" },
+        "recipient_audience": { "type": "string", "description": "Audience type" },
+        "recipient_user_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_emails": { "type": "array", "items": { "type": "string", "format": "email" } },
+        "recipient_message": { "type": "string" }
+      },
+      "notes": "One of group_id, discussion_id, poll_id, or outcome_id required"
+    },
+    "audience": {
+      "method": "GET",
+      "path": "/api/v1/announcements/audience",
+      "description": "Get users in an announcement audience",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "outcome_id": { "type": "integer" },
+        "recipient_audience": { "type": "string", "required": true },
+        "exclude_members": { "type": "boolean" },
+        "include_actor": { "type": "boolean" }
+      },
+      "notes": "Returns 403 for decided_voters/undecided_voters on anonymous polls"
+    },
+    "count": {
+      "method": "GET",
+      "path": "/api/v1/announcements/count",
+      "description": "Count recipients that would receive announcement",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "outcome_id": { "type": "integer" },
+        "recipient_audience": { "type": "string" },
+        "recipient_user_xids": { "type": "string", "description": "x-separated user IDs" },
+        "recipient_emails_cmr": { "type": "string", "description": "comma-separated emails" },
+        "recipient_chatbot_xids": { "type": "string" },
+        "recipient_usernames": { "type": "string" },
+        "exclude_members": { "type": "boolean" },
+        "include_actor": { "type": "boolean" }
+      }
+    },
+    "new_member_count": {
+      "method": "GET",
+      "path": "/api/v1/announcements/new_member_count",
+      "description": "Count new members that would be added",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "outcome_id": { "type": "integer" },
+        "recipient_user_xids": { "type": "string" },
+        "recipient_emails_cmr": { "type": "string" }
+      }
+    },
+    "search": {
+      "method": "GET",
+      "path": "/api/v1/announcements/search",
+      "description": "Search for users to invite",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "outcome_id": { "type": "integer" },
+        "q": { "type": "string", "description": "Search query" },
+        "existing_only": { "type": "boolean", "description": "Only search existing members" }
+      }
+    },
+    "users_notified_count": {
+      "method": "GET",
+      "path": "/api/v1/announcements/users_notified_count",
+      "description": "Count unique users notified about a model",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "outcome_id": { "type": "integer" }
+      }
+    },
+    "history": {
+      "method": "GET",
+      "path": "/api/v1/announcements/history",
+      "description": "Get notification history for a model",
+      "authentication": "required",
+      "query_parameters": {
+        "group_id": { "type": "integer" },
+        "discussion_id": { "type": "integer" },
+        "poll_id": { "type": "integer" },
+        "outcome_id": { "type": "integer" }
+      },
+      "notes": "Returns allow_viewed: false if discussion has anonymous polls"
+    }
+  }
+}

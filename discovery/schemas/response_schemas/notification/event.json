@@ -1,0 +1,20 @@
+{
+  "name": "Notification::EventSerializer",
+  "source_file": "app/serializers/notification/event_serializer.rb",
+  "inherits_from": "EventSerializer",
+  "root_key": "events",
+  "sideloaded_as": "events",
+  "description": "Lightweight event serializer for notifications (excludes discussion and parent)",
+  "inherited_attributes": ["id", "sequence_id", "position", "depth", "child_count", "descendant_count", "kind", "discussion_id", "created_at", "eventable_id", "eventable_type", "custom_fields", "pinned", "pinned_title", "parent_id", "actor_id", "position_key", "recipient_message"],
+  "overrides": {
+    "include_discussion?": { "value": false },
+    "include_parent?": { "value": false }
+  },
+  "relationships": {
+    "actor": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" },
+    "eventable": { "type": "has_one", "polymorphic": true }
+  },
+  "notes": [
+    "Used for notification list - excludes discussion and parent to reduce payload"
+  ]
+}

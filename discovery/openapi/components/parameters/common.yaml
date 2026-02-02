@@ -1,0 +1,151 @@
+# Common Parameters for Loomio API
+# Extracted from app/controllers/api/v1/*.rb
+
+# Pagination Parameters
+from:
+  name: from
+  in: query
+  description: Offset cursor for pagination. Returns records starting after this offset.
+  schema:
+    type: integer
+    minimum: 0
+  example: 50
+
+per:
+  name: per
+  in: query
+  description: Number of items per page. Default varies by endpoint (typically 30-50).
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+  example: 30
+
+# Sideloading Control
+excludeTypes:
+  name: exclude_types
+  in: query
+  description: |
+    Space-separated list of record types to exclude from sideloading.
+    Common types: poll, reaction, event, outcome, stance, user, group, membership
+  schema:
+    type: string
+  example: "poll reaction"
+
+# Batch Fetching
+xids:
+  name: xids
+  in: query
+  description: |
+    X-separated list of IDs to fetch multiple records at once.
+    Example: `xids=1x2x3x4` fetches records with IDs 1, 2, 3, and 4.
+  schema:
+    type: string
+    pattern: '^[0-9]+(x[0-9]+)*$'
+  example: "1x2x3x4"
+
+# Timeframe Filtering
+since:
+  name: since
+  in: query
+  description: Filter records created/updated after this timestamp.
+  schema:
+    type: string
+    format: date-time
+  example: "2024-01-01T00:00:00Z"
+
+until:
+  name: until
+  in: query
+  description: Filter records created/updated before this timestamp.
+  schema:
+    type: string
+    format: date-time
+  example: "2024-12-31T23:59:59Z"
+
+timeframeFor:
+  name: timeframe_for
+  in: query
+  description: Which timestamp field to filter on (e.g., created_at, updated_at).
+  schema:
+    type: string
+    enum:
+      - created_at
+      - updated_at
+      - last_activity_at
+  example: "created_at"
+
+# Resource Identifiers
+groupId:
+  name: group_id
+  in: query
+  description: Filter by group ID. Many endpoints support this for scoping.
+  schema:
+    type: integer
+  example: 123
+
+discussionId:
+  name: discussion_id
+  in: query
+  description: Filter by discussion ID.
+  schema:
+    type: integer
+  example: 456
+
+pollId:
+  name: poll_id
+  in: query
+  description: Filter by poll ID.
+  schema:
+    type: integer
+  example: 789
+
+# Path Parameters
+resourceId:
+  name: id
+  in: path
+  required: true
+  description: |
+    Resource identifier. Most resources accept either numeric ID or string key.
+    For discussions and polls, the key format is a short alphanumeric string.
+  schema:
+    oneOf:
+      - type: integer
+      - type: string
+  example: "abc123"
+
+# Subgroup Filtering
+subgroups:
+  name: subgroups
+  in: query
+  description: How to include subgroup records in the response.
+  schema:
+    type: string
+    enum:
+      - all    # Include all subgroups
+      - mine   # Include only subgroups user is a member of
+      - none   # Exclude subgroups
+  example: "mine"
+
+# Tag Filtering
+tags:
+  name: tags
+  in: query
+  description: Filter by tags (comma or space separated).
+  schema:
+    type: string
+  example: "urgent,feature-request"
+
+# Volume Setting
+volume:
+  name: volume
+  in: query
+  description: Notification volume setting.
+  schema:
+    type: string
+    enum:
+      - normal  # Default notifications
+      - loud    # All notifications
+      - quiet   # Reduced notifications
+      - mute    # No notifications
+  example: "normal"

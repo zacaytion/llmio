@@ -1,0 +1,108 @@
+{
+  "name": "EventsController",
+  "source_file": "app/controllers/api/v1/events_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/events",
+  "inherits": "RestfulController",
+  "description": "Events represent activity in a discussion timeline (comments, polls, stances, etc.)",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/events",
+      "description": "List events in a discussion",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "required": true },
+        "from": { "type": "integer", "description": "Start from sequence_id (default: 0)" },
+        "per": { "type": "integer", "default": 30 },
+        "order": { "type": "string", "enum": ["sequence_id", "position", "position_key"] },
+        "order_by": { "type": "string", "enum": ["position_key", "sequence_id"] },
+        "order_desc": { "type": "boolean", "description": "Descending order" },
+        "sequence_id_in": { "type": "string", "description": "Range filter like '1-10_20-30'" },
+        "sequence_id_not_in": { "type": "string", "description": "Exclude ranges" },
+        "pinned": { "type": "string", "enum": ["true"], "description": "Only return pinned events" },
+        "kind": { "type": "string", "description": "Comma-separated event kinds to filter" },
+        "parent_id": { "type": "integer" },
+        "depth": { "type": "integer" },
+        "position_key": { "type": "string" },
+        "position_key_sw": { "type": "string", "description": "Position key starts with" },
+        "depth_lt": { "type": "integer" },
+        "depth_gt": { "type": "integer" },
+        "depth_lte": { "type": "integer" },
+        "depth_gte": { "type": "integer" },
+        "from_sequence_id_of_position": { "type": "integer", "description": "Start from event at position" },
+        "comment_id": { "type": "integer", "description": "Find event for specific comment" }
+      }
+    },
+    "count": {
+      "method": "GET",
+      "path": "/api/v1/events/count",
+      "description": "Count events matching filters",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "required": true }
+      }
+    },
+    "position_keys": {
+      "method": "GET",
+      "path": "/api/v1/events/position_keys",
+      "description": "Get all position keys for a discussion (for navigation)",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "required": true }
+      }
+    },
+    "timeline": {
+      "method": "GET",
+      "path": "/api/v1/events/timeline",
+      "description": "Get timeline data for visualization",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "required": true }
+      },
+      "response_format": "Array of [position_key, sequence_id, created_at, user_id, depth, descendant_count]"
+    },
+    "comment": {
+      "method": "GET",
+      "path": "/api/v1/events/comment",
+      "description": "Get the event for a specific comment",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "required": true },
+        "comment_id": { "type": "integer", "required": true }
+      }
+    },
+    "pin": {
+      "method": "PATCH",
+      "path": "/api/v1/events/:id/pin",
+      "description": "Pin an event to the top of the thread",
+      "authentication": "required",
+      "authorization": "pin on Event",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "parameters": {
+        "pinned_title": { "type": "string", "description": "Optional title for pinned event" }
+      }
+    },
+    "unpin": {
+      "method": "PATCH",
+      "path": "/api/v1/events/:id/unpin",
+      "description": "Unpin an event",
+      "authentication": "required",
+      "authorization": "unpin on Event",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "remove_from_thread": {
+      "method": "PATCH",
+      "path": "/api/v1/events/:id/remove_from_thread",
+      "description": "Remove an event from the discussion thread",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    }
+  }
+}

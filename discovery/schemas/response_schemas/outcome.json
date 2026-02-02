@@ -1,0 +1,30 @@
+{
+  "name": "OutcomeSerializer",
+  "source_file": "app/serializers/outcome_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "outcomes",
+  "sideloaded_as": "outcomes",
+  "description": "Poll outcome/decision serializer",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "statement": { "type": "string", "source": "column" },
+    "statement_format": { "type": "string", "source": "column", "enum": ["md", "html"] },
+    "content_locale": { "type": "string", "source": "column", "nullable": true },
+    "latest": { "type": "boolean", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "event_summary": { "type": "string", "source": "column", "nullable": true },
+    "event_location": { "type": "string", "source": "column", "nullable": true },
+    "attachments": { "type": "array", "source": "column", "items": "attachment_object" },
+    "link_previews": { "type": "array", "source": "column", "items": "link_preview_object" },
+    "review_on": { "type": "date", "source": "column", "nullable": true },
+    "poll_id": { "type": "integer", "source": "column" },
+    "poll_option_id": { "type": "integer", "source": "column", "nullable": true },
+    "group_id": { "type": "integer", "source": "method", "note": "Computed from poll.group_id" },
+    "author_id": { "type": "integer", "source": "column" },
+    "versions_count": { "type": "integer", "source": "column" }
+  },
+  "relationships": {
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user') && include_type?('author')" },
+    "poll": { "serializer": "PollSerializer", "type": "has_one", "root": "polls", "conditional": "include_type?('poll')" }
+  }
+}

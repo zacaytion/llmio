@@ -1,0 +1,24 @@
+{
+  "name": "MembershipRequestSerializer",
+  "source_file": "app/serializers/membership_request_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "membership_requests",
+  "sideloaded_as": "membership_requests",
+  "description": "Request to join a group",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "group_id": { "type": "integer", "source": "column" },
+    "name": { "type": "string", "source": "column" },
+    "email": { "type": "string", "source": "column" },
+    "introduction": { "type": "string", "source": "column", "nullable": true },
+    "responded_at": { "type": "datetime", "source": "column", "nullable": true },
+    "response": { "type": "string", "source": "column", "nullable": true, "enum": ["approved", "ignored"] },
+    "created_at": { "type": "datetime", "source": "column" },
+    "updated_at": { "type": "datetime", "source": "column" },
+    "requestor_email": { "type": "string", "source": "method", "note": "requestor&.email" }
+  },
+  "relationships": {
+    "responder": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" },
+    "requestor": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" }
+  }
+}

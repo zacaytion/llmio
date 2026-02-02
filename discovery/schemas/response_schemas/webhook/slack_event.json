@@ -1,0 +1,17 @@
+{
+  "name": "Webhook::Slack::EventSerializer",
+  "source_file": "app/serializers/webhook/slack/event_serializer.rb",
+  "inherits_from": "Webhook::Markdown::EventSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "Slack webhook event serializer",
+  "attributes": {
+    "text": { "type": "string", "source": "method", "note": "Rendered from chatbot/slack/#{template_name} template" }
+  },
+  "excluded_attributes": ["icon_url", "username"],
+  "relationships": {},
+  "notes": [
+    "icon_url and username excluded (Slack uses bot config)",
+    "Uses Slack-specific templates"
+  ]
+}

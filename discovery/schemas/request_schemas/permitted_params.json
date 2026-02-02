@@ -1,0 +1,456 @@
+{
+  "name": "PermittedParams",
+  "description": "Centralized parameter definitions for all API requests. Controllers use PermittedParams.new(params).model_name to get permitted attributes.",
+  "source_file": "app/models/permitted_params.rb",
+  "models": [
+    "user", "group", "membership_request", "membership", "poll", "poll_template", "outcome",
+    "stance", "discussion", "discussion_template", "discussion_reader", "comment",
+    "contact_message", "document", "webhook", "chatbot", "contact_request", "reaction", "tag"
+  ],
+  "attributes": {
+    "user": {
+      "description": "User profile attributes",
+      "fields": {
+        "name": { "type": "string" },
+        "avatar_kind": { "type": "string", "enum": ["initials", "uploaded", "gravatar"] },
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string" },
+        "password_confirmation": { "type": "string" },
+        "current_password": { "type": "string" },
+        "remember_me": { "type": "boolean" },
+        "uploaded_avatar": { "type": "file" },
+        "username": { "type": "string" },
+        "short_bio": { "type": "string" },
+        "short_bio_format": { "type": "string", "enum": ["html", "md"] },
+        "location": { "type": "string" },
+        "autodetect_time_zone": { "type": "boolean" },
+        "time_zone": { "type": "string" },
+        "selected_locale": { "type": "string" },
+        "email_when_mentioned": { "type": "boolean" },
+        "default_membership_volume": { "type": "string", "enum": ["normal", "loud", "quiet", "mute"] },
+        "email_catch_up_day": { "type": "integer", "description": "Day of week (0-6) for catch-up emails" },
+        "has_password": { "type": "boolean" },
+        "has_token": { "type": "boolean" },
+        "email_status": { "type": "string" },
+        "email_when_proposal_closing_soon": { "type": "boolean" },
+        "email_new_discussions_and_proposals": { "type": "boolean" },
+        "email_on_participation": { "type": "boolean" },
+        "email_newsletter": { "type": "boolean" },
+        "date_time_pref": { "type": "string" },
+        "bot": { "type": "boolean" },
+        "auto_translate": { "type": "boolean" },
+        "legal_accepted": { "type": "boolean" },
+        "email_new_discussions_and_proposals_group_ids": { "type": "array", "items": { "type": "integer" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "group": {
+      "description": "Group/organization attributes",
+      "fields": {
+        "parent_id": { "type": "integer", "description": "Parent group ID for subgroups" },
+        "name": { "type": "string", "required": true },
+        "handle": { "type": "string", "description": "URL-friendly unique identifier" },
+        "group_privacy": { "type": "string", "enum": ["open", "closed", "secret"] },
+        "is_visible_to_public": { "type": "boolean" },
+        "discussion_privacy_options": { "type": "string", "enum": ["public_or_private", "public_only", "private_only"] },
+        "members_can_add_members": { "type": "boolean" },
+        "members_can_add_guests": { "type": "boolean" },
+        "members_can_announce": { "type": "boolean" },
+        "members_can_edit_discussions": { "type": "boolean" },
+        "members_can_edit_comments": { "type": "boolean" },
+        "members_can_delete_comments": { "type": "boolean" },
+        "description": { "type": "string" },
+        "description_format": { "type": "string", "enum": ["html", "md"] },
+        "is_visible_to_parent_members": { "type": "boolean" },
+        "parent_members_can_see_discussions": { "type": "boolean" },
+        "membership_granted_upon": { "type": "string", "enum": ["request", "approval", "invitation"] },
+        "cover_photo": { "type": "file" },
+        "logo": { "type": "file" },
+        "category": { "type": "string" },
+        "members_can_raise_motions": { "type": "boolean" },
+        "members_can_start_discussions": { "type": "boolean" },
+        "members_can_create_subgroups": { "type": "boolean" },
+        "admins_can_edit_user_content": { "type": "boolean" },
+        "new_threads_max_depth": { "type": "integer" },
+        "new_threads_newest_first": { "type": "boolean" },
+        "request_to_join_prompt": { "type": "string" },
+        "can_start_polls_without_discussion": { "type": "boolean" },
+        "listed_in_explore": { "type": "boolean" },
+        "document_ids": { "type": "array", "items": { "type": "integer" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "discussion": {
+      "description": "Discussion/thread attributes",
+      "fields": {
+        "title": { "type": "string", "required": true },
+        "description": { "type": "string" },
+        "description_format": { "type": "string", "enum": ["html", "md"] },
+        "discussion_template_id": { "type": "integer" },
+        "discussion_template_key": { "type": "string" },
+        "group_id": { "type": "integer" },
+        "newest_first": { "type": "boolean" },
+        "max_depth": { "type": "integer" },
+        "private": { "type": "boolean" },
+        "notify_recipients": { "type": "boolean" },
+        "recipient_audience": { "type": "string", "enum": ["group", "voters", "decided_voters", "undecided_voters", "non_voters"] },
+        "recipient_message": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "recipient_user_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_chatbot_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_emails": { "type": "array", "items": { "type": "string", "format": "email" } },
+        "forked_event_ids": { "type": "array", "items": { "type": "integer" }, "description": "Event IDs to fork into new discussion" },
+        "document_ids": { "type": "array", "items": { "type": "integer" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "poll": {
+      "description": "Poll/proposal attributes",
+      "fields": {
+        "agree_target": { "type": "integer", "description": "Target number of agree votes" },
+        "title": { "type": "string", "required": true },
+        "details": { "type": "string" },
+        "details_format": { "type": "string", "enum": ["html", "md"] },
+        "discussion_id": { "type": "integer" },
+        "default_duration_in_days": { "type": "integer" },
+        "poll_type": { "type": "string", "required": true, "enum": ["proposal", "count", "poll", "score", "ranked_choice", "meeting", "dot_vote"] },
+        "group_id": { "type": "integer" },
+        "closing_at": { "type": "string", "format": "date-time" },
+        "anonymous": { "type": "boolean" },
+        "hide_results": { "type": "string", "enum": ["off", "until_vote", "until_closed"] },
+        "key": { "type": "string" },
+        "limit_reason_length": { "type": "integer" },
+        "shuffle_options": { "type": "boolean" },
+        "show_none_of_the_above": { "type": "boolean" },
+        "notify_on_closing_soon": { "type": "string", "enum": ["nobody", "author", "undecided_voters", "voters"] },
+        "voter_can_add_options": { "type": "boolean" },
+        "specified_voters_only": { "type": "boolean" },
+        "recipient_audience": { "type": "string" },
+        "recipient_message": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "notify_recipients": { "type": "boolean" },
+        "recipient_user_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_chatbot_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_emails": { "type": "array", "items": { "type": "string", "format": "email" } },
+        "can_respond_maybe": { "type": "boolean" },
+        "dots_per_person": { "type": "integer" },
+        "max_score": { "type": "integer" },
+        "min_score": { "type": "integer" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "process_name": { "type": "string" },
+        "process_subtitle": { "type": "string" },
+        "poll_option_name_format": { "type": "string" },
+        "reason_prompt": { "type": "string" },
+        "template": { "type": "boolean" },
+        "time_zone": { "type": "string" },
+        "stance_reason_required": { "type": "string", "enum": ["disabled", "optional", "required"] },
+        "meeting_duration": { "type": "integer" },
+        "minimum_stance_choices": { "type": "integer" },
+        "maximum_stance_choices": { "type": "integer" },
+        "chart_type": { "type": "string" },
+        "quorum_pct": { "type": "integer", "description": "Quorum percentage 0-100" },
+        "document_ids": { "type": "array", "items": { "type": "integer" } },
+        "poll_template_id": { "type": "integer" },
+        "poll_template_key": { "type": "string" },
+        "poll_options_attributes": { "type": "array", "items": { "$ref": "#/definitions/poll_option" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "stance": {
+      "description": "Vote/stance attributes",
+      "fields": {
+        "poll_id": { "type": "integer", "required": true },
+        "reason": { "type": "string" },
+        "reason_format": { "type": "string", "enum": ["html", "md"] },
+        "none_of_the_above": { "type": "boolean" },
+        "stance_choices_attributes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "score": { "type": "integer" },
+              "poll_option_id": { "type": "integer" }
+            }
+          }
+        },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "outcome": {
+      "description": "Poll outcome/decision attributes",
+      "fields": {
+        "statement": { "type": "string", "required": true },
+        "statement_format": { "type": "string", "enum": ["html", "md"] },
+        "poll_id": { "type": "integer", "required": true },
+        "poll_option_id": { "type": "integer", "description": "Winning option" },
+        "review_on": { "type": "string", "format": "date" },
+        "recipient_audience": { "type": "string" },
+        "include_actor": { "type": "boolean" },
+        "event_location": { "type": "string" },
+        "event_summary": { "type": "string" },
+        "event_description": { "type": "string" },
+        "notify_recipients": { "type": "boolean" },
+        "recipient_user_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_chatbot_ids": { "type": "array", "items": { "type": "integer" } },
+        "recipient_emails": { "type": "array", "items": { "type": "string", "format": "email" } },
+        "document_ids": { "type": "array", "items": { "type": "integer" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "comment": {
+      "description": "Comment/reply attributes",
+      "fields": {
+        "body": { "type": "string", "required": true },
+        "body_format": { "type": "string", "enum": ["html", "md"] },
+        "discussion_id": { "type": "integer", "required": true },
+        "parent_id": { "type": "integer", "description": "Parent comment/event ID" },
+        "parent_type": { "type": "string", "description": "Parent type (Comment, Event)" },
+        "document_ids": { "type": "array", "items": { "type": "integer" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "membership": {
+      "description": "Membership update attributes",
+      "fields": {
+        "title": { "type": "string", "description": "Member title/role" },
+        "volume": { "type": "string", "enum": ["normal", "loud", "quiet", "mute"] },
+        "apply_to_all": { "type": "boolean", "description": "Apply volume to all memberships" },
+        "set_default": { "type": "boolean", "description": "Set as default membership volume" }
+      }
+    },
+    "membership_request": {
+      "description": "Group join request attributes",
+      "fields": {
+        "name": { "type": "string", "required": true },
+        "email": { "type": "string", "format": "email", "required": true },
+        "introduction": { "type": "string" },
+        "group_id": { "type": "integer", "required": true }
+      }
+    },
+    "discussion_reader": {
+      "description": "Discussion read state attributes",
+      "fields": {
+        "discussion_id": { "type": "integer", "required": true },
+        "volume": { "type": "string", "enum": ["normal", "loud", "quiet", "mute"] }
+      }
+    },
+    "reaction": {
+      "description": "Emoji reaction attributes",
+      "fields": {
+        "reaction": { "type": "string", "required": true, "description": "Emoji reaction string" },
+        "reactable_id": { "type": "integer", "required": true },
+        "reactable_type": { "type": "string", "required": true, "enum": ["Comment", "Discussion", "Poll", "Stance", "Outcome"] }
+      }
+    },
+    "tag": {
+      "description": "Tag attributes",
+      "fields": {
+        "name": { "type": "string", "required": true },
+        "color": { "type": "string", "description": "Hex color code" },
+        "group_id": { "type": "integer", "required": true },
+        "priority": { "type": "integer" }
+      }
+    },
+    "document": {
+      "description": "Attached document attributes",
+      "fields": {
+        "url": { "type": "string", "format": "uri" },
+        "title": { "type": "string" },
+        "model_id": { "type": "integer" },
+        "model_type": { "type": "string" },
+        "file": { "type": "file" },
+        "filename": { "type": "string" }
+      }
+    },
+    "webhook": {
+      "description": "Webhook configuration attributes",
+      "fields": {
+        "group_id": { "type": "integer", "required": true },
+        "url": { "type": "string", "format": "uri", "required": true },
+        "name": { "type": "string", "required": true },
+        "format": { "type": "string", "enum": ["markdown", "microsoft", "slack"] },
+        "include_body": { "type": "boolean" },
+        "include_subgroups": { "type": "boolean" },
+        "permissions": { "type": "array", "items": { "type": "string" } },
+        "event_kinds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "chatbot": {
+      "description": "Chatbot integration attributes",
+      "fields": {
+        "name": { "type": "string", "required": true },
+        "group_id": { "type": "integer", "required": true },
+        "kind": { "type": "string", "enum": ["webhook", "matrix", "slack", "discord", "teams"] },
+        "webhook_kind": { "type": "string" },
+        "server": { "type": "string" },
+        "access_token": { "type": "string" },
+        "channel": { "type": "string" },
+        "notification_only": { "type": "boolean" },
+        "event_kinds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "contact_message": {
+      "description": "Contact form message attributes",
+      "fields": {
+        "email": { "type": "string", "format": "email", "required": true },
+        "subject": { "type": "string", "required": true },
+        "user_id": { "type": "integer" },
+        "message": { "type": "string", "required": true },
+        "name": { "type": "string" }
+      }
+    },
+    "contact_request": {
+      "description": "User contact request attributes",
+      "fields": {
+        "recipient_id": { "type": "integer", "required": true },
+        "message": { "type": "string" }
+      }
+    },
+    "discussion_template": {
+      "description": "Discussion template attributes",
+      "fields": {
+        "key": { "type": "string" },
+        "title": { "type": "string" },
+        "title_placeholder": { "type": "string" },
+        "description": { "type": "string" },
+        "description_format": { "type": "string", "enum": ["html", "md"] },
+        "process_name": { "type": "string" },
+        "process_subtitle": { "type": "string" },
+        "process_introduction": { "type": "string" },
+        "process_introduction_format": { "type": "string", "enum": ["html", "md"] },
+        "recipient_audience": { "type": "string" },
+        "group_id": { "type": "integer" },
+        "newest_first": { "type": "boolean" },
+        "max_depth": { "type": "integer" },
+        "public": { "type": "boolean" },
+        "poll_template_keys_or_ids": { "type": "array", "items": { "type": ["string", "integer"] } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    },
+    "poll_template": {
+      "description": "Poll template attributes",
+      "fields": {
+        "key": { "type": "string" },
+        "group_id": { "type": "integer" },
+        "position": { "type": "integer" },
+        "author_id": { "type": "integer" },
+        "poll_type": { "type": "string", "required": true },
+        "process_name": { "type": "string" },
+        "process_subtitle": { "type": "string" },
+        "process_introduction": { "type": "string" },
+        "process_introduction_format": { "type": "string", "enum": ["html", "md"] },
+        "title": { "type": "string" },
+        "title_placeholder": { "type": "string" },
+        "details": { "type": "string" },
+        "details_format": { "type": "string", "enum": ["html", "md"] },
+        "notify_on_participate": { "type": "boolean" },
+        "anonymous": { "type": "boolean" },
+        "specified_voters_only": { "type": "boolean" },
+        "notify_on_closing_soon": { "type": "string" },
+        "content_locale": { "type": "string" },
+        "shuffle_options": { "type": "boolean" },
+        "show_none_of_the_above": { "type": "boolean" },
+        "hide_results": { "type": "string" },
+        "chart_type": { "type": "string" },
+        "min_score": { "type": "integer" },
+        "max_score": { "type": "integer" },
+        "minimum_stance_choices": { "type": "integer" },
+        "maximum_stance_choices": { "type": "integer" },
+        "dots_per_person": { "type": "integer" },
+        "reason_prompt": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "poll_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "icon": { "type": "string" },
+              "meaning": { "type": "string" },
+              "prompt": { "type": "string" },
+              "priority": { "type": "integer" },
+              "test_operator": { "type": "string" },
+              "test_percent": { "type": "integer" },
+              "test_against": { "type": "string" }
+            }
+          }
+        },
+        "stance_reason_required": { "type": "string" },
+        "limit_reason_length": { "type": "integer" },
+        "default_duration_in_days": { "type": "integer" },
+        "agree_target": { "type": "integer" },
+        "meeting_duration": { "type": "integer" },
+        "can_respond_maybe": { "type": "boolean" },
+        "poll_option_name_format": { "type": "string" },
+        "outcome_statement": { "type": "string" },
+        "outcome_statement_format": { "type": "string" },
+        "outcome_review_due_in_days": { "type": "integer" },
+        "quorum_pct": { "type": "integer" },
+        "link_previews": { "type": "array", "items": { "$ref": "#/definitions/link_preview" } },
+        "files": { "type": "array", "items": { "type": "file" } },
+        "image_files": { "type": "array", "items": { "type": "file" } }
+      }
+    }
+  },
+  "definitions": {
+    "link_preview": {
+      "type": "object",
+      "properties": {
+        "image": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "hostname": { "type": "string" },
+        "fit": { "type": "string" },
+        "align": { "type": "string" }
+      }
+    },
+    "poll_option": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string", "required": true },
+        "icon": { "type": "string" },
+        "meaning": { "type": "string" },
+        "prompt": { "type": "string" },
+        "priority": { "type": "integer" },
+        "test_operator": { "type": "string" },
+        "test_percent": { "type": "integer" },
+        "test_against": { "type": "string" },
+        "_destroy": { "type": "boolean" }
+      }
+    }
+  },
+  "common_query_params": {
+    "pagination": {
+      "from": { "type": "integer", "description": "Cursor offset for pagination" },
+      "per": { "type": "integer", "description": "Items per page (default varies by controller)" }
+    },
+    "timeframe": {
+      "since": { "type": "string", "format": "date-time", "description": "Filter records after this time" },
+      "until": { "type": "string", "format": "date-time", "description": "Filter records before this time" },
+      "timeframe_for": { "type": "string", "description": "Which timestamp to use for filtering" }
+    },
+    "filtering": {
+      "exclude_types": { "type": "string", "description": "Space-separated list of types to exclude from sideloading" },
+      "order": { "type": "string", "description": "Order clause (controller-specific valid values)" }
+    }
+  }
+}

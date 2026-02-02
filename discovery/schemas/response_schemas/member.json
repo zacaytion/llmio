@@ -1,0 +1,19 @@
+{
+  "name": "MemberSerializer",
+  "source_file": "app/serializers/member_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "members",
+  "sideloaded_as": "members",
+  "description": "Lightweight member representation for recipient lists",
+  "attributes": {
+    "key": { "type": "string", "source": "column" },
+    "priority": { "type": "integer", "source": "column" },
+    "type": { "type": "string", "source": "column" },
+    "title": { "type": "string", "source": "column" },
+    "subtitle": { "type": "string", "source": "column", "nullable": true },
+    "logo_url": { "type": "string", "source": "column", "nullable": true },
+    "logo_type": { "type": "string", "source": "column", "nullable": true },
+    "last_notified_at": { "type": "datetime", "source": "column", "nullable": true }
+  },
+  "relationships": {}
+}

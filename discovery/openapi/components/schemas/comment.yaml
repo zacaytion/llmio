@@ -1,0 +1,89 @@
+# Comment Schema
+# Extracted from app/serializers/comment_serializer.rb
+
+Comment:
+  type: object
+  description: |
+    Comment in a discussion thread. Comments can be nested (replies)
+    up to the max_depth setting of the discussion.
+  properties:
+    id:
+      type: integer
+    discussion_id:
+      type: integer
+    author_id:
+      type: integer
+    parent_id:
+      type: integer
+      nullable: true
+      description: ID of parent comment (for replies)
+    body:
+      type: string
+      nullable: true
+      description: Comment content. Returns null if discarded.
+    body_format:
+      type: string
+      enum: [md, html]
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    discarded_at:
+      type: string
+      format: date-time
+      nullable: true
+    edited_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When comment was last edited
+    versions_count:
+      type: integer
+    attachments:
+      type: array
+      items:
+        $ref: 'group.yaml#/Attachment'
+    link_previews:
+      type: array
+      items:
+        $ref: 'group.yaml#/LinkPreview'
+    mentioned_usernames:
+      type: array
+      items:
+        type: string
+      description: Usernames mentioned in this comment
+    translation_id:
+      type: integer
+      nullable: true
+  required:
+    - id
+    - discussion_id
+    - author_id
+
+Reaction:
+  type: object
+  description: Emoji reaction on a comment, poll, discussion, or stance
+  properties:
+    id:
+      type: integer
+    reactable_id:
+      type: integer
+    reactable_type:
+      type: string
+      enum: [Comment, Poll, Discussion, Stance, Outcome]
+    reaction:
+      type: string
+      description: Emoji character or shortcode
+    user_id:
+      type: integer
+    created_at:
+      type: string
+      format: date-time
+  required:
+    - id
+    - reactable_id
+    - reactable_type
+    - reaction
+    - user_id

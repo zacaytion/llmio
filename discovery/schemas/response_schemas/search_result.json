@@ -1,0 +1,32 @@
+{
+  "name": "SearchResultSerializer",
+  "source_file": "app/serializers/search_result_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "search_results",
+  "sideloaded_as": "search_results",
+  "description": "Full-text search result",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "searchable_type": { "type": "string", "source": "column" },
+    "searchable_id": { "type": "integer", "source": "column" },
+    "poll_title": { "type": "string", "source": "column", "nullable": true },
+    "discussion_title": { "type": "string", "source": "column", "nullable": true },
+    "discussion_key": { "type": "string", "source": "column", "nullable": true },
+    "highlight": { "type": "string", "source": "column", "note": "Highlighted search match excerpt" },
+    "poll_key": { "type": "string", "source": "column", "nullable": true },
+    "poll_id": { "type": "integer", "source": "column", "nullable": true },
+    "sequence_id": { "type": "integer", "source": "column", "nullable": true },
+    "group_id": { "type": "integer", "source": "column" },
+    "group_handle": { "type": "string", "source": "column", "nullable": true },
+    "group_key": { "type": "string", "source": "column" },
+    "group_name": { "type": "string", "source": "column" },
+    "author_name": { "type": "string", "source": "column" },
+    "author_id": { "type": "integer", "source": "column" },
+    "authored_at": { "type": "datetime", "source": "column" },
+    "tags": { "type": "array", "source": "column", "items": "string" }
+  },
+  "relationships": {
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users" },
+    "poll": { "serializer": "PollSerializer", "type": "has_one", "root": "polls" }
+  }
+}

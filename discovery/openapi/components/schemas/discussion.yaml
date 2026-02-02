@@ -1,0 +1,270 @@
+# Discussion Schema
+# Extracted from app/serializers/discussion_serializer.rb
+
+Discussion:
+  type: object
+  description: |
+    Discussion/thread representation. Discussions contain comments, polls,
+    and timeline events. Reader state (read position, volume) is merged in
+    for the current user.
+  properties:
+    id:
+      type: integer
+    key:
+      type: string
+      description: Public discussion key (used in URLs)
+    group_id:
+      type: integer
+      nullable: true
+      description: Null for direct discussions (no group)
+    title:
+      type: string
+      description: Returns null if discussion is discarded
+    description:
+      type: string
+      nullable: true
+      description: Discussion body content. Returns null if discarded.
+    description_format:
+      type: string
+      enum: [md, html]
+    content_locale:
+      type: string
+      nullable: true
+    discussion_template_id:
+      type: integer
+      nullable: true
+
+    # Timestamps
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    last_activity_at:
+      type: string
+      format: date-time
+      nullable: true
+    last_comment_at:
+      type: string
+      format: date-time
+      nullable: true
+    closed_at:
+      type: string
+      format: date-time
+      nullable: true
+    pinned_at:
+      type: string
+      format: date-time
+      nullable: true
+    discarded_at:
+      type: string
+      format: date-time
+      nullable: true
+
+    # User references
+    author_id:
+      type: integer
+      description: ID of discussion creator (sideloaded in users)
+    closer_id:
+      type: integer
+      nullable: true
+      description: ID of user who closed the discussion
+
+    # Counts
+    items_count:
+      type: integer
+      description: Total timeline items (events)
+    seen_by_count:
+      type: integer
+    members_count:
+      type: integer
+      nullable: true
+    versions_count:
+      type: integer
+
+    # Settings
+    private:
+      type: boolean
+      description: Whether discussion is private to group members
+    newest_first:
+      type: boolean
+      description: Display comments newest first
+    max_depth:
+      type: integer
+      description: Maximum nesting depth for replies
+    tags:
+      type: array
+      items:
+        type: string
+      description: Tag names attached to discussion
+
+    # Position tracking
+    ranges:
+      type: string
+      nullable: true
+      description: Serialized position ranges (ranges_string column)
+
+    # Rich content
+    attachments:
+      type: array
+      items:
+        $ref: 'group.yaml#/Attachment'
+    link_previews:
+      type: array
+      items:
+        $ref: 'group.yaml#/LinkPreview'
+    mentioned_usernames:
+      type: array
+      items:
+        type: string
+      description: Only present when description_format is 'md'
+
+    # Translation
+    translation_id:
+      type: integer
+      nullable: true
+
+    # --- Reader State (merged from DiscussionReader for current user) ---
+    discussion_reader_id:
+      type: integer
+      description: Current user's reader record ID
+    discussion_reader_volume:
+      type: integer
+      description: Current user's notification volume
+    discussion_reader_user_id:
+      type: integer
+    last_read_at:
+      type: string
+      format: date-time
+      nullable: true
+    dismissed_at:
+      type: string
+      format: date-time
+      nullable: true
+    read_ranges:
+      type: array
+      items:
+        type: string
+      description: Array of read sequence ID ranges
+    revoked_at:
+      type: string
+      format: date-time
+      nullable: true
+    inviter_id:
+      type: integer
+      nullable: true
+    guest:
+      type: boolean
+      description: Whether current user is a guest (not group member)
+    admin:
+      type: boolean
+      description: Whether current user is admin of this discussion
+
+  required:
+    - id
+    - key
+    - title
+
+DiscussionReader:
+  type: object
+  description: |
+    Per-user reading state for a discussion. Tracks read position,
+    notification volume, and guest/admin status.
+  properties:
+    id:
+      type: integer
+    user_id:
+      type: integer
+    discussion_id:
+      type: integer
+    volume:
+      type: integer
+      description: Notification volume (0=mute, 1=quiet, 2=normal, 3=loud)
+    last_read_at:
+      type: string
+      format: date-time
+      nullable: true
+    dismissed_at:
+      type: string
+      format: date-time
+      nullable: true
+    read_ranges_string:
+      type: string
+      nullable: true
+    revoked_at:
+      type: string
+      format: date-time
+      nullable: true
+    inviter_id:
+      type: integer
+      nullable: true
+    guest:
+      type: boolean
+    admin:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+
+DiscussionTemplate:
+  type: object
+  description: Template for creating new discussions with preset settings
+  properties:
+    id:
+      type: integer
+    key:
+      type: string
+    group_id:
+      type: integer
+    author_id:
+      type: integer
+    title:
+      type: string
+    description:
+      type: string
+      nullable: true
+    description_format:
+      type: string
+      enum: [md, html]
+    tags:
+      type: array
+      items:
+        type: string
+    process_name:
+      type: string
+      nullable: true
+    process_subtitle:
+      type: string
+      nullable: true
+    process_introduction:
+      type: string
+      nullable: true
+    process_introduction_format:
+      type: string
+      enum: [md, html]
+    max_depth:
+      type: integer
+    newest_first:
+      type: boolean
+    position:
+      type: integer
+    discarded_at:
+      type: string
+      format: date-time
+      nullable: true
+    hidden_at:
+      type: string
+      format: date-time
+      nullable: true
+    public:
+      type: boolean
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time

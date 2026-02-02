@@ -1,0 +1,23 @@
+{
+  "name": "ChatbotSerializer",
+  "source_file": "app/serializers/chatbot_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "chatbots",
+  "sideloaded_as": "chatbots",
+  "description": "External chat integration (Slack, Discord, Teams, etc.)",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "kind": { "type": "string", "source": "column", "enum": ["slack", "discord", "microsoft", "matrix", "mattermost", "webex"] },
+    "webhook_kind": { "type": "string", "source": "column", "nullable": true },
+    "group_id": { "type": "integer", "source": "column" },
+    "server": { "type": "string", "source": "column", "conditional": "scope[:current_user_is_admin]", "nullable": true },
+    "channel": { "type": "string", "source": "column", "conditional": "scope[:current_user_is_admin]", "nullable": true },
+    "event_kinds": { "type": "array", "source": "column", "items": "string" },
+    "name": { "type": "string", "source": "column", "nullable": true },
+    "notification_only": { "type": "boolean", "source": "column" }
+  },
+  "relationships": {},
+  "notes": [
+    "server and channel only visible to admins (sensitive integration details)"
+  ]
+}

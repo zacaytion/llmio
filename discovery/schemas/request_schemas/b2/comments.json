@@ -1,0 +1,25 @@
+{
+  "name": "CommentsController",
+  "source_file": "app/controllers/api/b2/comments_controller.rb",
+  "namespace": "Api::B2",
+  "base_path": "/api/b2/comments",
+  "inherits": "BaseController",
+  "authentication": "api_key",
+  "description": "Bot API for creating comments",
+  "actions": {
+    "create": {
+      "method": "POST",
+      "path": "/api/b2/comments",
+      "description": "Create a comment in a discussion",
+      "parameters": {
+        "api_key": { "type": "string", "required": true },
+        "discussion_id": { "type": "integer", "required": true },
+        "body": { "type": "string", "required": true },
+        "body_format": { "type": "string", "enum": ["html", "md"] },
+        "parent_id": { "type": "integer", "description": "Parent comment/event ID for reply" },
+        "parent_type": { "type": "string" }
+      }
+    }
+  },
+  "authentication_notes": "Requires api_key parameter. User must have API key set in profile. No rate limiting."
+}

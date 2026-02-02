@@ -1,0 +1,13 @@
+{
+  "name": "ModelErrorSerializer",
+  "source_file": "app/serializers/model_error_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "errors",
+  "sideloaded_as": null,
+  "description": "Validation error response for failed creates/updates",
+  "attributes": {
+    "id": { "type": "integer", "source": "column", "nullable": true },
+    "messages": { "type": "array", "source": "method", "items": "string", "note": "object.errors.full_messages" }
+  },
+  "relationships": {}
+}

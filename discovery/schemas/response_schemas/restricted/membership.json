@@ -1,0 +1,17 @@
+{
+  "name": "Restricted::MembershipSerializer",
+  "source_file": "app/serializers/restricted/membership_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "memberships",
+  "sideloaded_as": "memberships",
+  "description": "Minimal membership info for unsubscribe pages",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "volume": { "type": "integer", "source": "column" },
+    "user_id": { "type": "integer", "source": "column" },
+    "group_id": { "type": "integer", "source": "column" }
+  },
+  "relationships": {
+    "group": { "serializer": "Restricted::GroupSerializer", "type": "has_one", "root": "groups" }
+  }
+}

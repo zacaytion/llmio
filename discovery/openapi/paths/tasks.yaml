@@ -1,0 +1,134 @@
+# Tasks Paths
+# Extracted from app/controllers/api/v1/tasks_controller.rb
+
+paths:
+  /api/v1/tasks:
+    get:
+      operationId: listTasks
+      summary: List tasks
+      description: |
+        Returns tasks assigned to or authored by the current user.
+        Tasks are extracted from discussion/poll content as action items.
+      tags:
+        - Tasks
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Task'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/tasks/update_done:
+    post:
+      operationId: updateTaskDone
+      summary: Update task done status
+      description: Updates whether a task is marked as done, finding the task by uid.
+      tags:
+        - Tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_id:
+                  type: integer
+                  description: One of group_id, discussion_id, comment_id, poll_id, or outcome_id
+                discussion_id:
+                  type: integer
+                comment_id:
+                  type: integer
+                poll_id:
+                  type: integer
+                outcome_id:
+                  type: integer
+                uid:
+                  type: string
+                  description: Task's unique identifier within the record
+                done:
+                  type: string
+                  enum: ['true', 'false']
+              required:
+                - uid
+                - done
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Task'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/tasks/{id}/mark_as_done:
+    post:
+      operationId: markTaskAsDone
+      summary: Mark task as done
+      description: Marks a specific task as completed.
+      tags:
+        - Tasks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Task marked as done
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Task'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/tasks/{id}/mark_as_not_done:
+    post:
+      operationId: markTaskAsNotDone
+      summary: Mark task as not done
+      description: Marks a completed task as not done.
+      tags:
+        - Tasks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Task marked as not done
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/_index.yaml#/Task'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

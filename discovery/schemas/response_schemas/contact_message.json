@@ -1,0 +1,14 @@
+{
+  "name": "ContactMessageSerializer",
+  "source_file": "app/serializers/contact_message_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "Contact form submission (no root key)",
+  "attributes": {
+    "name": { "type": "string", "source": "column" },
+    "email": { "type": "string", "source": "column" },
+    "message": { "type": "string", "source": "column" }
+  },
+  "relationships": {}
+}

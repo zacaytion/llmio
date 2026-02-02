@@ -1,0 +1,129 @@
+# Event Schema
+# Extracted from app/serializers/event_serializer.rb
+
+Event:
+  type: object
+  description: |
+    Timeline event in a discussion. Events are the core of Loomio's activity
+    tracking - they represent actions like new comments, polls, votes, etc.
+
+    Uses STI (Single Table Inheritance) with 42+ event types.
+    Each event has an `eventable` which is the actual record (Comment, Poll, etc.)
+  properties:
+    id:
+      type: integer
+    sequence_id:
+      type: integer
+      description: Sequential ID within the discussion (for pagination)
+    position:
+      type: integer
+      description: Nested position for threaded display
+    position_key:
+      type: string
+      description: Hierarchical position key (e.g., "00001.00002.00001")
+    depth:
+      type: integer
+      description: Nesting depth (0 = top level)
+    child_count:
+      type: integer
+      description: Number of direct child events
+    descendant_count:
+      type: integer
+      description: Total nested events underneath this one
+    discussion_id:
+      type: integer
+      nullable: true
+    kind:
+      type: string
+      description: |
+        Event type. Common kinds include:
+        - new_discussion, discussion_edited, discussion_closed
+        - new_comment, comment_edited, comment_deleted
+        - poll_created, poll_edited, poll_closed
+        - stance_created, stance_updated
+        - outcome_created, outcome_updated
+        - user_mentioned
+        - discussion_moved, poll_option_added
+      enum:
+        - new_discussion
+        - discussion_edited
+        - discussion_closed
+        - discussion_reopened
+        - discussion_moved
+        - discussion_forked
+        - new_comment
+        - comment_edited
+        - comment_deleted
+        - comment_replied_to
+        - poll_created
+        - poll_edited
+        - poll_closed
+        - poll_closing_soon
+        - poll_expired
+        - poll_reopened
+        - poll_option_added
+        - stance_created
+        - stance_updated
+        - outcome_created
+        - outcome_updated
+        - outcome_review_due
+        - membership_created
+        - membership_requested
+        - membership_request_approved
+        - user_mentioned
+        - group_identity_created
+        - announcement_created
+        - announcement_resend
+    eventable_id:
+      type: integer
+      description: ID of the related record
+    eventable_type:
+      type: string
+      description: Type of the related record (Comment, Poll, etc.)
+    user_id:
+      type: integer
+      nullable: true
+      description: User who triggered the event
+    created_at:
+      type: string
+      format: date-time
+    updated_at:
+      type: string
+      format: date-time
+    pinned:
+      type: boolean
+      description: Whether this event is pinned in the timeline
+    pinned_title:
+      type: string
+      nullable: true
+      description: Custom title for pinned event
+    custom_fields:
+      type: object
+      additionalProperties: true
+      description: Event-specific metadata
+
+    # Actor info (denormalized from user)
+    actor_id:
+      type: integer
+      nullable: true
+    actor_name:
+      type: string
+      nullable: true
+    actor_username:
+      type: string
+      nullable: true
+    actor_avatar_url:
+      type: string
+      format: uri
+      nullable: true
+
+    # Eventable summary (depends on eventable_type)
+    eventable:
+      type: object
+      description: Embedded summary of the eventable record
+      additionalProperties: true
+
+  required:
+    - id
+    - kind
+    - created_at

@@ -1,0 +1,33 @@
+{
+  "name": "CommentSerializer",
+  "source_file": "app/serializers/comment_serializer.rb",
+  "inherits_from": "ApplicationSerializer",
+  "root_key": "comments",
+  "sideloaded_as": "comments",
+  "description": "Comment serializer for discussion and poll comments",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "body": { "type": "string", "source": "column", "discardable": true, "note": "Returns nil if discarded" },
+    "body_format": { "type": "string", "source": "column", "enum": ["md", "html"] },
+    "mentioned_usernames": { "type": "array", "source": "column", "items": "string", "conditional": "body_format == 'md'" },
+    "discussion_id": { "type": "integer", "source": "column" },
+    "created_at": { "type": "datetime", "source": "column" },
+    "updated_at": { "type": "datetime", "source": "column" },
+    "parent_id": { "type": "integer", "source": "column", "nullable": true },
+    "parent_type": { "type": "string", "source": "column", "enum": ["Discussion", "Poll"] },
+    "content_locale": { "type": "string", "source": "column", "nullable": true },
+    "versions_count": { "type": "integer", "source": "column" },
+    "attachments": { "type": "array", "source": "column", "items": "attachment_object" },
+    "link_previews": { "type": "array", "source": "column", "items": "link_preview_object" },
+    "author_id": { "type": "integer", "source": "column" },
+    "discarded_at": { "type": "datetime", "source": "column", "nullable": true }
+  },
+  "relationships": {
+    "author": { "serializer": "AuthorSerializer", "type": "has_one", "root": "users", "conditional": "include_type?('user') && include_type?('author')" },
+    "discussion": { "serializer": "DiscussionSerializer", "type": "has_one", "root": "discussions", "conditional": "include_type?('discussion')" }
+  },
+  "notes": [
+    "body returns nil when discarded (hide_when_discarded [:body])",
+    "parent_type indicates whether comment is on Discussion or Poll"
+  ]
+}

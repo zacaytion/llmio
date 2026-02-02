@@ -1,0 +1,52 @@
+# Security Schemes for Loomio API
+# Extracted from app/controllers/application_controller.rb and identity controllers
+
+sessionAuth:
+  type: apiKey
+  in: cookie
+  name: _loomio_session
+  description: |
+    Standard Devise session-based authentication. The session cookie is set
+    after successful login via `/api/v1/sessions` or OAuth providers.
+
+loginToken:
+  type: apiKey
+  in: query
+  name: token
+  description: |
+    One-time use login token. Generated via `/api/v1/login_tokens` and
+    consumed via `/login_tokens/:token`. Token is single-use and expires.
+
+b2ApiKey:
+  type: apiKey
+  in: query
+  name: api_key
+  description: |
+    User-specific API key for B2 bot integrations. Found in `user.api_key` field.
+    Used for programmatic access to create discussions, polls, and manage memberships.
+
+    **Security Note**: The B2 API currently has NO rate limiting.
+
+b3ApiKey:
+  type: apiKey
+  in: header
+  name: Authorization
+  description: |
+    Environment variable-based API key for B3 admin operations.
+    Set via `B3_API_KEY` environment variable (must be >16 characters).
+    Used for user lifecycle operations (deactivate/reactivate).
+
+    **Security Note**: The B3 API currently has NO rate limiting.
+
+oauth2:
+  type: oauth2
+  description: |
+    OAuth2 authentication via supported providers. Loomio uses a custom
+    OAuth implementation (NOT OmniAuth) with provider-specific controllers.
+  flows:
+    authorizationCode:
+      authorizationUrl: /{provider}/oauth
+      tokenUrl: /{provider}/authorize
+      scopes:
+        email: Access user email
+        profile: Access user profile information

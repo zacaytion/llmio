@@ -1,0 +1,350 @@
+# Stances Paths
+# Extracted from app/controllers/api/v1/stances_controller.rb
+
+paths:
+  /api/v1/stances:
+    get:
+      operationId: listStances
+      summary: List stances
+      description: Returns stances for a poll.
+      tags:
+        - Stances
+      parameters:
+        - name: poll_id
+          in: query
+          description: Filter by poll
+          schema:
+            type: integer
+        - name: xids
+          in: query
+          description: X-separated stance IDs to fetch
+          schema:
+            type: string
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: List of stances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+                  stance_choices:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/StanceChoice'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+
+    post:
+      operationId: createStance
+      summary: Cast a vote
+      description: |
+        Creates or updates a stance (vote) on a poll.
+
+        **Vote Revision Rule**: A new stance record is only created if:
+        1. More than 15 minutes have elapsed since the last stance
+        2. The choices have actually changed
+        3. The poll is attached to a discussion
+
+        Otherwise, the existing stance is updated in place.
+      tags:
+        - Stances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stance:
+                  type: object
+                  properties:
+                    poll_id:
+                      type: integer
+                    stance_choices_attributes:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          poll_option_id:
+                            type: integer
+                          score:
+                            type: integer
+                    reason:
+                      type: string
+                    reason_format:
+                      type: string
+                      enum: [md, html]
+                  required:
+                    - poll_id
+            example:
+              stance:
+                poll_id: 123
+                stance_choices_attributes:
+                  - poll_option_id: 456
+                    score: 1
+                reason: "I support this proposal"
+      responses:
+        '200':
+          description: Stance created/updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+    patch:
+      operationId: updateStance
+      summary: Update a stance
+      description: Updates an existing stance's reason or choices.
+      tags:
+        - Stances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                stance:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    reason:
+                      type: string
+                    stance_choices_attributes:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          poll_option_id:
+                            type: integer
+                          score:
+                            type: integer
+      responses:
+        '200':
+          description: Stance updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/stances/{id}/uncast:
+    patch:
+      operationId: uncastStance
+      summary: Remove vote
+      description: |
+        Removes the user's vote from a poll.
+        Creates a new stance with no choices.
+      tags:
+        - Stances
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Stance removed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/stances/my_stances:
+    get:
+      operationId: getMyStances
+      summary: Get current user's stances
+      description: Returns stances for polls the user has voted on.
+      tags:
+        - Stances
+      parameters:
+        - name: poll_ids
+          in: query
+          description: Comma-separated poll IDs
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User's stances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stances:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/stance.yaml#/Stance'
+
+  /api/v1/stances/users:
+    get:
+      operationId: getStanceUsers
+      summary: Get users who voted
+      description: Returns users who have voted on a poll.
+      tags:
+        - Stances
+      parameters:
+        - name: poll_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: poll_option_id
+          in: query
+          description: Filter by specific option
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Users who voted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/stances/invite:
+    get:
+      operationId: inviteToVote
+      summary: Get invitable users
+      description: Returns users who can be invited to vote on a poll.
+      tags:
+        - Stances
+      parameters:
+        - name: poll_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invitable users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/stances/make_admin:
+    post:
+      operationId: makeStanceAdmin
+      summary: Make voter an admin
+      description: Grants admin rights to a poll voter.
+      tags:
+        - Stances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participant_id:
+                  type: integer
+                poll_id:
+                  type: integer
+              required:
+                - participant_id
+                - poll_id
+      responses:
+        '200':
+          description: Admin rights granted
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/stances/remove_admin:
+    post:
+      operationId: removeStanceAdmin
+      summary: Remove voter admin rights
+      description: Removes admin rights from a poll voter.
+      tags:
+        - Stances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participant_id:
+                  type: integer
+                poll_id:
+                  type: integer
+      responses:
+        '200':
+          description: Admin rights removed
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/stances/revoke:
+    post:
+      operationId: revokeStance
+      summary: Revoke voter access
+      description: Revokes a user's access to vote on a poll.
+      tags:
+        - Stances
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                participant_id:
+                  type: integer
+                poll_id:
+                  type: integer
+      responses:
+        '200':
+          description: Access revoked
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

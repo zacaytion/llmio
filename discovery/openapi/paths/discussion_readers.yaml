@@ -1,0 +1,153 @@
+# Discussion Readers Paths
+# Extracted from app/controllers/api/v1/discussion_readers_controller.rb
+
+paths:
+  /api/v1/discussion_readers:
+    get:
+      operationId: listDiscussionReaders
+      summary: List discussion participants
+      description: |
+        Returns participants of a discussion with their read state.
+        Includes both group members and guests who have been invited.
+      tags:
+        - Discussions
+      parameters:
+        - name: discussion_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: query
+          in: query
+          description: Search by name or email
+          schema:
+            type: string
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: List of discussion readers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_readers:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionReader'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/discussion_readers/{id}/make_admin:
+    post:
+      operationId: makeDiscussionReaderAdmin
+      summary: Make reader an admin
+      description: |
+        Grants admin rights to a discussion reader.
+        Admins can manage participants and edit the discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Admin rights granted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_readers:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionReader'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_readers/{id}/remove_admin:
+    post:
+      operationId: removeDiscussionReaderAdmin
+      summary: Remove admin rights
+      description: Removes admin rights from a discussion reader.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Admin rights removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_readers:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionReader'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/discussion_readers/{id}/resend:
+    post:
+      operationId: resendDiscussionReaderInvitation
+      summary: Resend invitation
+      description: |
+        Resends the invitation email to a discussion reader.
+        **Note**: This endpoint is not implemented and will raise NotImplementedError.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invitation resent
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '501':
+          description: Not implemented
+
+  /api/v1/discussion_readers/{id}/revoke:
+    post:
+      operationId: revokeDiscussionReader
+      summary: Revoke access
+      description: |
+        Revokes a reader's access to the discussion.
+        Sets `revoked_at` timestamp - reader can no longer see the discussion.
+      tags:
+        - Discussions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Access revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussion_readers:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/DiscussionReader'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'

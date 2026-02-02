@@ -1,0 +1,122 @@
+{
+  "name": "StancesController",
+  "source_file": "app/controllers/api/v1/stances_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/stances",
+  "inherits": "RestfulController",
+  "permitted_params_key": "stance",
+  "notes": "Create is idempotent - if stance already exists for user/poll, updates instead",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/stances",
+      "description": "List stances for a poll",
+      "authentication": "required",
+      "query_parameters": {
+        "poll_id": { "type": "integer", "required": true },
+        "name": { "type": "string", "description": "Filter by voter name/email (non-anonymous polls only)" },
+        "poll_option_id": { "type": "integer", "description": "Filter by selected option" },
+        "from": { "type": "integer" },
+        "per": { "type": "integer", "default": 50 }
+      }
+    },
+    "create": {
+      "method": "POST",
+      "path": "/api/v1/stances",
+      "description": "Create or update a vote/stance",
+      "authentication": "required",
+      "root_key": "stance",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/stance" },
+      "notes": "If duplicate, updates existing stance instead of failing"
+    },
+    "update": {
+      "method": "PATCH",
+      "path": "/api/v1/stances/:id",
+      "description": "Update a stance",
+      "authentication": "required",
+      "authorization": "update on Stance",
+      "root_key": "stance",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "parameters": { "$ref": "../permitted_params.json#/attributes/stance" }
+    },
+    "uncast": {
+      "method": "PATCH",
+      "path": "/api/v1/stances/:id/uncast",
+      "description": "Withdraw a vote (set cast_at to null)",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      }
+    },
+    "my_stances": {
+      "method": "GET",
+      "path": "/api/v1/stances/my_stances",
+      "description": "Get all stances by the current user",
+      "authentication": "required",
+      "query_parameters": {
+        "discussion_id": { "type": "integer", "description": "Filter by discussion" },
+        "group_id": { "type": "integer", "description": "Filter by group" }
+      }
+    },
+    "users": {
+      "method": "GET",
+      "path": "/api/v1/stances/users",
+      "description": "Get users who can vote on a poll",
+      "authentication": "required",
+      "query_parameters": {
+        "poll_id": { "type": "integer", "required": true },
+        "query": { "type": "string", "description": "Search by name/email" }
+      },
+      "response_meta": {
+        "guest_ids": "User IDs that are guests",
+        "member_admin_ids": "User IDs that are group admins",
+        "stance_admin_ids": "User IDs that are poll admins"
+      }
+    },
+    "invite": {
+      "method": "GET",
+      "path": "/api/v1/stances/invite",
+      "description": "Get invitable users for a poll",
+      "authentication": "required",
+      "query_parameters": {
+        "poll_id": { "type": "integer", "required": true }
+      }
+    },
+    "make_admin": {
+      "method": "POST",
+      "path": "/api/v1/stances/make_admin",
+      "description": "Make a voter an admin of the poll",
+      "authentication": "required",
+      "authorization": "make_admin on Stance",
+      "parameters": {
+        "participant_id": { "type": "integer", "required": true },
+        "poll_id": { "type": "integer", "required": true }
+      }
+    },
+    "remove_admin": {
+      "method": "POST",
+      "path": "/api/v1/stances/remove_admin",
+      "description": "Remove admin status from a voter",
+      "authentication": "required",
+      "authorization": "remove_admin on Stance",
+      "parameters": {
+        "participant_id": { "type": "integer", "required": true },
+        "poll_id": { "type": "integer", "required": true }
+      }
+    },
+    "revoke": {
+      "method": "POST",
+      "path": "/api/v1/stances/revoke",
+      "description": "Revoke a voter's access to a poll",
+      "authentication": "required",
+      "authorization": "remove on Stance",
+      "parameters": {
+        "participant_id": { "type": "integer", "required": true },
+        "poll_id": { "type": "integer", "required": true }
+      },
+      "notes": "Revokes all stances from this user on this poll"
+    }
+  }
+}

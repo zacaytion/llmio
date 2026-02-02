@@ -1,0 +1,26 @@
+{
+  "name": "NotificationsController",
+  "source_file": "app/controllers/api/v1/notifications_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/notifications",
+  "inherits": "RestfulController",
+  "description": "User notifications",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/notifications",
+      "description": "List notifications for current user",
+      "authentication": "required",
+      "query_parameters": {
+        "limit": { "type": "integer", "default": 50 }
+      },
+      "notes": "Filters out notifications for items user can no longer see"
+    },
+    "viewed": {
+      "method": "POST",
+      "path": "/api/v1/notifications/viewed",
+      "description": "Mark all notifications as viewed",
+      "authentication": "required"
+    }
+  }
+}

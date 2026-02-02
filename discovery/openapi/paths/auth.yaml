@@ -1,0 +1,237 @@
+# Authentication Paths
+# Extracted from app/controllers/api/v1/sessions_controller.rb, registrations_controller.rb
+
+paths:
+  /api/v1/sessions:
+    post:
+      operationId: createSession
+      summary: Create a new session (login)
+      description: |
+        Authenticates a user with email and password.
+        On success, sets a session cookie for subsequent requests.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                    password:
+                      type: string
+                      format: password
+                  required:
+                    - email
+                    - password
+            example:
+              user:
+                email: "user@example.com"
+                password: "secretpassword"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/CurrentUser'
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+
+    delete:
+      operationId: destroySession
+      summary: Destroy current session (logout)
+      description: Logs out the current user by invalidating their session.
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: "ok"
+
+  /api/v1/sessions/unauthorized:
+    get:
+      operationId: getUnauthorizedStatus
+      summary: Check if user is unauthorized
+      description: Returns 401 if not authenticated. Used by frontend to detect session expiry.
+      tags:
+        - Authentication
+      security: []
+      responses:
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+
+  /api/v1/registrations:
+    post:
+      operationId: createRegistration
+      summary: Register a new user
+      description: |
+        Creates a new user account with email and password.
+        May trigger email verification depending on site settings.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      format: email
+                    name:
+                      type: string
+                    password:
+                      type: string
+                      format: password
+                    password_confirmation:
+                      type: string
+                      format: password
+                    legal_accepted:
+                      type: boolean
+                  required:
+                    - email
+                    - name
+                    - password
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/CurrentUser'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/registrations/oauth:
+    post:
+      operationId: createOAuthRegistration
+      summary: Complete OAuth registration
+      description: |
+        Completes registration after OAuth authentication.
+        Used when additional user info is needed beyond what OAuth provides.
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    legal_accepted:
+                      type: boolean
+      responses:
+        '200':
+          description: OAuth registration complete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/CurrentUser'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/login_tokens:
+    post:
+      operationId: createLoginToken
+      summary: Request a login token
+      description: |
+        Sends a one-time login link to the specified email address.
+        Used for passwordless authentication.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required:
+                - email
+      responses:
+        '200':
+          description: Login token sent (if email exists)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /login_tokens/{token}:
+    get:
+      operationId: consumeLoginToken
+      summary: Consume a login token
+      description: |
+        Authenticates the user using the one-time token.
+        Redirects to the application on success.
+      tags:
+        - Authentication
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to application
+        '404':
+          description: Token not found or expired

@@ -1,0 +1,36 @@
+{
+  "name": "DiscussionTemplateSerializer",
+  "source_file": "app/serializers/discussion_template_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "discussion_templates",
+  "sideloaded_as": "discussion_templates",
+  "description": "Reusable discussion template configuration",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "group_id": { "type": "integer", "source": "column", "nullable": true },
+    "position": { "type": "integer", "source": "column", "nullable": true },
+    "author_id": { "type": "integer", "source": "column", "nullable": true },
+    "process_name": { "type": "string", "source": "column", "nullable": true },
+    "process_subtitle": { "type": "string", "source": "column", "nullable": true },
+    "process_introduction": { "type": "string", "source": "column", "nullable": true },
+    "process_introduction_format": { "type": "string", "source": "column", "enum": ["md", "html"] },
+    "tags": { "type": "array", "source": "column", "items": "string" },
+    "title": { "type": "string", "source": "column", "nullable": true },
+    "title_placeholder": { "type": "string", "source": "column", "nullable": true },
+    "description": { "type": "string", "source": "column", "nullable": true },
+    "description_format": { "type": "string", "source": "column", "enum": ["md", "html"] },
+    "content_locale": { "type": "string", "source": "column", "nullable": true },
+    "created_at": { "type": "datetime", "source": "column" },
+    "updated_at": { "type": "datetime", "source": "column" },
+    "discarded_at": { "type": "datetime", "source": "column", "nullable": true },
+    "max_depth": { "type": "integer", "source": "column" },
+    "newest_first": { "type": "boolean", "source": "column" },
+    "poll_template_keys_or_ids": { "type": "array", "source": "column", "items": "string_or_integer" },
+    "public": { "type": "boolean", "source": "column" },
+    "recipient_audience": { "type": "string", "source": "column", "nullable": true }
+  },
+  "relationships": {
+    "group": { "serializer": "GroupSerializer", "type": "has_one", "root": "groups" },
+    "poll_templates": { "serializer": "PollTemplateSerializer", "type": "has_many", "root": "poll_templates" }
+  }
+}

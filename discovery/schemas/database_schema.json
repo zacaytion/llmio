@@ -1,0 +1,1537 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loomio Database Schema",
+  "description": "Complete PostgreSQL schema extracted from db/schema.rb (Rails 7.2, version 2025_12_03_031449)",
+  "generated_at": "2026-02-01",
+  "source_file": "db/schema.rb",
+  "database": {
+    "adapter": "postgresql",
+    "extensions": [
+      "citext",
+      "hstore",
+      "pg_stat_statements",
+      "pgcrypto",
+      "plpgsql"
+    ],
+    "schemas": ["public", "pghero"]
+  },
+  "type_mappings": {
+    "rails_to_json_schema": {
+      "integer": { "type": "integer" },
+      "bigint": { "type": "integer", "format": "int64" },
+      "serial": { "type": "integer", "description": "Auto-incrementing integer" },
+      "string": { "type": "string" },
+      "text": { "type": "string" },
+      "citext": { "type": "string", "description": "Case-insensitive text" },
+      "boolean": { "type": "boolean" },
+      "datetime": { "type": "string", "format": "date-time" },
+      "date": { "type": "string", "format": "date" },
+      "jsonb": { "type": "object" },
+      "hstore": { "type": "object", "additionalProperties": { "type": "string" } },
+      "inet": { "type": "string", "format": "ipv4" },
+      "tsvector": { "type": "string", "description": "PostgreSQL full-text search vector" },
+      "array": { "type": "array" }
+    }
+  },
+  "tables": {
+    "action_mailbox_inbound_emails": {
+      "description": "Rails Action Mailbox inbound email tracking",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "status": { "type": "integer", "nullable": false, "default": 0 },
+        "message_id": { "type": "string", "nullable": false },
+        "message_checksum": { "type": "string", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_action_mailbox_inbound_emails_uniqueness", "columns": ["message_id", "message_checksum"], "unique": true }
+      ]
+    },
+    "active_admin_comments": {
+      "description": "ActiveAdmin admin panel comments",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "namespace": { "type": "string", "nullable": true },
+        "body": { "type": "text", "nullable": true },
+        "resource_type": { "type": "string", "nullable": true },
+        "resource_id": { "type": "bigint", "nullable": true },
+        "author_type": { "type": "string", "nullable": true },
+        "author_id": { "type": "bigint", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_active_admin_comments_on_author_type_and_author_id", "columns": ["author_type", "author_id"] },
+        { "name": "index_active_admin_comments_on_resource_type_and_resource_id", "columns": ["resource_type", "resource_id"] }
+      ],
+      "polymorphic_associations": ["resource", "author"]
+    },
+    "active_storage_attachments": {
+      "description": "Rails ActiveStorage file attachments join table",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "name": { "type": "string", "nullable": false },
+        "record_type": { "type": "string", "nullable": false },
+        "record_id": { "type": "bigint", "nullable": false },
+        "blob_id": { "type": "bigint", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": false },
+        "group_id": { "type": "integer", "nullable": true, "description": "Loomio extension: tracks which group owns the attachment" }
+      },
+      "indexes": [
+        { "name": "index_active_storage_attachments_on_blob_id", "columns": ["blob_id"] },
+        { "name": "index_active_storage_attachments_on_group_id", "columns": ["group_id"] },
+        { "name": "index_active_storage_attachments_uniqueness", "columns": ["record_type", "record_id", "name", "blob_id"], "unique": true }
+      ],
+      "foreign_keys": [
+        { "column": "blob_id", "references": "active_storage_blobs.id" }
+      ]
+    },
+    "active_storage_blobs": {
+      "description": "Rails ActiveStorage file metadata",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "key": { "type": "string", "nullable": false },
+        "filename": { "type": "string", "nullable": false },
+        "content_type": { "type": "string", "nullable": true },
+        "metadata": { "type": "text", "nullable": true },
+        "byte_size": { "type": "bigint", "nullable": false },
+        "checksum": { "type": "string", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "service_name": { "type": "string", "nullable": false }
+      },
+      "indexes": [
+        { "name": "active_storage_blobs_idx", "columns": ["id"], "unique": true },
+        { "name": "index_active_storage_blobs_on_key", "columns": ["key"], "unique": true }
+      ]
+    },
+    "active_storage_variant_records": {
+      "description": "Rails ActiveStorage image variants",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "blob_id": { "type": "bigint", "nullable": false },
+        "variation_digest": { "type": "string", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_active_storage_variant_records_uniqueness", "columns": ["blob_id", "variation_digest"], "unique": true }
+      ],
+      "foreign_keys": [
+        { "column": "blob_id", "references": "active_storage_blobs.id" }
+      ]
+    },
+    "attachments": {
+      "description": "Legacy attachment records (deprecated, use active_storage)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "user_id": { "type": "integer", "nullable": true },
+        "filename": { "type": "string", "max_length": 255, "nullable": true },
+        "location": { "type": "text", "nullable": true },
+        "comment_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "filesize": { "type": "integer", "nullable": true },
+        "file_file_name": { "type": "string", "nullable": true },
+        "file_content_type": { "type": "string", "nullable": true },
+        "file_file_size": { "type": "integer", "nullable": true },
+        "file_updated_at": { "type": "datetime", "nullable": true },
+        "attachable_id": { "type": "integer", "nullable": true },
+        "attachable_type": { "type": "string", "nullable": true },
+        "migrated_to_document": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "index_attachments_on_attachable_id_and_attachable_type", "columns": ["attachable_id", "attachable_type"] },
+        { "name": "index_attachments_on_comment_id", "columns": ["comment_id"] }
+      ],
+      "polymorphic_associations": ["attachable"]
+    },
+    "blazer_audits": {
+      "description": "Blazer analytics query audit log",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "user_id": { "type": "bigint", "nullable": true },
+        "query_id": { "type": "bigint", "nullable": true },
+        "statement": { "type": "text", "nullable": true },
+        "data_source": { "type": "string", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_blazer_audits_on_query_id", "columns": ["query_id"] },
+        { "name": "index_blazer_audits_on_user_id", "columns": ["user_id"] }
+      ]
+    },
+    "blazer_checks": {
+      "description": "Blazer scheduled query checks",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "creator_id": { "type": "bigint", "nullable": true },
+        "query_id": { "type": "bigint", "nullable": true },
+        "state": { "type": "string", "nullable": true },
+        "schedule": { "type": "string", "nullable": true },
+        "emails": { "type": "text", "nullable": true },
+        "slack_channels": { "type": "text", "nullable": true },
+        "check_type": { "type": "string", "nullable": true },
+        "message": { "type": "text", "nullable": true },
+        "last_run_at": { "type": "datetime", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_blazer_checks_on_creator_id", "columns": ["creator_id"] },
+        { "name": "index_blazer_checks_on_query_id", "columns": ["query_id"] }
+      ]
+    },
+    "blazer_dashboard_queries": {
+      "description": "Blazer dashboard-to-query join table",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "dashboard_id": { "type": "bigint", "nullable": true },
+        "query_id": { "type": "bigint", "nullable": true },
+        "position": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_blazer_dashboard_queries_on_dashboard_id", "columns": ["dashboard_id"] },
+        { "name": "index_blazer_dashboard_queries_on_query_id", "columns": ["query_id"] }
+      ]
+    },
+    "blazer_dashboards": {
+      "description": "Blazer analytics dashboards",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "creator_id": { "type": "bigint", "nullable": true },
+        "name": { "type": "string", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_blazer_dashboards_on_creator_id", "columns": ["creator_id"] }
+      ]
+    },
+    "blazer_queries": {
+      "description": "Blazer saved SQL queries",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "creator_id": { "type": "bigint", "nullable": true },
+        "name": { "type": "string", "nullable": true },
+        "description": { "type": "text", "nullable": true },
+        "statement": { "type": "text", "nullable": true },
+        "data_source": { "type": "string", "nullable": true },
+        "status": { "type": "string", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_blazer_queries_on_creator_id", "columns": ["creator_id"] }
+      ]
+    },
+    "blocked_domains": {
+      "description": "Email domains blocked from registration",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "name": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_blocked_domains_on_name", "columns": ["name"], "unique": true }
+      ]
+    },
+    "chatbots": {
+      "description": "External chat integrations (Slack, Teams, Discord, Matrix)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "kind": { "type": "string", "nullable": true, "enum_hint": ["slack", "discord", "microsoft", "matrix", "mattermost", "webex"] },
+        "server": { "type": "string", "nullable": true, "description": "Server URL for Matrix/Mattermost" },
+        "channel": { "type": "string", "nullable": true },
+        "access_token": { "type": "string", "nullable": true },
+        "author_id": { "type": "integer", "nullable": true },
+        "group_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "name": { "type": "string", "nullable": true },
+        "notification_only": { "type": "boolean", "nullable": false, "default": false },
+        "webhook_kind": { "type": "string", "nullable": true },
+        "event_kinds": { "type": "array", "items": { "type": "string" }, "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_chatbots_on_group_id", "columns": ["group_id"] }
+      ]
+    },
+    "cohorts": {
+      "description": "User cohorts for analytics grouping",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "start_on": { "type": "date", "nullable": true },
+        "end_on": { "type": "date", "nullable": true }
+      }
+    },
+    "comments": {
+      "description": "Discussion comments and poll stance comments",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "discussion_id": { "type": "integer", "nullable": true, "default": 0 },
+        "body": { "type": "text", "nullable": true, "default": "" },
+        "user_id": { "type": "integer", "nullable": true, "default": 0 },
+        "parent_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "comment_votes_count": { "type": "integer", "nullable": false, "default": 0 },
+        "attachments_count": { "type": "integer", "nullable": false, "default": 0 },
+        "edited_at": { "type": "datetime", "nullable": true },
+        "versions_count": { "type": "integer", "nullable": true, "default": 0 },
+        "body_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md", "enum_hint": ["md", "html"] },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [], "schema": "attachment_array" },
+        "discarded_at": { "type": "datetime", "nullable": true },
+        "discarded_by": { "type": "integer", "nullable": true },
+        "content_locale": { "type": "string", "nullable": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [], "schema": "link_preview_array" },
+        "parent_type": { "type": "string", "nullable": false, "enum_hint": ["Discussion", "Poll"] }
+      },
+      "indexes": [
+        { "name": "index_comments_on_discussion_id", "columns": ["discussion_id"] },
+        { "name": "index_comments_on_parent_type_and_parent_id", "columns": ["parent_type", "parent_id"] }
+      ],
+      "polymorphic_associations": ["parent"]
+    },
+    "default_group_covers": {
+      "description": "Default cover photo options for groups",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "cover_photo_file_name": { "type": "string", "nullable": true },
+        "cover_photo_content_type": { "type": "string", "nullable": true },
+        "cover_photo_file_size": { "type": "integer", "nullable": true },
+        "cover_photo_updated_at": { "type": "datetime", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true }
+      }
+    },
+    "demos": {
+      "description": "Demo group configurations for onboarding",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "author_id": { "type": "integer", "nullable": false },
+        "group_id": { "type": "integer", "nullable": false },
+        "name": { "type": "string", "nullable": false },
+        "description": { "type": "string", "nullable": true },
+        "recorded_at": { "type": "datetime", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "priority": { "type": "integer", "nullable": false, "default": 0 },
+        "demo_handle": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_demos_on_author_id", "columns": ["author_id"] }
+      ]
+    },
+    "discussion_readers": {
+      "description": "Per-user discussion read state and guest access",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "user_id": { "type": "integer", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "discussion_id": { "type": "integer", "nullable": false },
+        "last_read_at": { "type": "datetime", "nullable": true },
+        "last_read_sequence_id": { "type": "integer", "nullable": false, "default": 0 },
+        "volume": { "type": "integer", "nullable": false, "default": 2, "enum_hint": { "0": "mute", "1": "quiet", "2": "normal", "3": "loud" } },
+        "participating": { "type": "boolean", "nullable": false, "default": false },
+        "dismissed_at": { "type": "datetime", "nullable": true },
+        "read_ranges_string": { "type": "string", "nullable": true, "description": "Comma-separated ranges like '1-10,15-20'" },
+        "inviter_id": { "type": "integer", "nullable": true },
+        "token": { "type": "string", "nullable": true },
+        "revoked_at": { "type": "datetime", "nullable": true },
+        "admin": { "type": "boolean", "nullable": false, "default": false },
+        "accepted_at": { "type": "datetime", "nullable": true },
+        "revoker_id": { "type": "integer", "nullable": true },
+        "guest": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "index_discussion_readers_discussion_id", "columns": ["discussion_id"] },
+        { "name": "discussion_readers_guests", "columns": ["guest"], "where": "(guest = true)" },
+        { "name": "inviter_id_not_null", "columns": ["inviter_id"], "where": "(inviter_id IS NOT NULL)" },
+        { "name": "index_discussion_readers_on_token", "columns": ["token"], "unique": true },
+        { "name": "index_discussion_readers_on_user_id_and_discussion_id", "columns": ["user_id", "discussion_id"], "unique": true }
+      ]
+    },
+    "discussion_templates": {
+      "description": "Reusable discussion templates per group",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "source_discussion_id": { "type": "integer", "nullable": true },
+        "key": { "type": "string", "nullable": true },
+        "group_id": { "type": "integer", "nullable": true },
+        "position": { "type": "integer", "nullable": true },
+        "author_id": { "type": "integer", "nullable": true },
+        "title": { "type": "string", "nullable": true },
+        "description": { "type": "text", "nullable": true },
+        "description_format": { "type": "string", "max_length": 10, "nullable": false, "default": "html" },
+        "process_name": { "type": "string", "nullable": true },
+        "process_subtitle": { "type": "string", "nullable": true },
+        "process_introduction": { "type": "string", "nullable": true },
+        "process_introduction_format": { "type": "string", "nullable": false, "default": "html" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "max_depth": { "type": "integer", "nullable": false, "default": 2 },
+        "newest_first": { "type": "boolean", "nullable": false, "default": false },
+        "discarded_at": { "type": "datetime", "nullable": true },
+        "discarded_by": { "type": "integer", "nullable": true },
+        "content_locale": { "type": "string", "nullable": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "tags": { "type": "array", "items": { "type": "string" }, "nullable": true, "default": [] },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "poll_template_keys_or_ids": { "type": "jsonb", "nullable": false, "default": [] },
+        "title_placeholder": { "type": "string", "nullable": true },
+        "public": { "type": "boolean", "nullable": false, "default": false },
+        "recipient_audience": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_discussion_templates_on_discarded_at", "columns": ["discarded_at"] }
+      ]
+    },
+    "discussions": {
+      "description": "Discussion threads - core content container",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "group_id": { "type": "integer", "nullable": true, "description": "NULL for direct discussions (no group)" },
+        "author_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "title": { "type": "string", "max_length": 255, "nullable": true },
+        "last_comment_at": { "type": "datetime", "nullable": true },
+        "description": { "type": "text", "nullable": true },
+        "items_count": { "type": "integer", "nullable": false, "default": 0 },
+        "closed_at": { "type": "datetime", "nullable": true },
+        "private": { "type": "boolean", "nullable": false, "default": true },
+        "key": { "type": "string", "max_length": 255, "nullable": true },
+        "iframe_src": { "type": "string", "max_length": 255, "nullable": true },
+        "last_activity_at": { "type": "datetime", "nullable": true },
+        "last_sequence_id": { "type": "integer", "nullable": false, "default": 0 },
+        "first_sequence_id": { "type": "integer", "nullable": false, "default": 0 },
+        "versions_count": { "type": "integer", "nullable": true, "default": 0 },
+        "closed_polls_count": { "type": "integer", "nullable": false, "default": 0 },
+        "importance": { "type": "integer", "nullable": false, "default": 0 },
+        "seen_by_count": { "type": "integer", "nullable": false, "default": 0 },
+        "ranges_string": { "type": "string", "nullable": true },
+        "description_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "info": { "type": "jsonb", "nullable": false, "default": {} },
+        "max_depth": { "type": "integer", "nullable": false, "default": 2 },
+        "newest_first": { "type": "boolean", "nullable": false, "default": false },
+        "discarded_at": { "type": "datetime", "nullable": true },
+        "members_count": { "type": "integer", "nullable": true },
+        "anonymous_polls_count": { "type": "integer", "nullable": false, "default": 0 },
+        "content_locale": { "type": "string", "nullable": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "pinned_at": { "type": "datetime", "nullable": true },
+        "discarded_by": { "type": "integer", "nullable": true },
+        "template": { "type": "boolean", "nullable": false, "default": false },
+        "tags": { "type": "array", "items": { "type": "string" }, "nullable": true, "default": [] },
+        "discussion_template_id": { "type": "integer", "nullable": true },
+        "discussion_template_key": { "type": "string", "nullable": true },
+        "closer_id": { "type": "integer", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_discussions_on_author_id", "columns": ["author_id"] },
+        { "name": "index_discussions_on_created_at", "columns": ["created_at"] },
+        { "name": "index_discussions_on_discarded_at", "columns": ["discarded_at"], "where": "(discarded_at IS NULL)" },
+        { "name": "index_discussions_on_group_id", "columns": ["group_id"] },
+        { "name": "index_discussions_on_key", "columns": ["key"], "unique": true },
+        { "name": "index_discussions_on_last_activity_at", "columns": ["last_activity_at"], "order": "DESC" },
+        { "name": "index_discussions_on_private", "columns": ["private"] },
+        { "name": "index_discussions_on_tags", "columns": ["tags"], "using": "gin" },
+        { "name": "index_discussions_on_template", "columns": ["template"], "where": "(template IS TRUE)" }
+      ]
+    },
+    "documents": {
+      "description": "File documents attached to models",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "model_id": { "type": "integer", "nullable": true },
+        "model_type": { "type": "string", "nullable": true },
+        "title": { "type": "string", "nullable": true },
+        "url": { "type": "string", "nullable": true },
+        "doctype": { "type": "string", "nullable": false },
+        "color": { "type": "string", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "icon": { "type": "string", "nullable": true },
+        "author_id": { "type": "integer", "nullable": false },
+        "web_url": { "type": "string", "nullable": true },
+        "thumb_url": { "type": "string", "nullable": true },
+        "file_file_name": { "type": "string", "nullable": true },
+        "file_content_type": { "type": "string", "nullable": true },
+        "group_id": { "type": "integer", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_documents_on_group_id", "columns": ["group_id"] },
+        { "name": "index_documents_on_model_id", "columns": ["model_id"] },
+        { "name": "index_documents_on_model_type", "columns": ["model_type"] }
+      ],
+      "polymorphic_associations": ["model"]
+    },
+    "events": {
+      "description": "Activity events - central audit log and timeline",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "kind": { "type": "string", "max_length": 255, "nullable": true, "description": "Event type (42 types via STI)" },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "eventable_id": { "type": "integer", "nullable": true },
+        "eventable_type": { "type": "string", "max_length": 255, "nullable": true },
+        "user_id": { "type": "integer", "nullable": true, "description": "Actor who triggered the event" },
+        "discussion_id": { "type": "integer", "nullable": true },
+        "sequence_id": { "type": "integer", "nullable": true, "description": "Sequence within discussion timeline" },
+        "announcement": { "type": "boolean", "nullable": false, "default": false },
+        "custom_fields": { "type": "jsonb", "nullable": false, "default": {} },
+        "parent_id": { "type": "integer", "nullable": true },
+        "position": { "type": "integer", "nullable": false, "default": 0 },
+        "child_count": { "type": "integer", "nullable": false, "default": 0 },
+        "depth": { "type": "integer", "nullable": false, "default": 0 },
+        "pinned": { "type": "boolean", "nullable": false, "default": false },
+        "position_key": { "type": "string", "nullable": true },
+        "descendant_count": { "type": "integer", "nullable": false, "default": 0 },
+        "eventable_version_id": { "type": "integer", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_events_on_created_at", "columns": ["created_at"] },
+        { "name": "index_events_on_discussion_id_and_sequence_id", "columns": ["discussion_id", "sequence_id"], "unique": true },
+        { "name": "index_events_on_eventable_id_and_kind", "columns": ["eventable_id", "kind"] },
+        { "name": "index_events_on_eventable_type_and_eventable_id", "columns": ["eventable_type", "eventable_id"] },
+        { "name": "index_events_on_parent_id_and_discussion_id", "columns": ["parent_id", "discussion_id"], "where": "(discussion_id IS NOT NULL)" },
+        { "name": "index_events_on_parent_id", "columns": ["parent_id"] },
+        { "name": "index_events_on_position_key", "columns": ["position_key"] },
+        { "name": "index_events_on_user_id", "columns": ["user_id"] }
+      ],
+      "polymorphic_associations": ["eventable"]
+    },
+    "forward_email_rules": {
+      "description": "Email forwarding rules for inbound email",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "handle": { "type": "citext", "nullable": false },
+        "email": { "type": "string", "nullable": true }
+      }
+    },
+    "group_identities": {
+      "description": "OAuth identity associations for groups (SSO)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "group_id": { "type": "integer", "nullable": false },
+        "identity_id": { "type": "integer", "nullable": false },
+        "custom_fields": { "type": "jsonb", "nullable": false, "default": {} },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_group_identities_on_group_id", "columns": ["group_id"] },
+        { "name": "index_group_identities_on_identity_id", "columns": ["identity_id"] }
+      ]
+    },
+    "group_surveys": {
+      "description": "Group onboarding survey responses",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "group_id": { "type": "integer", "nullable": false },
+        "category": { "type": "string", "nullable": true },
+        "location": { "type": "string", "nullable": true },
+        "size": { "type": "string", "nullable": true },
+        "declaration": { "type": "string", "nullable": true },
+        "purpose": { "type": "text", "nullable": true },
+        "usage": { "type": "string", "nullable": true },
+        "referrer": { "type": "string", "nullable": true },
+        "role": { "type": "string", "nullable": true },
+        "website": { "type": "string", "nullable": true },
+        "misc": { "type": "text", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "desired_feature": { "type": "string", "nullable": true },
+        "segment": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_group_surveys_on_group_id", "columns": ["group_id"] }
+      ]
+    },
+    "groups": {
+      "description": "Groups and subgroups - organizational units",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "name": { "type": "string", "max_length": 255, "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "parent_id": { "type": "integer", "nullable": true, "description": "Parent group for subgroups" },
+        "description": { "type": "text", "nullable": true },
+        "memberships_count": { "type": "integer", "nullable": false, "default": 0 },
+        "archived_at": { "type": "datetime", "nullable": true },
+        "discussions_count": { "type": "integer", "nullable": false, "default": 0 },
+        "full_name": { "type": "string", "max_length": 255, "nullable": true },
+        "parent_members_can_see_discussions": { "type": "boolean", "nullable": false, "default": false },
+        "key": { "type": "string", "max_length": 255, "nullable": true },
+        "category_id": { "type": "integer", "nullable": true },
+        "handle": { "type": "citext", "nullable": true, "description": "URL-safe unique identifier" },
+        "theme_id": { "type": "integer", "nullable": true },
+        "is_visible_to_public": { "type": "boolean", "nullable": false, "default": true },
+        "is_visible_to_parent_members": { "type": "boolean", "nullable": false, "default": false },
+        "discussion_privacy_options": { "type": "string", "nullable": false, "default": "private_only", "enum_hint": ["private_only", "public_or_private", "public_only"] },
+        "members_can_add_members": { "type": "boolean", "nullable": false, "default": false },
+        "membership_granted_upon": { "type": "string", "nullable": false, "default": "approval", "enum_hint": ["approval", "request", "invitation"] },
+        "members_can_edit_discussions": { "type": "boolean", "nullable": false, "default": true },
+        "cover_photo_file_name": { "type": "string", "max_length": 255, "nullable": true },
+        "cover_photo_content_type": { "type": "string", "max_length": 255, "nullable": true },
+        "cover_photo_file_size": { "type": "integer", "nullable": true },
+        "cover_photo_updated_at": { "type": "datetime", "nullable": true },
+        "logo_file_name": { "type": "string", "max_length": 255, "nullable": true },
+        "logo_content_type": { "type": "string", "max_length": 255, "nullable": true },
+        "logo_file_size": { "type": "integer", "nullable": true },
+        "logo_updated_at": { "type": "datetime", "nullable": true },
+        "members_can_edit_comments": { "type": "boolean", "nullable": true, "default": true },
+        "members_can_raise_motions": { "type": "boolean", "nullable": false, "default": true },
+        "members_can_vote": { "type": "boolean", "nullable": false, "default": true, "deprecated": true, "description": "Deprecated/unused flag" },
+        "members_can_start_discussions": { "type": "boolean", "nullable": false, "default": true },
+        "members_can_create_subgroups": { "type": "boolean", "nullable": false, "default": false },
+        "creator_id": { "type": "integer", "nullable": true },
+        "is_referral": { "type": "boolean", "nullable": false, "default": false },
+        "cohort_id": { "type": "integer", "nullable": true },
+        "default_group_cover_id": { "type": "integer", "nullable": true },
+        "subscription_id": { "type": "integer", "nullable": true },
+        "invitations_count": { "type": "integer", "nullable": false, "default": 0 },
+        "admin_memberships_count": { "type": "integer", "nullable": false, "default": 0 },
+        "public_discussions_count": { "type": "integer", "nullable": false, "default": 0 },
+        "country": { "type": "string", "nullable": true },
+        "region": { "type": "string", "nullable": true },
+        "city": { "type": "string", "nullable": true },
+        "closed_motions_count": { "type": "integer", "nullable": false, "default": 0 },
+        "proposal_outcomes_count": { "type": "integer", "nullable": false, "default": 0 },
+        "pending_memberships_count": { "type": "integer", "nullable": false, "default": 0 },
+        "recent_activity_count": { "type": "integer", "nullable": false, "default": 0 },
+        "closed_polls_count": { "type": "integer", "nullable": false, "default": 0 },
+        "polls_count": { "type": "integer", "nullable": false, "default": 0 },
+        "subgroups_count": { "type": "integer", "nullable": false, "default": 0 },
+        "open_discussions_count": { "type": "integer", "nullable": false, "default": 0 },
+        "closed_discussions_count": { "type": "integer", "nullable": false, "default": 0 },
+        "token": { "type": "string", "nullable": true },
+        "admin_tags": { "type": "string", "nullable": true },
+        "members_can_announce": { "type": "boolean", "nullable": false, "default": true },
+        "description_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "info": { "type": "jsonb", "nullable": false, "default": {} },
+        "new_threads_max_depth": { "type": "integer", "nullable": false, "default": 3 },
+        "new_threads_newest_first": { "type": "boolean", "nullable": false, "default": false },
+        "admins_can_edit_user_content": { "type": "boolean", "nullable": false, "default": true },
+        "listed_in_explore": { "type": "boolean", "nullable": false, "default": false },
+        "content_locale": { "type": "string", "nullable": true },
+        "members_can_add_guests": { "type": "boolean", "nullable": false, "default": true, "note": "NOT tracked by paper_trail" },
+        "members_can_delete_comments": { "type": "boolean", "nullable": false, "default": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "discussion_templates_count": { "type": "integer", "nullable": false, "default": 0 },
+        "poll_templates_count": { "type": "integer", "nullable": false, "default": 0 },
+        "request_to_join_prompt": { "type": "string", "nullable": true },
+        "delegates_count": { "type": "integer", "nullable": false, "default": 0 },
+        "category": { "type": "string", "nullable": true },
+        "can_start_polls_without_discussion": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "index_groups_on_archived_at", "columns": ["archived_at"], "where": "(archived_at IS NULL)" },
+        { "name": "index_groups_on_created_at", "columns": ["created_at"] },
+        { "name": "index_groups_on_full_name", "columns": ["full_name"] },
+        { "name": "index_groups_on_handle", "columns": ["handle"], "unique": true },
+        { "name": "index_groups_on_key", "columns": ["key"], "unique": true },
+        { "name": "index_groups_on_name", "columns": ["name"] },
+        { "name": "index_groups_on_parent_id", "columns": ["parent_id"] },
+        { "name": "groups_subscription_id_idx", "columns": ["subscription_id"] },
+        { "name": "index_groups_on_token", "columns": ["token"], "unique": true }
+      ]
+    },
+    "login_tokens": {
+      "description": "Passwordless login tokens (magic links)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "user_id": { "type": "integer", "nullable": true },
+        "token": { "type": "string", "nullable": true },
+        "used": { "type": "boolean", "nullable": false, "default": false },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "redirect": { "type": "string", "nullable": true },
+        "code": { "type": "integer", "nullable": false, "description": "6-digit verification code" },
+        "is_reactivation": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "index_login_tokens_on_token", "columns": ["token"] }
+      ]
+    },
+    "member_email_aliases": {
+      "description": "Verified email aliases for group members (inbound email)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "email": { "type": "citext", "nullable": false },
+        "require_dkim": { "type": "boolean", "nullable": false, "default": true },
+        "require_spf": { "type": "boolean", "nullable": false, "default": true },
+        "user_id": { "type": "integer", "nullable": true },
+        "group_id": { "type": "integer", "nullable": false },
+        "author_id": { "type": "integer", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_member_email_aliases_on_email_and_group_id", "columns": ["email", "group_id"], "unique": true }
+      ]
+    },
+    "membership_requests": {
+      "description": "Pending requests to join groups",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "name": { "type": "string", "max_length": 255, "nullable": true },
+        "email": { "type": "string", "max_length": 255, "nullable": true },
+        "introduction": { "type": "text", "nullable": true },
+        "group_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "requestor_id": { "type": "integer", "nullable": true },
+        "responder_id": { "type": "integer", "nullable": true },
+        "response": { "type": "string", "max_length": 255, "nullable": true, "enum_hint": ["approved", "ignored"] },
+        "responded_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_membership_requests_on_group_id", "columns": ["group_id"] },
+        { "name": "index_membership_requests_on_requestor_id", "columns": ["requestor_id"] },
+        { "name": "index_membership_requests_on_responder_id", "columns": ["responder_id"] }
+      ]
+    },
+    "memberships": {
+      "description": "Group membership records",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "group_id": { "type": "integer", "nullable": true },
+        "user_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "inviter_id": { "type": "integer", "nullable": true },
+        "revoked_at": { "type": "datetime", "nullable": true },
+        "inbox_position": { "type": "integer", "nullable": true, "default": 0 },
+        "admin": { "type": "boolean", "nullable": false, "default": false },
+        "volume": { "type": "integer", "nullable": true },
+        "experiences": { "type": "jsonb", "nullable": false, "default": {} },
+        "invitation_id": { "type": "integer", "nullable": true },
+        "token": { "type": "string", "nullable": true },
+        "accepted_at": { "type": "datetime", "nullable": true },
+        "title": { "type": "string", "nullable": true },
+        "saml_session_expires_at": { "type": "datetime", "nullable": true },
+        "revoker_id": { "type": "integer", "nullable": true },
+        "delegate": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "index_memberships_on_created_at", "columns": ["created_at"] },
+        { "name": "index_memberships_on_group_id_and_user_id", "columns": ["group_id", "user_id"], "unique": true },
+        { "name": "index_memberships_on_inviter_id", "columns": ["inviter_id"] },
+        { "name": "index_memberships_on_token", "columns": ["token"], "unique": true },
+        { "name": "index_memberships_on_user_id_and_volume", "columns": ["user_id", "volume"] },
+        { "name": "index_memberships_on_volume", "columns": ["volume"] }
+      ]
+    },
+    "notifications": {
+      "description": "User notifications (in-app)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "user_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "event_id": { "type": "integer", "nullable": true },
+        "viewed": { "type": "boolean", "nullable": false, "default": false },
+        "translation_values": { "type": "jsonb", "nullable": false, "default": {} },
+        "url": { "type": "string", "nullable": true },
+        "actor_id": { "type": "integer", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_notifications_on_event_id", "columns": ["event_id"] },
+        { "name": "index_notifications_on_id", "columns": ["id"], "order": "DESC" },
+        { "name": "notifications_user_id_id_idx", "columns": ["user_id", "id"] },
+        { "name": "index_notifications_on_user_id", "columns": ["user_id"] }
+      ]
+    },
+    "oauth_access_grants": {
+      "description": "Doorkeeper OAuth access grants",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "resource_owner_id": { "type": "integer", "nullable": false },
+        "application_id": { "type": "integer", "nullable": false },
+        "token": { "type": "string", "nullable": false },
+        "expires_in": { "type": "integer", "nullable": false },
+        "redirect_uri": { "type": "text", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": false },
+        "revoked_at": { "type": "datetime", "nullable": true },
+        "scopes": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_oauth_access_grants_on_token", "columns": ["token"], "unique": true }
+      ]
+    },
+    "oauth_access_tokens": {
+      "description": "Doorkeeper OAuth access tokens",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "resource_owner_id": { "type": "integer", "nullable": true },
+        "application_id": { "type": "integer", "nullable": true },
+        "token": { "type": "string", "nullable": false },
+        "refresh_token": { "type": "string", "nullable": true },
+        "expires_in": { "type": "integer", "nullable": true },
+        "revoked_at": { "type": "datetime", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "scopes": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_oauth_access_tokens_on_refresh_token", "columns": ["refresh_token"], "unique": true },
+        { "name": "index_oauth_access_tokens_on_resource_owner_id", "columns": ["resource_owner_id"] },
+        { "name": "index_oauth_access_tokens_on_token", "columns": ["token"], "unique": true }
+      ]
+    },
+    "oauth_applications": {
+      "description": "Doorkeeper OAuth applications (Loomio as OAuth provider)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "name": { "type": "string", "nullable": false },
+        "uid": { "type": "string", "nullable": false },
+        "secret": { "type": "string", "nullable": false },
+        "redirect_uri": { "type": "text", "nullable": false },
+        "scopes": { "type": "string", "nullable": false, "default": "" },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "owner_id": { "type": "integer", "nullable": true },
+        "owner_type": { "type": "string", "nullable": true },
+        "logo_file_name": { "type": "string", "nullable": true },
+        "logo_content_type": { "type": "string", "nullable": true },
+        "logo_file_size": { "type": "integer", "nullable": true },
+        "logo_updated_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_oauth_applications_on_owner_id_and_owner_type", "columns": ["owner_id", "owner_type"] },
+        { "name": "index_oauth_applications_on_uid", "columns": ["uid"], "unique": true }
+      ],
+      "polymorphic_associations": ["owner"]
+    },
+    "omniauth_identities": {
+      "description": "External OAuth identities (Google, SAML, etc.)",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "user_id": { "type": "integer", "nullable": true },
+        "email": { "type": "string", "max_length": 255, "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "identity_type": { "type": "string", "max_length": 255, "nullable": true, "enum_hint": ["google", "saml", "oauth", "nextcloud"] },
+        "uid": { "type": "string", "max_length": 255, "nullable": true },
+        "name": { "type": "string", "max_length": 255, "nullable": true },
+        "access_token": { "type": "string", "nullable": true, "default": "", "note": "Stored but rarely used post-OAuth" },
+        "logo": { "type": "string", "nullable": true },
+        "custom_fields": { "type": "jsonb", "nullable": false, "default": {} }
+      },
+      "indexes": [
+        { "name": "index_personas_on_email", "columns": ["email"] },
+        { "name": "index_omniauth_identities_on_identity_type_and_uid", "columns": ["identity_type", "uid"] },
+        { "name": "index_personas_on_user_id", "columns": ["user_id"] }
+      ]
+    },
+    "outcomes": {
+      "description": "Poll outcome statements",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "poll_id": { "type": "integer", "nullable": true },
+        "statement": { "type": "text", "nullable": false },
+        "author_id": { "type": "integer", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "latest": { "type": "boolean", "nullable": false, "default": true },
+        "poll_option_id": { "type": "integer", "nullable": true },
+        "custom_fields": { "type": "jsonb", "nullable": false, "default": {} },
+        "statement_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "versions_count": { "type": "integer", "nullable": false, "default": 0 },
+        "review_on": { "type": "date", "nullable": true },
+        "content_locale": { "type": "string", "nullable": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] }
+      },
+      "indexes": [
+        { "name": "index_outcomes_on_poll_id", "columns": ["poll_id"] }
+      ]
+    },
+    "partition_sequences": {
+      "description": "Sequence counters for partitioned data",
+      "primary_key": ["key", "id"],
+      "columns": {
+        "key": { "type": "text", "nullable": false },
+        "id": { "type": "integer", "nullable": false },
+        "counter": { "type": "integer", "nullable": true, "default": 0 }
+      }
+    },
+    "pg_search_documents": {
+      "description": "PostgreSQL full-text search index",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "content": { "type": "text", "nullable": true },
+        "ts_content": { "type": "tsvector", "nullable": true },
+        "author_id": { "type": "bigint", "nullable": true },
+        "group_id": { "type": "bigint", "nullable": true },
+        "discussion_id": { "type": "bigint", "nullable": true },
+        "poll_id": { "type": "bigint", "nullable": true },
+        "searchable_type": { "type": "string", "nullable": true },
+        "searchable_id": { "type": "bigint", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "authored_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_pg_search_documents_on_author_id", "columns": ["author_id"] },
+        { "name": "pg_search_documents_authored_at_asc_index", "columns": ["authored_at"] },
+        { "name": "pg_search_documents_authored_at_desc_index", "columns": ["authored_at"], "order": "DESC" },
+        { "name": "index_pg_search_documents_on_discussion_id", "columns": ["discussion_id"] },
+        { "name": "index_pg_search_documents_on_group_id", "columns": ["group_id"] },
+        { "name": "index_pg_search_documents_on_poll_id", "columns": ["poll_id"] },
+        { "name": "index_pg_search_documents_on_searchable", "columns": ["searchable_type", "searchable_id"] },
+        { "name": "pg_search_documents_searchable_index", "columns": ["ts_content"], "using": "gin" }
+      ],
+      "polymorphic_associations": ["searchable"]
+    },
+    "poll_options": {
+      "description": "Poll voting options",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "name": { "type": "string", "nullable": false },
+        "poll_id": { "type": "integer", "nullable": true },
+        "priority": { "type": "integer", "nullable": false, "default": 0 },
+        "score_counts": { "type": "jsonb", "nullable": false, "default": {} },
+        "voter_scores": { "type": "jsonb", "nullable": false, "default": {} },
+        "total_score": { "type": "integer", "nullable": false, "default": 0 },
+        "voter_count": { "type": "integer", "nullable": false, "default": 0 },
+        "icon": { "type": "string", "nullable": true },
+        "meaning": { "type": "string", "nullable": true },
+        "prompt": { "type": "string", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "test_operator": { "type": "string", "nullable": true },
+        "test_percent": { "type": "integer", "nullable": true },
+        "test_against": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_poll_options_on_poll_id", "columns": ["poll_id"] }
+      ]
+    },
+    "poll_templates": {
+      "description": "Reusable poll templates per group",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "key": { "type": "string", "nullable": true },
+        "group_id": { "type": "integer", "nullable": false },
+        "position": { "type": "integer", "nullable": false, "default": 0 },
+        "author_id": { "type": "integer", "nullable": false },
+        "poll_type": { "type": "string", "nullable": false },
+        "process_name": { "type": "string", "nullable": true },
+        "process_subtitle": { "type": "string", "nullable": true },
+        "title": { "type": "string", "nullable": true },
+        "details": { "type": "text", "nullable": true },
+        "details_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "anonymous": { "type": "boolean", "nullable": false, "default": false },
+        "specified_voters_only": { "type": "boolean", "nullable": false, "default": false },
+        "notify_on_closing_soon": { "type": "integer", "nullable": false, "default": 0 },
+        "content_locale": { "type": "string", "nullable": true },
+        "shuffle_options": { "type": "boolean", "nullable": false, "default": false },
+        "hide_results": { "type": "integer", "nullable": false, "default": 0 },
+        "chart_type": { "type": "string", "nullable": true },
+        "min_score": { "type": "integer", "nullable": true },
+        "max_score": { "type": "integer", "nullable": true },
+        "minimum_stance_choices": { "type": "integer", "nullable": true },
+        "maximum_stance_choices": { "type": "integer", "nullable": true },
+        "dots_per_person": { "type": "integer", "nullable": true },
+        "reason_prompt": { "type": "string", "nullable": true },
+        "poll_options": { "type": "jsonb", "nullable": false, "default": [] },
+        "stance_reason_required": { "type": "integer", "nullable": false, "default": 1 },
+        "limit_reason_length": { "type": "boolean", "nullable": false, "default": true },
+        "default_duration_in_days": { "type": "integer", "nullable": false, "default": 7 },
+        "agree_target": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "meeting_duration": { "type": "integer", "nullable": true },
+        "can_respond_maybe": { "type": "boolean", "nullable": false, "default": true },
+        "poll_option_name_format": { "type": "string", "nullable": false, "default": "plain" },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "atttachments": { "type": "jsonb", "nullable": false, "default": [], "note": "Typo in column name (atttachments)" },
+        "tags": { "type": "array", "items": { "type": "string" }, "nullable": true, "default": [] },
+        "discarded_at": { "type": "datetime", "nullable": true },
+        "process_introduction": { "type": "string", "nullable": true },
+        "process_introduction_format": { "type": "string", "nullable": false, "default": "md" },
+        "title_placeholder": { "type": "string", "nullable": true },
+        "outcome_statement": { "type": "string", "nullable": true },
+        "outcome_statement_format": { "type": "string", "nullable": false, "default": "html" },
+        "outcome_review_due_in_days": { "type": "integer", "nullable": true },
+        "public": { "type": "boolean", "nullable": false, "default": false },
+        "show_none_of_the_above": { "type": "boolean", "nullable": false, "default": false },
+        "quorum_pct": { "type": "integer", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_poll_templates_on_discarded_at", "columns": ["discarded_at"] }
+      ]
+    },
+    "polls": {
+      "description": "Polls and proposals for decision-making",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "author_id": { "type": "integer", "nullable": false },
+        "title": { "type": "string", "nullable": false },
+        "details": { "type": "text", "nullable": true },
+        "closing_at": { "type": "datetime", "nullable": true },
+        "closed_at": { "type": "datetime", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "discussion_id": { "type": "integer", "nullable": true },
+        "key": { "type": "string", "nullable": false },
+        "poll_type": { "type": "string", "nullable": false, "enum_hint": ["proposal", "poll", "count", "score", "dot_vote", "meeting", "ranked_choice"] },
+        "stance_data": { "type": "jsonb", "nullable": true, "default": {} },
+        "voters_count": { "type": "integer", "nullable": false, "default": 0 },
+        "multiple_choice": { "type": "boolean", "nullable": false, "default": false },
+        "custom_fields": { "type": "jsonb", "nullable": false, "default": {} },
+        "stance_counts": { "type": "jsonb", "nullable": false, "default": [] },
+        "group_id": { "type": "integer", "nullable": true },
+        "matrix_counts": { "type": "jsonb", "nullable": false, "default": [] },
+        "undecided_voters_count": { "type": "integer", "nullable": false, "default": 0 },
+        "voter_can_add_options": { "type": "boolean", "nullable": false, "default": false },
+        "anonymous": { "type": "boolean", "nullable": false, "default": false },
+        "versions_count": { "type": "integer", "nullable": true, "default": 0 },
+        "details_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "discarded_at": { "type": "datetime", "nullable": true },
+        "discarded_by": { "type": "integer", "nullable": true },
+        "specified_voters_only": { "type": "boolean", "nullable": false, "default": false },
+        "notify_on_closing_soon": { "type": "integer", "nullable": false, "default": 0 },
+        "content_locale": { "type": "string", "nullable": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "shuffle_options": { "type": "boolean", "nullable": false, "default": false },
+        "hide_results": { "type": "integer", "nullable": false, "default": 0 },
+        "chart_type": { "type": "string", "nullable": true },
+        "min_score": { "type": "integer", "nullable": true },
+        "max_score": { "type": "integer", "nullable": true },
+        "minimum_stance_choices": { "type": "integer", "nullable": true },
+        "maximum_stance_choices": { "type": "integer", "nullable": true },
+        "dots_per_person": { "type": "integer", "nullable": true },
+        "process_name": { "type": "string", "nullable": true },
+        "template": { "type": "boolean", "nullable": false, "default": false },
+        "reason_prompt": { "type": "string", "nullable": true },
+        "poll_option_name_format": { "type": "string", "nullable": true },
+        "stance_reason_required": { "type": "integer", "nullable": false, "default": 1 },
+        "limit_reason_length": { "type": "boolean", "nullable": false, "default": true },
+        "default_duration_in_days": { "type": "integer", "nullable": true },
+        "agree_target": { "type": "integer", "nullable": true },
+        "process_subtitle": { "type": "string", "nullable": true },
+        "process_url": { "type": "string", "nullable": true },
+        "tags": { "type": "array", "items": { "type": "string" }, "nullable": true, "default": [] },
+        "poll_template_id": { "type": "integer", "nullable": true },
+        "poll_template_key": { "type": "string", "nullable": true },
+        "show_none_of_the_above": { "type": "boolean", "nullable": false, "default": false },
+        "none_of_the_above_count": { "type": "integer", "nullable": false, "default": 0 },
+        "quorum_pct": { "type": "integer", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_polls_on_author_id", "columns": ["author_id"] },
+        { "name": "index_polls_on_closed_at_and_closing_at", "columns": ["closed_at", "closing_at"] },
+        { "name": "index_polls_on_closed_at_and_discussion_id", "columns": ["closed_at", "discussion_id"] },
+        { "name": "index_polls_on_discussion_id", "columns": ["discussion_id"] },
+        { "name": "index_polls_on_group_id", "columns": ["group_id"] },
+        { "name": "index_polls_on_key", "columns": ["key"], "unique": true },
+        { "name": "index_polls_on_tags", "columns": ["tags"], "using": "gin" }
+      ]
+    },
+    "reactions": {
+      "description": "Emoji reactions on comments/posts",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "reactable_id": { "type": "integer", "nullable": true },
+        "user_id": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "reaction": { "type": "string", "nullable": false, "default": "+1" },
+        "reactable_type": { "type": "string", "nullable": false, "default": "Comment" }
+      },
+      "indexes": [
+        { "name": "index_reactions_on_created_at", "columns": ["created_at"] },
+        { "name": "index_reactions_on_reactable_id_and_reactable_type", "columns": ["reactable_id", "reactable_type"] },
+        { "name": "index_reactions_on_user_id", "columns": ["user_id"] }
+      ],
+      "polymorphic_associations": ["reactable"]
+    },
+    "received_emails": {
+      "description": "Inbound email records for processing",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "group_id": { "type": "integer", "nullable": true },
+        "headers": { "type": "hstore", "nullable": false, "default": {} },
+        "body_text": { "type": "string", "nullable": true },
+        "body_html": { "type": "string", "nullable": true },
+        "spf_valid": { "type": "boolean", "nullable": false, "default": false },
+        "dkim_valid": { "type": "boolean", "nullable": false, "default": false },
+        "released": { "type": "boolean", "nullable": false, "default": false },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      }
+    },
+    "stance_choices": {
+      "description": "Individual vote selections within a stance",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "stance_id": { "type": "integer", "nullable": true },
+        "poll_option_id": { "type": "integer", "nullable": true },
+        "score": { "type": "integer", "nullable": false, "default": 1 },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_stance_choices_on_poll_option_id", "columns": ["poll_option_id"] },
+        { "name": "index_stance_choices_on_stance_id", "columns": ["stance_id"] }
+      ]
+    },
+    "stance_receipts": {
+      "description": "Vote invitation and confirmation tracking",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "poll_id": { "type": "bigint", "nullable": true },
+        "voter_id": { "type": "bigint", "nullable": true },
+        "inviter_id": { "type": "bigint", "nullable": true },
+        "invited_at": { "type": "datetime", "nullable": true },
+        "vote_cast": { "type": "boolean", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      }
+    },
+    "stances": {
+      "description": "User votes/positions on polls",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "poll_id": { "type": "integer", "nullable": false },
+        "participant_id": { "type": "integer", "nullable": true },
+        "reason": { "type": "string", "nullable": true },
+        "latest": { "type": "boolean", "nullable": false, "default": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "versions_count": { "type": "integer", "nullable": true, "default": 0 },
+        "reason_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "cast_at": { "type": "datetime", "nullable": true, "description": "When the vote was actually submitted" },
+        "token": { "type": "string", "nullable": true },
+        "revoked_at": { "type": "datetime", "nullable": true },
+        "admin": { "type": "boolean", "nullable": false, "default": false },
+        "inviter_id": { "type": "integer", "nullable": true },
+        "volume": { "type": "integer", "nullable": false, "default": 2 },
+        "accepted_at": { "type": "datetime", "nullable": true },
+        "content_locale": { "type": "string", "nullable": true },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "option_scores": { "type": "jsonb", "nullable": false, "default": {} },
+        "revoker_id": { "type": "integer", "nullable": true },
+        "guest": { "type": "boolean", "nullable": false, "default": false },
+        "none_of_the_above": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "stances_guests", "columns": ["guest"], "where": "(guest = true)" },
+        { "name": "index_stances_on_participant_id", "columns": ["participant_id"] },
+        { "name": "index_stances_on_poll_id_and_cast_at", "columns": ["poll_id", "cast_at"], "order": "NULLS FIRST" },
+        { "name": "index_stances_on_poll_id_and_participant_id_and_latest", "columns": ["poll_id", "participant_id", "latest"], "unique": true, "where": "(latest = true)" },
+        { "name": "index_stances_on_poll_id", "columns": ["poll_id"] },
+        { "name": "index_stances_on_token", "columns": ["token"], "unique": true }
+      ]
+    },
+    "subscriptions": {
+      "description": "Group subscription/billing records",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "expires_at": { "type": "datetime", "nullable": true },
+        "chargify_subscription_id": { "type": "integer", "nullable": true },
+        "plan": { "type": "string", "nullable": true, "default": "free" },
+        "payment_method": { "type": "string", "nullable": false, "default": "none" },
+        "owner_id": { "type": "integer", "nullable": true },
+        "max_threads": { "type": "integer", "nullable": true },
+        "max_members": { "type": "integer", "nullable": true },
+        "max_orgs": { "type": "integer", "nullable": true },
+        "state": { "type": "string", "nullable": false, "default": "active" },
+        "members_count": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "info": { "type": "jsonb", "nullable": true },
+        "canceled_at": { "type": "datetime", "nullable": true },
+        "activated_at": { "type": "datetime", "nullable": true },
+        "renews_at": { "type": "datetime", "nullable": true },
+        "renewed_at": { "type": "datetime", "nullable": true },
+        "allow_subgroups": { "type": "boolean", "nullable": false, "default": true },
+        "allow_guests": { "type": "boolean", "nullable": false, "default": true },
+        "lead_status": { "type": "string", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_subscriptions_on_owner_id", "columns": ["owner_id"] },
+        { "name": "index_subscriptions_on_plan", "columns": ["plan"] }
+      ]
+    },
+    "taggings": {
+      "description": "Tag-to-model join table",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "tag_id": { "type": "integer", "nullable": false },
+        "taggable_id": { "type": "integer", "nullable": false },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "taggable_type": { "type": "string", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_taggings_on_tag_id", "columns": ["tag_id"] },
+        { "name": "index_taggings_on_taggable_type_and_taggable_id", "columns": ["taggable_type", "taggable_id"] }
+      ],
+      "polymorphic_associations": ["taggable"]
+    },
+    "tags": {
+      "description": "Tags for organizing content",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "group_id": { "type": "integer", "nullable": true },
+        "name": { "type": "citext", "nullable": false },
+        "color": { "type": "string", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "taggings_count": { "type": "integer", "nullable": true, "default": 0 },
+        "priority": { "type": "integer", "nullable": false, "default": 0 },
+        "org_taggings_count": { "type": "integer", "nullable": false, "default": 0 }
+      },
+      "indexes": [
+        { "name": "index_tags_on_group_id_and_name", "columns": ["group_id", "name"], "unique": true },
+        { "name": "index_tags_on_group_id", "columns": ["group_id"] },
+        { "name": "index_tags_on_name", "columns": ["name"] }
+      ]
+    },
+    "tasks": {
+      "description": "Action items/tasks within discussions",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "record_type": { "type": "string", "nullable": true },
+        "record_id": { "type": "bigint", "nullable": true },
+        "author_id": { "type": "bigint", "nullable": false },
+        "uid": { "type": "integer", "nullable": false },
+        "name": { "type": "string", "nullable": false },
+        "done": { "type": "boolean", "nullable": false },
+        "done_at": { "type": "datetime", "nullable": true },
+        "due_on": { "type": "date", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false },
+        "discarded_at": { "type": "datetime", "nullable": true },
+        "doer_id": { "type": "integer", "nullable": true },
+        "remind": { "type": "integer", "nullable": true },
+        "remind_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_tasks_on_author_id", "columns": ["author_id"] },
+        { "name": "index_tasks_on_discarded_at", "columns": ["discarded_at"] },
+        { "name": "index_tasks_on_done", "columns": ["done"] },
+        { "name": "index_tasks_on_due_on", "columns": ["due_on"] },
+        { "name": "index_tasks_on_record_type_and_record_id", "columns": ["record_type", "record_id"] },
+        { "name": "index_tasks_on_remind_at", "columns": ["remind_at"] }
+      ],
+      "polymorphic_associations": ["record"]
+    },
+    "tasks_users": {
+      "description": "Task assignee join table",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "task_id": { "type": "bigint", "nullable": true },
+        "user_id": { "type": "bigint", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_tasks_users_on_task_id", "columns": ["task_id"] },
+        { "name": "index_tasks_users_on_user_id", "columns": ["user_id"] }
+      ]
+    },
+    "translations": {
+      "description": "Content translations for i18n",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "translatable_id": { "type": "integer", "nullable": true },
+        "translatable_type": { "type": "string", "max_length": 255, "nullable": true },
+        "fields": { "type": "hstore", "nullable": true },
+        "language": { "type": "string", "max_length": 255, "nullable": true },
+        "created_at": { "type": "datetime", "nullable": false },
+        "updated_at": { "type": "datetime", "nullable": false }
+      },
+      "indexes": [
+        { "name": "index_translations_on_language", "columns": ["language"] },
+        { "name": "index_translations_on_translatable_type_and_translatable_id", "columns": ["translatable_type", "translatable_id"] }
+      ],
+      "polymorphic_associations": ["translatable"]
+    },
+    "user_deactivation_responses": {
+      "description": "User account deactivation feedback",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "user_id": { "type": "integer", "nullable": true },
+        "body": { "type": "text", "nullable": true }
+      }
+    },
+    "users": {
+      "description": "User accounts",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "email": { "type": "citext", "nullable": true },
+        "encrypted_password": { "type": "string", "max_length": 128, "nullable": true, "default": "" },
+        "reset_password_token": { "type": "string", "max_length": 255, "nullable": true },
+        "reset_password_sent_at": { "type": "datetime", "nullable": true },
+        "remember_created_at": { "type": "datetime", "nullable": true },
+        "sign_in_count": { "type": "integer", "nullable": true, "default": 0 },
+        "current_sign_in_at": { "type": "datetime", "nullable": true },
+        "last_sign_in_at": { "type": "datetime", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "name": { "type": "string", "max_length": 255, "nullable": true },
+        "deactivated_at": { "type": "datetime", "nullable": true },
+        "is_admin": { "type": "boolean", "nullable": true, "default": false },
+        "avatar_kind": { "type": "string", "max_length": 255, "nullable": false, "default": "initials" },
+        "uploaded_avatar_file_name": { "type": "string", "max_length": 255, "nullable": true },
+        "uploaded_avatar_content_type": { "type": "string", "max_length": 255, "nullable": true },
+        "uploaded_avatar_file_size": { "type": "integer", "nullable": true },
+        "uploaded_avatar_updated_at": { "type": "datetime", "nullable": true },
+        "avatar_initials": { "type": "string", "max_length": 255, "nullable": true },
+        "username": { "type": "string", "max_length": 255, "nullable": true },
+        "email_when_proposal_closing_soon": { "type": "boolean", "nullable": false, "default": false },
+        "authentication_token": { "type": "string", "max_length": 255, "nullable": true },
+        "unsubscribe_token": { "type": "string", "max_length": 255, "nullable": true },
+        "memberships_count": { "type": "integer", "nullable": false, "default": 0 },
+        "selected_locale": { "type": "string", "max_length": 255, "nullable": true },
+        "time_zone": { "type": "string", "max_length": 255, "nullable": true },
+        "key": { "type": "string", "max_length": 255, "nullable": true },
+        "detected_locale": { "type": "string", "max_length": 255, "nullable": true },
+        "email_catch_up": { "type": "boolean", "nullable": false, "default": true },
+        "email_api_key": { "type": "string", "max_length": 255, "nullable": true },
+        "email_when_mentioned": { "type": "boolean", "nullable": false, "default": true },
+        "email_on_participation": { "type": "boolean", "nullable": false, "default": false },
+        "default_membership_volume": { "type": "integer", "nullable": false, "default": 2 },
+        "country": { "type": "string", "nullable": true },
+        "region": { "type": "string", "nullable": true },
+        "city": { "type": "string", "nullable": true },
+        "experiences": { "type": "jsonb", "nullable": false, "default": {} },
+        "facebook_community_id": { "type": "integer", "nullable": true },
+        "slack_community_id": { "type": "integer", "nullable": true },
+        "remember_token": { "type": "string", "nullable": true },
+        "short_bio": { "type": "string", "nullable": false, "default": "" },
+        "email_verified": { "type": "boolean", "nullable": false, "default": false },
+        "location": { "type": "string", "nullable": false, "default": "" },
+        "last_seen_at": { "type": "datetime", "nullable": true },
+        "legal_accepted_at": { "type": "datetime", "nullable": true },
+        "email_newsletter": { "type": "boolean", "nullable": false, "default": false },
+        "failed_attempts": { "type": "integer", "nullable": false, "default": 0 },
+        "unlock_token": { "type": "string", "nullable": true },
+        "locked_at": { "type": "datetime", "nullable": true },
+        "short_bio_format": { "type": "string", "max_length": 10, "nullable": false, "default": "md" },
+        "attachments": { "type": "jsonb", "nullable": false, "default": [] },
+        "current_sign_in_ip": { "type": "inet", "nullable": true },
+        "last_sign_in_ip": { "type": "inet", "nullable": true },
+        "secret_token": { "type": "string", "nullable": false, "default_function": "public.gen_random_uuid()" },
+        "content_locale": { "type": "string", "nullable": true },
+        "bot": { "type": "boolean", "nullable": false, "default": false },
+        "link_previews": { "type": "jsonb", "nullable": false, "default": [] },
+        "email_catch_up_day": { "type": "integer", "nullable": true },
+        "date_time_pref": { "type": "string", "nullable": true },
+        "api_key": { "type": "string", "nullable": true },
+        "deactivator_id": { "type": "integer", "nullable": true },
+        "autodetect_time_zone": { "type": "boolean", "nullable": false, "default": true },
+        "email_sha256": { "type": "string", "nullable": true },
+        "complaints_count": { "type": "integer", "nullable": false, "default": 0 },
+        "auto_translate": { "type": "boolean", "nullable": false, "default": false }
+      },
+      "indexes": [
+        { "name": "index_users_on_api_key", "columns": ["api_key"] },
+        { "name": "index_users_on_email", "columns": ["email"], "unique": true },
+        { "name": "index_users_on_email_verified", "columns": ["email_verified"] },
+        { "name": "index_users_on_key", "columns": ["key"], "unique": true },
+        { "name": "users_remember_token_idx", "columns": ["remember_token"] },
+        { "name": "index_users_on_reset_password_token", "columns": ["reset_password_token"], "unique": true },
+        { "name": "index_users_on_unlock_token", "columns": ["unlock_token"], "unique": true },
+        { "name": "index_users_on_unsubscribe_token", "columns": ["unsubscribe_token"], "unique": true },
+        { "name": "index_users_on_username", "columns": ["username"], "unique": true }
+      ]
+    },
+    "versions": {
+      "description": "Paper Trail audit log for model changes",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "serial", "nullable": false },
+        "item_type": { "type": "string", "max_length": 255, "nullable": false },
+        "item_id": { "type": "integer", "nullable": false },
+        "event": { "type": "string", "max_length": 255, "nullable": false, "enum_hint": ["create", "update", "destroy"] },
+        "whodunnit": { "type": "integer", "nullable": true },
+        "created_at": { "type": "datetime", "nullable": true },
+        "object_changes": { "type": "jsonb", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_versions_on_item_type_and_item_id", "columns": ["item_type", "item_id"] }
+      ]
+    },
+    "webhooks": {
+      "description": "Outgoing webhook configurations",
+      "primary_key": "id",
+      "columns": {
+        "id": { "type": "bigint", "nullable": false, "auto_increment": true },
+        "group_id": { "type": "integer", "nullable": false },
+        "name": { "type": "string", "nullable": false },
+        "url": { "type": "string", "nullable": true },
+        "event_kinds": { "type": "jsonb", "nullable": false, "default": [] },
+        "created_at": { "type": "datetime", "nullable": true },
+        "updated_at": { "type": "datetime", "nullable": true },
+        "format": { "type": "string", "nullable": true, "default": "markdown" },
+        "include_body": { "type": "boolean", "nullable": true, "default": false },
+        "include_subgroups": { "type": "boolean", "nullable": false, "default": false },
+        "is_broken": { "type": "boolean", "nullable": false, "default": false },
+        "token": { "type": "string", "nullable": true },
+        "author_id": { "type": "integer", "nullable": true },
+        "actor_id": { "type": "integer", "nullable": true },
+        "permissions": { "type": "array", "items": { "type": "string" }, "nullable": false, "default": [] },
+        "last_used_at": { "type": "datetime", "nullable": true }
+      },
+      "indexes": [
+        { "name": "index_webhooks_on_group_id", "columns": ["group_id"] }
+      ]
+    }
+  },
+  "foreign_keys": [
+    { "from_table": "active_storage_attachments", "from_column": "blob_id", "to_table": "active_storage_blobs", "to_column": "id" },
+    { "from_table": "active_storage_variant_records", "from_column": "blob_id", "to_table": "active_storage_blobs", "to_column": "id" }
+  ],
+  "jsonb_schemas": {
+    "attachment_array": {
+      "description": "Array of file attachment references",
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "signed_id": { "type": "string" },
+          "filename": { "type": "string" },
+          "content_type": { "type": "string" },
+          "byte_size": { "type": "integer" }
+        }
+      }
+    },
+    "link_preview_array": {
+      "description": "Array of URL preview metadata",
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "image": { "type": "string", "format": "uri" },
+          "hostname": { "type": "string" }
+        }
+      }
+    },
+    "custom_fields": {
+      "description": "Extensible key-value store for model-specific data",
+      "type": "object",
+      "default": {},
+      "additionalProperties": true
+    },
+    "experiences": {
+      "description": "User/membership feature flags and onboarding state",
+      "type": "object",
+      "default": {},
+      "properties": {
+        "welcomeModal": { "type": "boolean" },
+        "importedPolls": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "poll_option_config": {
+      "description": "Poll option configuration in templates",
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "icon": { "type": "string" },
+          "meaning": { "type": "string" },
+          "prompt": { "type": "string" }
+        },
+        "required": ["name"]
+      }
+    },
+    "option_scores": {
+      "description": "Mapping of poll_option_id to score for a stance",
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "type": "integer" }
+    },
+    "score_counts": {
+      "description": "Mapping of score value to count for poll options",
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "type": "integer" }
+    },
+    "voter_scores": {
+      "description": "Mapping of user_id to score for poll options",
+      "type": "object",
+      "default": {},
+      "additionalProperties": { "type": "integer" }
+    }
+  },
+  "statistics": {
+    "total_tables": 47,
+    "core_domain_tables": ["users", "groups", "memberships", "discussions", "comments", "polls", "stances", "events", "notifications"],
+    "supporting_tables": ["discussion_readers", "poll_options", "stance_choices", "outcomes", "tags", "taggings", "documents", "reactions"],
+    "infrastructure_tables": ["active_storage_attachments", "active_storage_blobs", "active_storage_variant_records", "versions", "pg_search_documents", "login_tokens"],
+    "external_integrations": ["chatbots", "webhooks", "omniauth_identities", "oauth_applications", "oauth_access_tokens", "oauth_access_grants"],
+    "admin_analytics": ["blazer_queries", "blazer_dashboards", "blazer_checks", "blazer_audits", "blazer_dashboard_queries", "cohorts", "demos"],
+    "deprecated_tables": ["attachments"]
+  }
+}

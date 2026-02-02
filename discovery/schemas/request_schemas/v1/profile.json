@@ -1,0 +1,170 @@
+{
+  "name": "ProfileController",
+  "source_file": "app/controllers/api/v1/profile_controller.rb",
+  "namespace": "Api::V1",
+  "base_path": "/api/v1/profile",
+  "inherits": "RestfulController",
+  "permitted_params_key": "user",
+  "description": "User profile management endpoints",
+  "actions": {
+    "index": {
+      "method": "GET",
+      "path": "/api/v1/profile",
+      "description": "Get users by IDs (for inviting)",
+      "authentication": "required",
+      "query_parameters": {
+        "xids": { "type": "string", "description": "x-separated user IDs", "required": true }
+      }
+    },
+    "show": {
+      "method": "GET",
+      "path": "/api/v1/profile/:id",
+      "description": "Get a user's public profile",
+      "authentication": "optional",
+      "path_parameters": {
+        "id": { "type": "integer", "description": "User ID" }
+      }
+    },
+    "me": {
+      "method": "GET",
+      "path": "/api/v1/profile/me",
+      "description": "Get the current user's profile",
+      "authentication": "required"
+    },
+    "groups": {
+      "method": "GET",
+      "path": "/api/v1/profile/groups",
+      "description": "Get groups visible to the current user",
+      "authentication": "required"
+    },
+    "update_profile": {
+      "method": "POST",
+      "path": "/api/v1/profile/update_profile",
+      "description": "Update current user's profile",
+      "authentication": "required",
+      "root_key": "user",
+      "parameters": { "$ref": "../permitted_params.json#/attributes/user" }
+    },
+    "upload_avatar": {
+      "method": "POST",
+      "path": "/api/v1/profile/upload_avatar",
+      "description": "Upload a profile avatar",
+      "authentication": "required",
+      "parameters": {
+        "file": { "type": "file", "required": true }
+      }
+    },
+    "avatar_uploaded": {
+      "method": "GET",
+      "path": "/api/v1/profile/avatar_uploaded",
+      "description": "Check if avatar upload is complete",
+      "authentication": "required"
+    },
+    "set_volume": {
+      "method": "POST",
+      "path": "/api/v1/profile/set_volume",
+      "description": "Set default notification volume",
+      "authentication": "required",
+      "parameters": {
+        "volume": { "type": "string", "enum": ["normal", "loud", "quiet", "mute"], "required": true },
+        "apply_to_all": { "type": "boolean" }
+      }
+    },
+    "save_experience": {
+      "method": "POST",
+      "path": "/api/v1/profile/save_experience",
+      "description": "Save onboarding/experience state",
+      "authentication": "required",
+      "parameters": {
+        "experience": { "type": "string", "required": true }
+      }
+    },
+    "time_zones": {
+      "method": "GET",
+      "path": "/api/v1/profile/time_zones",
+      "description": "Get time zones used by members of user's groups",
+      "authentication": "required"
+    },
+    "all_time_zones": {
+      "method": "GET",
+      "path": "/api/v1/profile/all_time_zones",
+      "description": "Get all available time zones",
+      "authentication": "optional",
+      "query_parameters": {
+        "selected_locale": { "type": "string", "description": "Locale for timezone names" }
+      }
+    },
+    "email_status": {
+      "method": "GET",
+      "path": "/api/v1/profile/email_status",
+      "description": "Check email verification status",
+      "authentication": "optional",
+      "query_parameters": {
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "email_exists": {
+      "method": "GET",
+      "path": "/api/v1/profile/email_exists",
+      "description": "Check if email is already registered",
+      "authentication": "optional",
+      "query_parameters": {
+        "email": { "type": "string", "format": "email", "required": true }
+      }
+    },
+    "email_api_key": {
+      "method": "GET",
+      "path": "/api/v1/profile/email_api_key",
+      "description": "Get the user's email API key",
+      "authentication": "required"
+    },
+    "reset_email_api_key": {
+      "method": "POST",
+      "path": "/api/v1/profile/reset_email_api_key",
+      "description": "Generate a new email API key",
+      "authentication": "required"
+    },
+    "send_merge_verification_email": {
+      "method": "GET",
+      "path": "/api/v1/profile/send_merge_verification_email",
+      "description": "Send email to verify account merge",
+      "authentication": "required",
+      "query_parameters": {
+        "target_email": { "type": "string", "format": "email", "required": true }
+      }
+    },
+    "contactable": {
+      "method": "GET",
+      "path": "/api/v1/profile/contactable",
+      "description": "Check if a user can be contacted",
+      "authentication": "required",
+      "query_parameters": {
+        "user_id": { "type": "integer", "required": true }
+      }
+    },
+    "remind": {
+      "method": "POST",
+      "path": "/api/v1/profile/:id/remind",
+      "description": "Send a reminder to a user about a poll",
+      "authentication": "required",
+      "path_parameters": {
+        "id": { "type": "integer" }
+      },
+      "query_parameters": {
+        "poll_id": { "type": "integer", "required": true }
+      }
+    },
+    "deactivate": {
+      "method": "POST",
+      "path": "/api/v1/profile/deactivate",
+      "description": "Deactivate current user's account",
+      "authentication": "required"
+    },
+    "destroy": {
+      "method": "DELETE",
+      "path": "/api/v1/profile/destroy",
+      "description": "Permanently delete and redact user data",
+      "authentication": "required"
+    }
+  }
+}

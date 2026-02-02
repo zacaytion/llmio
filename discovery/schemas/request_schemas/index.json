@@ -1,0 +1,221 @@
+{
+  "name": "Loomio API Request Schemas",
+  "description": "Documentation of all API request formats extracted from Rails controllers",
+  "generated_from": "Phase 1.3 Controller Parameter Analysis",
+  "total_controllers": 46,
+  "namespaces": {
+    "v1": {
+      "description": "Primary internal API used by Vue frontend",
+      "base_path": "/api/v1",
+      "authentication": "Session-based (Devise) or token-based",
+      "controller_count": 39,
+      "controllers": {
+        "groups": {
+          "file": "v1/groups.json",
+          "description": "Group/organization management",
+          "actions": ["index", "show", "create", "update", "destroy", "token", "reset_token", "subgroups", "upload_photo", "export", "export_csv", "count_explore_results", "suggest_handle"]
+        },
+        "discussions": {
+          "file": "v1/discussions.json",
+          "description": "Discussion/thread management",
+          "actions": ["index", "show", "create", "update", "dashboard", "inbox", "direct", "search", "mark_as_seen", "mark_as_read", "dismiss", "recall", "close", "reopen", "pin", "unpin", "pin_reader", "unpin_reader", "move", "set_volume", "discard", "move_comments", "history"]
+        },
+        "polls": {
+          "file": "v1/polls.json",
+          "description": "Poll/proposal management",
+          "actions": ["index", "show", "create", "update", "close", "reopen", "discard", "remind", "add_to_thread", "voters", "receipts", "closed"]
+        },
+        "comments": {
+          "file": "v1/comments.json",
+          "description": "Comment/reply management",
+          "actions": ["create", "update", "destroy", "discard", "undiscard"]
+        },
+        "stances": {
+          "file": "v1/stances.json",
+          "description": "Vote/stance management",
+          "actions": ["index", "create", "update", "uncast", "my_stances", "users", "invite", "make_admin", "remove_admin", "revoke"]
+        },
+        "events": {
+          "file": "v1/events.json",
+          "description": "Discussion timeline events",
+          "actions": ["index", "count", "position_keys", "timeline", "comment", "pin", "unpin", "remove_from_thread"]
+        },
+        "memberships": {
+          "file": "v1/memberships.json",
+          "description": "Group membership management",
+          "actions": ["index", "create", "update", "destroy", "for_user", "my_memberships", "invitables", "undecided", "join_group", "make_admin", "remove_admin", "make_delegate", "remove_delegate", "set_volume", "save_experience", "resend", "user_name"]
+        },
+        "profile": {
+          "file": "v1/profile.json",
+          "description": "User profile management (serves as users controller)",
+          "actions": ["index", "show", "me", "groups", "update_profile", "upload_avatar", "avatar_uploaded", "set_volume", "save_experience", "time_zones", "all_time_zones", "email_status", "email_exists", "email_api_key", "reset_email_api_key", "send_merge_verification_email", "contactable", "remind", "deactivate", "destroy"]
+        },
+        "outcomes": {
+          "file": "v1/outcomes.json",
+          "description": "Poll outcomes/decisions",
+          "actions": ["create", "update"]
+        },
+        "reactions": {
+          "file": "v1/reactions.json",
+          "description": "Emoji reactions",
+          "actions": ["index", "create", "update", "destroy"]
+        },
+        "tags": {
+          "file": "v1/tags.json",
+          "description": "Tag management",
+          "actions": ["create", "update", "destroy", "priority"]
+        },
+        "notifications": {
+          "file": "v1/notifications.json",
+          "description": "User notifications",
+          "actions": ["index", "viewed"]
+        },
+        "discussion_readers": {
+          "file": "v1/discussion_readers.json",
+          "description": "Discussion participant management",
+          "actions": ["index", "make_admin", "remove_admin", "resend", "revoke"]
+        },
+        "search": {
+          "file": "v1/search.json",
+          "description": "Full-text search",
+          "actions": ["index"]
+        },
+        "discussion_templates": {
+          "file": "v1/discussion_templates.json",
+          "description": "Discussion templates",
+          "actions": ["index", "show", "create", "update", "destroy", "browse", "browse_tags", "positions", "hide", "unhide", "discard", "undiscard"]
+        },
+        "poll_templates": {
+          "file": "v1/poll_templates.json",
+          "description": "Poll templates",
+          "actions": ["index", "show", "create", "update", "destroy", "positions", "settings", "hide", "unhide", "discard", "undiscard"]
+        },
+        "chatbots": {
+          "file": "v1/chatbots.json",
+          "description": "Chatbot integrations",
+          "actions": ["index", "create", "update", "destroy", "test"]
+        },
+        "announcements": {
+          "file": "v1/announcements.json",
+          "description": "Announcements/invitations",
+          "actions": ["create", "audience", "count", "new_member_count", "search", "users_notified_count", "history"]
+        },
+        "sessions": {
+          "file": "v1/sessions.json",
+          "description": "Authentication sessions",
+          "actions": ["create", "destroy", "unauthorized"]
+        },
+        "registrations": {
+          "file": "v1/registrations.json",
+          "description": "User registration",
+          "actions": ["create", "oauth"]
+        },
+        "membership_requests": {
+          "file": "v1/membership_requests.json",
+          "description": "Join requests",
+          "actions": ["create", "pending", "my_pending", "previous", "approve", "ignore"]
+        }
+      },
+      "other_controllers": [
+        "attachments_controller.rb",
+        "boot_controller.rb",
+        "contact_messages_controller.rb",
+        "demos_controller.rb",
+        "documents_controller.rb",
+        "group_surveys_controller.rb",
+        "identities_controller.rb",
+        "link_previews_controller.rb",
+        "login_tokens_controller.rb",
+        "mentions_controller.rb",
+        "received_emails_controller.rb",
+        "reports_controller.rb",
+        "tasks_controller.rb",
+        "translations_controller.rb",
+        "trials_controller.rb",
+        "versions_controller.rb",
+        "webhooks_controller.rb"
+      ]
+    },
+    "b2": {
+      "description": "Current bot API for external integrations",
+      "base_path": "/api/b2",
+      "authentication": "API key (user.api_key)",
+      "rate_limiting": "NONE - security concern",
+      "controller_count": 4,
+      "controllers": {
+        "discussions": {
+          "file": "b2/discussions.json",
+          "description": "Create/read discussions",
+          "actions": ["show", "create"]
+        },
+        "polls": {
+          "file": "b2/polls.json",
+          "description": "Create/read polls with invitations",
+          "actions": ["show", "create"]
+        },
+        "memberships": {
+          "file": "b2/memberships.json",
+          "description": "Bulk membership sync",
+          "actions": ["index", "create"]
+        },
+        "comments": {
+          "file": "b2/comments.json",
+          "description": "Create comments",
+          "actions": ["create"]
+        }
+      }
+    },
+    "b3": {
+      "description": "Admin bot API for user lifecycle",
+      "base_path": "/api/b3",
+      "authentication": "Environment variable (B3_API_KEY)",
+      "rate_limiting": "NONE - security concern",
+      "controller_count": 1,
+      "controllers": {
+        "users": {
+          "file": "b3/users.json",
+          "description": "User deactivation/reactivation",
+          "actions": ["deactivate", "reactivate"]
+        }
+      }
+    }
+  },
+  "common_patterns": {
+    "pagination": {
+      "description": "Most index actions support pagination",
+      "parameters": {
+        "from": "integer - offset cursor",
+        "per": "integer - items per page (default varies, typically 30-50)"
+      }
+    },
+    "timeframe": {
+      "description": "Some resources support timeframe filtering",
+      "parameters": {
+        "since": "datetime - filter records after this time",
+        "until": "datetime - filter records before this time",
+        "timeframe_for": "string - which timestamp field to filter on"
+      }
+    },
+    "exclude_types": {
+      "description": "Controls sideloading of related records",
+      "parameter": "exclude_types: space-separated list of types to exclude"
+    },
+    "xids_pattern": {
+      "description": "Batch fetching multiple records by ID",
+      "example": "xids=1x2x3x4 (x-separated IDs)"
+    },
+    "root_key": {
+      "description": "POST/PATCH requests wrap params under resource name",
+      "example": "{ \"poll\": { \"title\": \"...\" } }"
+    }
+  },
+  "permitted_params_file": "permitted_params.json",
+  "security_notes": {
+    "bot_apis": "B2 and B3 APIs have NO rate limiting - security concern documented in CLAUDE.md",
+    "authentication": {
+      "v1": "Session-based with Devise, supports login tokens",
+      "b2": "User API key in params (user.api_key field)",
+      "b3": "Environment variable B3_API_KEY (must be >16 chars)"
+    }
+  }
+}

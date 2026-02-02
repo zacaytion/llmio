@@ -1,0 +1,13 @@
+{
+  "name": "Webhook::Webex::EventSerializer",
+  "source_file": "app/serializers/webhook/webex/event_serializer.rb",
+  "inherits_from": "Webhook::Markdown::EventSerializer",
+  "root_key": null,
+  "sideloaded_as": null,
+  "description": "Webex webhook event serializer",
+  "inherited_attributes": ["text", "icon_url", "username"],
+  "attributes": {
+    "markdown": { "type": "string", "source": "method", "note": "Alias for text - Webex uses 'markdown' key" }
+  },
+  "relationships": {}
+}

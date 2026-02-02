@@ -1,0 +1,13 @@
+{
+  "name": "SearchResults::BaseSerializer",
+  "source_file": "app/serializers/search_results/base_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "search_results",
+  "sideloaded_as": null,
+  "description": "Base search result serializer",
+  "attributes": {
+    "id": { "type": "integer", "source": "column" },
+    "blurb": { "type": "string", "source": "column", "note": "Search result excerpt/snippet" }
+  },
+  "relationships": {}
+}

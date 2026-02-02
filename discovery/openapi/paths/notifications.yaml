@@ -1,0 +1,59 @@
+# Notifications Paths
+# Extracted from app/controllers/api/v1/notifications_controller.rb
+
+paths:
+  /api/v1/notifications:
+    get:
+      operationId: listNotifications
+      summary: List notifications
+      description: Returns notifications for the current user.
+      tags:
+        - Notifications
+      parameters:
+        - name: viewed
+          in: query
+          description: Filter by viewed status
+          schema:
+            type: boolean
+        - $ref: '../components/parameters/common.yaml#/from'
+        - $ref: '../components/parameters/common.yaml#/per'
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/notification.yaml#/Notification'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                  events:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/event.yaml#/Event'
+
+  /api/v1/notifications/viewed:
+    post:
+      operationId: markNotificationsViewed
+      summary: Mark notifications as viewed
+      description: Marks notifications as viewed up to a given ID.
+      tags:
+        - Notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_id:
+                  type: integer
+                  description: Mark all notifications up to this ID as viewed
+      responses:
+        '200':
+          description: Notifications marked as viewed

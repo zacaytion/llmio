@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Loomio ActiveRecord Model Validations",
+  "description": "Validation rules extracted from app/models/*.rb",
+  "generated_at": "2026-02-01",
+  "models": {
+    "User": {
+      "source_file": "app/models/user.rb",
+      "validations": {
+        "email": {
+          "presence": true,
+          "format": "email",
+          "uniqueness": true,
+          "length": { "maximum": 200 }
+        },
+        "name": {
+          "presence": { "if": "require_valid_signup" },
+          "length": { "maximum": 100 }
+        },
+        "username": {
+          "uniqueness": { "if": "email present" },
+          "length": { "maximum": 30 },
+          "format": { "pattern": "^[a-z0-9]*$", "message": "must be alphanumeric lowercase" }
+        },
+        "short_bio": {
+          "length": { "maximum": 5000 }
+        },
+        "password": {
+          "length": { "minimum": 8, "allow_nil": true },
+          "confirmation": { "if": "password_required?" }
+        },
+        "legal_accepted": {
+          "presence": { "if": "require_legal_accepted" }
+        }
+      }
+    },
+    "Group": {
+      "source_file": "app/models/group.rb",
+      "validations": {
+        "name": {
+          "presence": true,
+          "length": { "maximum": 250 }
+        },
+        "description": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        },
+        "request_to_join_prompt": {
+          "length": { "maximum": 280 }
+        },
+        "handle": {
+          "uniqueness": { "allow_nil": true },
+          "custom": "handle_is_valid"
+        },
+        "subscription": {
+          "absence": { "if": "is_subgroup?" }
+        },
+        "discussion_privacy_options": {
+          "inclusion": { "in": ["private_only", "public_or_private", "public_only"] }
+        },
+        "membership_granted_upon": {
+          "inclusion": { "in": ["approval", "request", "invitation"] }
+        }
+      },
+      "custom_validations": [
+        "limit_inheritance",
+        "validate_parent_members_can_see_discussions",
+        "validate_is_visible_to_parent_members",
+        "validate_discussion_privacy_options",
+        "validate_trial_group_cannot_be_public"
+      ]
+    },
+    "Discussion": {
+      "source_file": "app/models/discussion.rb",
+      "validations": {
+        "title": {
+          "presence": true,
+          "length": { "maximum": 150 }
+        },
+        "group": {
+          "presence": true
+        },
+        "author": {
+          "presence": true
+        },
+        "description": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        }
+      },
+      "custom_validations": [
+        "privacy_is_permitted_by_group"
+      ]
+    },
+    "Comment": {
+      "source_file": "app/models/comment.rb",
+      "validations": {
+        "body": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        },
+        "body_format": {
+          "inclusion": { "in": ["html", "md"] }
+        }
+      },
+      "concerns": ["HasRichText", "NoSpam"]
+    },
+    "Poll": {
+      "source_file": "app/models/poll.rb",
+      "validations": {
+        "title": {
+          "custom": "title_if_not_discarded"
+        },
+        "poll_type": {
+          "inclusion": { "in": "AppConfig.poll_types.keys" }
+        },
+        "details": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        }
+      },
+      "custom_validations": [
+        "closes_in_future",
+        "discussion_group_is_poll_group",
+        "cannot_deanonymize",
+        "cannot_reveal_results_early",
+        "validate_minimum_stance_choices",
+        "validate_maximum_stance_choices",
+        "validate_min_score",
+        "validate_max_score",
+        "validate_dots_per_person"
+      ]
+    },
+    "PollOption": {
+      "source_file": "app/models/poll_option.rb",
+      "validations": {
+        "name": {
+          "presence": true
+        },
+        "test_operator": {
+          "inclusion": { "in": ["gte", "lte"], "allow_nil": true }
+        },
+        "test_against": {
+          "inclusion": { "in": ["score_percent", "voter_percent"], "allow_nil": true }
+        }
+      }
+    },
+    "PollTemplate": {
+      "source_file": "app/models/poll_template.rb",
+      "validations": {
+        "poll_type": {
+          "inclusion": { "in": "AppConfig.poll_types.keys" }
+        },
+        "details": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        },
+        "process_name": {
+          "presence": true
+        },
+        "process_subtitle": {
+          "presence": true
+        },
+        "default_duration_in_days": {
+          "presence": true
+        }
+      }
+    },
+    "Stance": {
+      "source_file": "app/models/stance.rb",
+      "custom_validations": [
+        "valid_minimum_stance_choices",
+        "valid_maximum_stance_choices",
+        "valid_max_score",
+        "valid_min_score",
+        "valid_dots_per_person"
+      ]
+    },
+    "StanceChoice": {
+      "source_file": "app/models/stance_choice.rb",
+      "validations": {
+        "poll_option": {
+          "presence": true
+        },
+        "score": {
+          "numericality": { "equal_to": 1, "if": "uncast stance without variable score" }
+        }
+      },
+      "custom_validations": [
+        "total_score_is_valid"
+      ]
+    },
+    "Outcome": {
+      "source_file": "app/models/outcome.rb",
+      "validations": {
+        "statement": {
+          "presence": true,
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        }
+      },
+      "custom_validations": [
+        "has_valid_poll_option"
+      ]
+    },
+    "Membership": {
+      "source_file": "app/models/membership.rb",
+      "validations": {
+        "group": {
+          "presence": true
+        },
+        "user": {
+          "presence": true,
+          "uniqueness": { "scope": "group_id" }
+        }
+      }
+    },
+    "MembershipRequest": {
+      "source_file": "app/models/membership_request.rb",
+      "validations": {
+        "group": {
+          "presence": true
+        },
+        "responder": {
+          "presence": { "if": "response present" }
+        },
+        "introduction": {
+          "length": { "maximum": 250, "unless": "persisted?" },
+          "length_persisted": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        }
+      },
+      "custom_validations": [
+        "validate_not_in_group_already",
+        "validate_unique_membership_request"
+      ]
+    },
+    "Event": {
+      "source_file": "app/models/event.rb",
+      "validations": {
+        "kind": {
+          "presence": true
+        },
+        "eventable": {
+          "presence": true
+        }
+      }
+    },
+    "Notification": {
+      "source_file": "app/models/notification.rb",
+      "validations": {
+        "user": {
+          "presence": true
+        },
+        "event": {
+          "presence": true
+        }
+      }
+    },
+    "Identity": {
+      "source_file": "app/models/identity.rb",
+      "validations": {
+        "identity_type": {
+          "presence": true
+        },
+        "uid": {
+          "presence": true
+        }
+      }
+    },
+    "Chatbot": {
+      "source_file": "app/models/chatbot.rb",
+      "validations": {
+        "server": {
+          "presence": true
+        },
+        "name": {
+          "presence": true
+        },
+        "kind": {
+          "inclusion": { "in": ["matrix", "webhook"] }
+        },
+        "webhook_kind": {
+          "inclusion": { "in": ["slack", "microsoft", "discord", "markdown", "webex", null] }
+        }
+      }
+    },
+    "Document": {
+      "source_file": "app/models/document.rb",
+      "validations": {
+        "title": {
+          "presence": true
+        },
+        "doctype": {
+          "presence": true
+        },
+        "color": {
+          "presence": true
+        }
+      }
+    },
+    "Tag": {
+      "source_file": "app/models/tag.rb",
+      "validations": {
+        "name": {
+          "presence": true,
+          "uniqueness": { "scope": "group" }
+        }
+      }
+    },
+    "Reaction": {
+      "source_file": "app/models/reaction.rb",
+      "validations": {
+        "user": {
+          "presence": true
+        },
+        "reactable": {
+          "presence": true
+        }
+      }
+    },
+    "Translation": {
+      "source_file": "app/models/translation.rb",
+      "validations": {
+        "translatable": {
+          "presence": true
+        },
+        "language": {
+          "presence": true
+        }
+      }
+    },
+    "DiscussionTemplate": {
+      "source_file": "app/models/discussion_template.rb",
+      "validations": {
+        "description": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        },
+        "process_name": {
+          "presence": true
+        },
+        "process_subtitle": {
+          "presence": true
+        }
+      }
+    },
+    "Demo": {
+      "source_file": "app/models/demo.rb",
+      "validations": {
+        "name": {
+          "presence": true
+        }
+      }
+    },
+    "ContactMessage": {
+      "source_file": "app/models/contact_message.rb",
+      "validations": {
+        "email": {
+          "presence": true,
+          "format": "email"
+        }
+      }
+    }
+  },
+  "shared_concerns": {
+    "HasRichText": {
+      "source_file": "app/models/concerns/has_rich_text.rb",
+      "applied_to_fields": ["body", "description", "details", "statement"],
+      "validations": {
+        "field": {
+          "length": { "maximum": "AppConfig.app_features[:max_message_length]" }
+        },
+        "field_format": {
+          "inclusion": { "in": ["html", "md"] }
+        }
+      }
+    },
+    "NoSpam": {
+      "source_file": "app/models/concerns/no_spam.rb",
+      "applied_to_fields": ["body", "name", "title"],
+      "validations": {
+        "field": {
+          "format": { "without": "SPAM_REGEX", "message": "no spam" }
+        }
+      }
+    },
+    "ReadableUnguessableUrls": {
+      "source_file": "app/models/concerns/readable_unguessable_urls.rb",
+      "applied_to_fields": ["key"],
+      "validations": {
+        "key": {
+          "presence": true
+        }
+      }
+    },
+    "GroupPrivacy": {
+      "source_file": "app/models/concerns/group_privacy.rb",
+      "custom_validations": [
+        "validate_parent_members_can_see_discussions",
+        "validate_is_visible_to_parent_members",
+        "validate_discussion_privacy_options",
+        "validate_trial_group_cannot_be_public"
+      ]
+    }
+  },
+  "global_config": {
+    "max_message_length": "AppConfig.app_features[:max_message_length]",
+    "poll_types": "AppConfig.poll_types.keys",
+    "notes": [
+      "AppConfig values are loaded from config/application.yml",
+      "max_message_length defaults to 30000 characters",
+      "poll_types include: proposal, poll, count, score, dot_vote, meeting, ranked_choice"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "PluginSerializer",
+  "source_file": "app/serializers/plugin_serializer.rb",
+  "inherits_from": "ActiveModel::Serializer",
+  "root_key": "plugins",
+  "sideloaded_as": "plugins",
+  "description": "Loomio plugin configuration",
+  "attributes": {
+    "name": { "type": "string", "source": "column" },
+    "config": { "type": "object", "source": "column" }
+  },
+  "relationships": {}
+}

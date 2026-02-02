@@ -1,0 +1,349 @@
+# Bot API (B2) Paths
+# Extracted from app/controllers/api/b2/*.rb
+# WARNING: This API has NO rate limiting - security concern
+
+paths:
+  /api/b2/discussions:
+    post:
+      operationId: b2CreateDiscussion
+      summary: Create a discussion (Bot API)
+      description: |
+        Creates a new discussion via the Bot API.
+        **WARNING**: This API has NO rate limiting.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_key:
+                  type: string
+                  description: User's API key
+                discussion:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    description_format:
+                      type: string
+                      enum: [md, html]
+                    private:
+                      type: boolean
+                    recipient_emails:
+                      type: array
+                      items:
+                        type: string
+                        format: email
+                  required:
+                    - group_id
+                    - title
+              required:
+                - api_key
+      responses:
+        '200':
+          description: Discussion created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/b2/discussions/{id}:
+    get:
+      operationId: b2GetDiscussion
+      summary: Get a discussion (Bot API)
+      description: Returns a discussion via the Bot API.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: api_key
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Discussion details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  discussions:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/discussion.yaml#/Discussion'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+  /api/b2/polls:
+    post:
+      operationId: b2CreatePoll
+      summary: Create a poll (Bot API)
+      description: |
+        Creates a new poll via the Bot API.
+        Can include invitations by email.
+        **WARNING**: This API has NO rate limiting.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_key:
+                  type: string
+                poll:
+                  type: object
+                  properties:
+                    group_id:
+                      type: integer
+                    discussion_id:
+                      type: integer
+                      nullable: true
+                    title:
+                      type: string
+                    details:
+                      type: string
+                    poll_type:
+                      type: string
+                      enum: [proposal, count, poll, dot_vote, score, ranked_choice, meeting]
+                    closing_at:
+                      type: string
+                      format: date-time
+                    poll_option_names:
+                      type: array
+                      items:
+                        type: string
+                    recipient_emails:
+                      type: array
+                      items:
+                        type: string
+                        format: email
+                  required:
+                    - title
+                    - poll_type
+              required:
+                - api_key
+      responses:
+        '200':
+          description: Poll created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/b2/polls/{id}:
+    get:
+      operationId: b2GetPoll
+      summary: Get a poll (Bot API)
+      description: Returns a poll via the Bot API.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: api_key
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Poll details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  polls:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/poll.yaml#/Poll'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+  /api/b2/memberships:
+    get:
+      operationId: b2ListMemberships
+      summary: List memberships (Bot API)
+      description: Returns memberships for a group via the Bot API.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      parameters:
+        - name: api_key
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: group_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Membership list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+
+    post:
+      operationId: b2SyncMemberships
+      summary: Sync memberships (Bot API)
+      description: |
+        Bulk sync memberships for a group.
+        Adds/removes/updates members based on the provided list.
+        **WARNING**: This API has NO rate limiting.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_key:
+                  type: string
+                group_id:
+                  type: integer
+                memberships:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                      name:
+                        type: string
+                      admin:
+                        type: boolean
+              required:
+                - api_key
+                - group_id
+                - memberships
+      responses:
+        '200':
+          description: Memberships synced
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/b2/comments:
+    post:
+      operationId: b2CreateComment
+      summary: Create a comment (Bot API)
+      description: |
+        Creates a new comment via the Bot API.
+        **WARNING**: This API has NO rate limiting.
+      tags:
+        - Bot API (B2)
+      security:
+        - b2ApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_key:
+                  type: string
+                comment:
+                  type: object
+                  properties:
+                    discussion_id:
+                      type: integer
+                    body:
+                      type: string
+                    body_format:
+                      type: string
+                      enum: [md, html]
+                  required:
+                    - discussion_id
+                    - body
+              required:
+                - api_key
+      responses:
+        '200':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/comment.yaml#/Comment'
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'

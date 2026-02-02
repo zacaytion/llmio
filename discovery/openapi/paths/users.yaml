@@ -1,0 +1,449 @@
+# Profile/Users Paths
+# Extracted from app/controllers/api/v1/profile_controller.rb
+# Note: Loomio uses /api/v1/profile instead of /api/v1/users
+
+paths:
+  /api/v1/profile:
+    get:
+      operationId: listProfiles
+      summary: List profiles
+      description: Returns user profiles by IDs.
+      tags:
+        - Profile
+      parameters:
+        - name: xids
+          in: query
+          description: X-separated user IDs to fetch
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profiles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/profile/{id}:
+    get:
+      operationId: getProfile
+      summary: Get a user profile
+      description: Returns a single user's public profile.
+      tags:
+        - Profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+                    maxItems: 1
+        '404':
+          $ref: '../components/responses/errors.yaml#/NotFound'
+
+  /api/v1/profile/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current user
+      description: Returns the current authenticated user's full profile.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/CurrentUser'
+                    maxItems: 1
+        '401':
+          $ref: '../components/responses/errors.yaml#/Unauthorized'
+
+  /api/v1/profile/groups:
+    get:
+      operationId: getUserGroups
+      summary: Get current user's groups
+      description: Returns all groups the current user is a member of.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: User's groups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/group.yaml#/Group'
+                  memberships:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/membership.yaml#/Membership'
+
+  /api/v1/profile/update_profile:
+    post:
+      operationId: updateProfile
+      summary: Update current user's profile
+      description: Updates the current user's profile information.
+      tags:
+        - Profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    username:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    time_zone:
+                      type: string
+                    locale:
+                      type: string
+                    email_newsletter:
+                      type: boolean
+                    email_when_mentioned:
+                      type: boolean
+                    email_catch_up:
+                      type: string
+                      enum: [off, daily, weekly]
+                    email_catch_up_day:
+                      type: integer
+                    default_membership_volume:
+                      type: integer
+                    current_password:
+                      type: string
+                      description: Required when changing email or password
+                    password:
+                      type: string
+                    password_confirmation:
+                      type: string
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/CurrentUser'
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/profile/upload_avatar:
+    post:
+      operationId: uploadAvatar
+      summary: Upload avatar
+      description: Uploads a new avatar image for the current user.
+      tags:
+        - Profile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Avatar uploaded
+        '422':
+          $ref: '../components/responses/errors.yaml#/UnprocessableEntity'
+
+  /api/v1/profile/avatar_uploaded:
+    get:
+      operationId: checkAvatarUploaded
+      summary: Check if avatar is uploaded
+      description: Returns whether the user has uploaded a custom avatar.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: Avatar status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  has_avatar:
+                    type: boolean
+
+  /api/v1/profile/set_volume:
+    post:
+      operationId: setDefaultVolume
+      summary: Set default notification volume
+      description: Sets the user's default notification volume for new memberships.
+      tags:
+        - Profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                volume:
+                  type: integer
+                  enum: [0, 1, 2, 3]
+      responses:
+        '200':
+          description: Volume updated
+
+  /api/v1/profile/save_experience:
+    post:
+      operationId: saveExperience
+      summary: Save experience flag
+      description: Records that user has experienced a feature (for onboarding).
+      tags:
+        - Profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                experience:
+                  type: string
+      responses:
+        '200':
+          description: Experience saved
+
+  /api/v1/profile/time_zones:
+    get:
+      operationId: getTimeZones
+      summary: Get common time zones
+      description: Returns a list of common time zones for selection.
+      tags:
+        - Profile
+      security: []
+      responses:
+        '200':
+          description: Time zones list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time_zones:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/profile/all_time_zones:
+    get:
+      operationId: getAllTimeZones
+      summary: Get all time zones
+      description: Returns the complete list of time zones.
+      tags:
+        - Profile
+      security: []
+      responses:
+        '200':
+          description: All time zones
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  time_zones:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/profile/email_status:
+    get:
+      operationId: getEmailStatus
+      summary: Check email verification status
+      description: Returns the verification status of user's email.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: Email status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email_verified:
+                    type: boolean
+
+  /api/v1/profile/email_exists:
+    get:
+      operationId: checkEmailExists
+      summary: Check if email exists
+      description: Checks if an email is already registered.
+      tags:
+        - Profile
+      security: []
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Email exists status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+
+  /api/v1/profile/email_api_key:
+    get:
+      operationId: getEmailApiKey
+      summary: Get email API key
+      description: Returns the user's email API key for reply-by-email.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: Email API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email_api_key:
+                    type: string
+
+  /api/v1/profile/reset_email_api_key:
+    post:
+      operationId: resetEmailApiKey
+      summary: Reset email API key
+      description: Generates a new email API key, invalidating the old one.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: New key generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email_api_key:
+                    type: string
+
+  /api/v1/profile/contactable:
+    get:
+      operationId: getContactableUsers
+      summary: Get contactable users
+      description: Returns users that can be contacted (for direct discussions).
+      tags:
+        - Profile
+      parameters:
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Contactable users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/user.yaml#/User'
+
+  /api/v1/profile/{id}/remind:
+    post:
+      operationId: sendReminder
+      summary: Send reminder to user
+      description: Sends a reminder notification to a user.
+      tags:
+        - Profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  enum: [Discussion, Poll]
+                model_id:
+                  type: integer
+      responses:
+        '200':
+          description: Reminder sent
+        '403':
+          $ref: '../components/responses/errors.yaml#/Forbidden'
+
+  /api/v1/profile/deactivate:
+    post:
+      operationId: deactivateAccount
+      summary: Deactivate account
+      description: Deactivates the current user's account.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: Account deactivated
+
+  /api/v1/profile/destroy:
+    delete:
+      operationId: deleteAccount
+      summary: Delete account
+      description: Permanently deletes the current user's account and data.
+      tags:
+        - Profile
+      responses:
+        '200':
+          description: Account deleted
