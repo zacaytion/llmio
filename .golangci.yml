@@ -2,29 +2,63 @@ version: "2"
 linters:
   default: standard
   enable:
-    - errcheck
-    - govet
-    - staticcheck
-    - unused
-    - godot
-    - gosec
     - canonicalheader
     - copyloopvar
-    - usestdlibvars
     - embeddedstructfieldcheck
+    - errcheck
+    - errorlint
     - gocyclo
+    - godoclint
+    - godot
+    - gosec
+    - govet
+    - iface
+    - inamedparam
+    - interfacebloat
+    - modernize
     - nolintlint
+    - nosprintfhostport
     - predeclared
+    - sloglint
+    - sqlclosecheck
+    - staticcheck
+    - thelper
+    - tparallel
+    - unused
+    - usestdlibvars
   settings:
     embeddedstructfieldcheck:
       forbid-mutex: true
+    errcheck:
+      check-type-assertions: true
+    errorlint:
+      errorf: true
+      errorf-multi: true
+      asserts: true
+      comparison: true
     gocyclo:
       min-complexity: 20
+    godoclint:
+      require-pkg-doc: true
+      require-doc: true
+      max-len: 80
+      require-stdlib-doclink: true
     godot:
       exclude:
         # Exclude todo and fixme comments.
         - "^fixme:"
         - "^todo:"
+    iface:
+      enable:
+        - identical # Identifies interfaces in the same package that have identical method sets.
+        - opaque # Identifies functions that return interfaces, but the actual returned value is always a single concrete implementation.
+    modernize:
+      disable:
+        - any
+    sloglint:
+      context: "scope"
+      msg-style: lowercased
+      key-naming-case: snake
   exclusions:
     generated: lax
 formatters:

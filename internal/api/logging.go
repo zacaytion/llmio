@@ -1,9 +1,8 @@
-// Package api provides HTTP handlers and middleware.
 package api
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -20,39 +19,61 @@ const (
 // LogAuthFailure logs an authentication failure for security auditing.
 // The response to the client should remain generic to prevent enumeration.
 func LogAuthFailure(ctx context.Context, email string, reason AuthFailureReason) {
-	log.Printf("AUTH_FAILURE: email=%q reason=%s", email, reason)
+	slog.WarnContext(ctx, "auth failure",
+		"event", "AUTH_FAILURE",
+		"email", email,
+		"reason", string(reason),
+	)
 }
 
 // LogAuthFailureWithRequest logs an authentication failure with request details.
 // Use when http.Request is available.
 func LogAuthFailureWithRequest(ctx context.Context, email string, reason AuthFailureReason, r *http.Request) {
-	ip := getClientIP(r)
-	userAgent := r.UserAgent()
-	log.Printf("AUTH_FAILURE: email=%q reason=%s ip=%s user_agent=%q",
-		email, reason, ip, userAgent)
+	slog.WarnContext(ctx, "auth failure",
+		"event", "AUTH_FAILURE",
+		"email", email,
+		"reason", string(reason),
+		"ip", getClientIP(r),
+		"user_agent", r.UserAgent(),
+	)
 }
 
 // LogDBError logs a database error for debugging and alerting.
 func LogDBError(ctx context.Context, operation string, err error) {
-	log.Printf("DB_ERROR: operation=%s error=%v", operation, err)
+	slog.ErrorContext(ctx, "database error",
+		"event", "DB_ERROR",
+		"operation", operation,
+		"error", err,
+	)
 }
 
 // LogRegistrationSuccess logs a successful user registration.
 func LogRegistrationSuccess(ctx context.Context, email string, userID int64, r *http.Request) {
-	ip := getClientIP(r)
-	log.Printf("AUTH_REGISTER: email=%q user_id=%d ip=%s", email, userID, ip)
+	slog.InfoContext(ctx, "user registered",
+		"event", "AUTH_REGISTER",
+		"email", email,
+		"user_id", userID,
+		"ip", getClientIP(r),
+	)
 }
 
 // LogLoginSuccess logs a successful login.
 func LogLoginSuccess(ctx context.Context, email string, userID int64, r *http.Request) {
-	ip := getClientIP(r)
-	log.Printf("AUTH_LOGIN: email=%q user_id=%d ip=%s", email, userID, ip)
+	slog.InfoContext(ctx, "user logged in",
+		"event", "AUTH_LOGIN",
+		"email", email,
+		"user_id", userID,
+		"ip", getClientIP(r),
+	)
 }
 
 // LogLogout logs a logout event.
 func LogLogout(ctx context.Context, userID int64, r *http.Request) {
-	ip := getClientIP(r)
-	log.Printf("AUTH_LOGOUT: user_id=%d ip=%s", userID, ip)
+	slog.InfoContext(ctx, "user logged out",
+		"event", "AUTH_LOGOUT",
+		"user_id", userID,
+		"ip", getClientIP(r),
+	)
 }
 
 // getClientIP extracts the client IP from the request.

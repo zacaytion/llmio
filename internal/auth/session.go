@@ -31,12 +31,22 @@ func (s *Session) IsExpired() bool {
 
 // SessionStore manages in-memory sessions.
 type SessionStore struct {
-	sessions sync.Map // map[token]Session
+	sessions sync.Map      // map[token]Session
+	duration time.Duration // configurable session duration
 }
 
-// NewSessionStore creates a new in-memory session store.
+// NewSessionStore creates a new in-memory session store with default duration.
 func NewSessionStore() *SessionStore {
-	return &SessionStore{}
+	return &SessionStore{
+		duration: SessionDuration,
+	}
+}
+
+// NewSessionStoreWithConfig creates a session store with custom duration.
+func NewSessionStoreWithConfig(duration time.Duration) *SessionStore {
+	return &SessionStore{
+		duration: duration,
+	}
 }
 
 // Create generates a new session for the given user.
@@ -51,7 +61,7 @@ func (s *SessionStore) Create(userID int64, userAgent, ipAddress string) (*Sessi
 		Token:     token,
 		UserID:    userID,
 		CreatedAt: now,
-		ExpiresAt: now.Add(SessionDuration),
+		ExpiresAt: now.Add(s.duration),
 		UserAgent: userAgent,
 		IPAddress: ipAddress,
 	}
@@ -72,7 +82,10 @@ func (s *SessionStore) Get(token string) (*Session, bool) {
 		return nil, false
 	}
 
-	session := value.(*Session)
+	session, ok := value.(*Session)
+	if !ok {
+		return nil, false
+	}
 	if session.IsExpired() {
 		// Clean up expired session
 		s.sessions.Delete(token)
@@ -92,7 +105,10 @@ func (s *SessionStore) GetByUserID(userID int64) []*Session {
 	var sessions []*Session
 
 	s.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session, ok := value.(*Session)
+		if !ok {
+			return true // Continue iteration, skip invalid entry
+		}
 		if session.UserID == userID && !session.IsExpired() {
 			sessions = append(sessions, session)
 		}
@@ -107,7 +123,10 @@ func (s *SessionStore) DeleteByUserID(userID int64) {
 	var toDelete []string
 
 	s.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session, ok := value.(*Session)
+		if !ok {
+			return true // Continue iteration, skip invalid entry
+		}
 		if session.UserID == userID {
 			toDelete = append(toDelete, session.Token)
 		}
@@ -126,7 +145,10 @@ func (s *SessionStore) CleanupExpired() int {
 	var toDelete []string
 
 	s.sessions.Range(func(key, value any) bool {
-		session := value.(*Session)
+		session, ok := value.(*Session)
+		if !ok {
+			return true // Continue iteration, skip invalid entry
+		}
 		if session.IsExpired() {
 			toDelete = append(toDelete, session.Token)
 		}

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -19,11 +19,11 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		// Log request details
 		duration := time.Since(start)
-		log.Printf("%s %s %d %s",
-			r.Method,
-			r.URL.Path,
-			wrapper.statusCode,
-			duration,
+		slog.Info("http request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", wrapper.statusCode,
+			"duration_ms", duration.Milliseconds(),
 		)
 	})
 }

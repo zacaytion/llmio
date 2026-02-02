@@ -24,10 +24,19 @@ sqlc generate                 # Regenerate DB types from queries
 ### Go Gotchas
 
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
+- golangci-lint autofix: use `golangci-lint run ./... --fix` to auto-fix gofmt/goimports issues
+- Import ordering: stdlib first, blank line, then third-party (goimports enforces this)
 - Config has `interface{}` → `any` rewrite rule; use `any` not `interface{}`
 - errcheck requires `defer func() { _ = conn.Close() }()` not `defer conn.Close()`
+- errcheck requires checked type assertions: `val, ok := x.(*Type)` not `val := x.(*Type)`
 - Avoid naming local variables `api` when importing `internal/api` package
 - Port 8080 typically occupied by `gvproxy` (Docker/Podman); use `PORT=8081` for Go server
+- Viper requires `mapstructure` tags on config structs (not `yaml` or `json`)
+- Viper durations: use `time.Duration` values directly in `SetDefault()`, not strings
+- Viper file not found: use `if !errors.As(err, &viper.ConfigFileNotFoundError{})` to ignore missing files
+- PostgreSQL DSN passwords: single-quote and escape (`\\` then `\'`) for special chars
+- Dead code removal: Check test files (`*_test.go`) before removing package-level vars - tests may depend on them
+- Import cycle: `internal/validation` can't import `internal/config` (config imports validation); duplicate switch logic is intentional
 
 ### Error Handling Patterns
 
@@ -36,6 +45,12 @@ sqlc generate                 # Regenerate DB types from queries
 - Crypto/rand failures should panic (not silent fallback) - security-critical
 - Auth failures: log reason server-side, return generic "Invalid credentials" to client
 - Always call `LogDBError(ctx, "OperationName", err)` before returning 500 for DB errors
+- Validator registration: Use `mustRegister()` pattern that panics on failure (startup-time safety)
+
+### Logging Patterns
+
+- Use `logging.SetupDefaultWithCleanup()` to get cleanup function for file handles
+- Cleanup function is no-op for stdout/stderr, closes file for file output
 
 ### Security Patterns
 
@@ -107,6 +122,8 @@ Conventional commits enforced via commitlint. Valid types:
 `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `plan`, `refactor`, `revert`, `style`, `test`
 
 Pre-commit hooks run `golangci-lint` on Go files.
+
+**Pre-commit gotcha**: Linter runs on ALL Go files, not just staged ones. Pre-existing errors anywhere block commits.
 
 ## Architecture
 
@@ -193,9 +210,15 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - `.specify/templates/` - Templates for spec, plan, tasks
 - `specs/N-feature-name/` - Feature artifacts (spec.md, plan.md, tasks.md)
 
+### Speckit Workflow Notes
+
+- Code review fixes: Add as new phase in `specs/$feature/tasks.md`, not separate `tasks-fixes.md`
+- Task IDs must be unique: Continue numbering from last task (e.g., T055+ if T054 exists)
+
 ### Superpowers Integration
 
-- `/superpowers:brainstorming` - Before specifying, explore requirements
+- `/superpowers:brainstorming` - FIRST step before any feature work; explores requirements via Q&A
+- `/superpowers:writing-plans` - Creates detailed bite-sized task plans from specs
 - `/superpowers:test-driven-development` - During implementation, enforce Red-Green-Refactor
 - `/superpowers:verification-before-completion` - Before claiming done, verify tests pass
 
@@ -216,6 +239,35 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2 (001-user-auth)
 - goose/v3 for database migrations (001-user-auth)
 - PostgreSQL 18 for users; in-memory Go map for sessions (MVP) (001-user-auth)
+- Go 1.25+ + Viper (config), Cobra (CLI), log/slog (stdlib logging) (002-config-system)
+- PostgreSQL 18 (existing), YAML config files (new) (002-config-system)
+
+## Validation Patterns
+
+**Use `go-playground/validator/v10`** for all struct validation (config, API requests, domain entities).
+
+```go
+// Add validate tags to structs
+type Config struct {
+    Port int `validate:"required,min=1,max=65535"`
+    Host string `validate:"required"`
+}
+
+// Use internal/validation package for shared validator instance
+import "github.com/zacaytion/llmio/internal/validation"
+
+func Load() (*Config, error) {
+    cfg := &Config{...}
+    if err := validation.Validate(cfg); err != nil {
+        return nil, fmt.Errorf("config validation failed: %w", err)
+    }
+    return cfg, nil
+}
+```
+
+**Custom validators** for domain-specific rules (e.g., `sslmode`, `loglevel`) are registered in `internal/validation/validator.go`.
+
+**Cross-field validation**: Use `ltefield`/`gtefield` tags (e.g., `validate:"ltefield=MaxConns"` ensures MinConns ≤ MaxConns).
 
 ## Recent Changes
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2

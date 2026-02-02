@@ -1,0 +1,30 @@
+# Example configuration - copy to config.yaml and customize
+# DO NOT commit config.yaml with real credentials
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: ""  # Set via env var LOOMIO_DATABASE_PASSWORD for security
+  name: loomio_development
+  sslmode: disable
+  max_conns: 25
+  min_conns: 2
+  max_conn_lifetime: 1h
+  max_conn_idle_time: 30m
+  health_check_period: 1m
+
+server:
+  port: 8080
+  read_timeout: 15s
+  write_timeout: 15s
+  idle_timeout: 60s
+
+session:
+  duration: 168h  # 7 days
+  cleanup_interval: 10m
+
+logging:
+  level: info     # debug, info, warn, error
+  format: json    # json, text
+  output: stdout  # stdout, stderr, or file path

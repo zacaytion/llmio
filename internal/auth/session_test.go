@@ -205,3 +205,28 @@ func TestSessionStore_Cleanup(t *testing.T) {
 		t.Error("Valid session should still exist after cleanup")
 	}
 }
+
+// T015: Test for NewSessionStoreWithConfig.
+func TestNewSessionStoreWithConfig(t *testing.T) {
+	customDuration := 24 * time.Hour // 1 day instead of default 7 days
+
+	store := NewSessionStoreWithConfig(customDuration)
+
+	// Create a session
+	session, err := store.Create(123, "Mozilla/5.0", "192.168.1.1")
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	// Expiry should be ~1 day from now (custom duration), not 7 days
+	expectedExpiry := time.Now().Add(customDuration)
+	if session.ExpiresAt.Before(expectedExpiry.Add(-time.Minute)) ||
+		session.ExpiresAt.After(expectedExpiry.Add(time.Minute)) {
+		t.Errorf("Session expiry = %v, want ~%v (custom duration)", session.ExpiresAt, expectedExpiry)
+	}
+
+	// Verify duration is stored in the store
+	if store.duration != customDuration {
+		t.Errorf("Store duration = %v, want %v", store.duration, customDuration)
+	}
+}

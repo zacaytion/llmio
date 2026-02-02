@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"regexp"
 	"testing"
 )
@@ -27,7 +28,7 @@ func TestGeneratePublicKeyUniqueness(t *testing.T) {
 	collisions := 0
 
 	// Generate 1000 keys and check for collisions
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		key := GeneratePublicKey()
 		if seen[key] {
 			collisions++
@@ -74,7 +75,7 @@ func TestMakePublicKeyUnique_ErrorAfterMaxAttempts(t *testing.T) {
 	if err == nil {
 		t.Error("MakePublicKeyUnique() expected error after 100 attempts, got nil")
 	}
-	if err != ErrKeyGenerationFailed {
+	if !errors.Is(err, ErrKeyGenerationFailed) {
 		t.Errorf("MakePublicKeyUnique() error = %v, want ErrKeyGenerationFailed", err)
 	}
 }
