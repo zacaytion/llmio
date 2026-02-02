@@ -72,11 +72,13 @@ func MakeUsernameUnique(base string, exists func(string) bool) string {
 }
 
 // randomSlug generates a random alphanumeric string of the given length.
+// Panics if crypto/rand fails (this indicates a critical system failure).
 func randomSlug(length int) string {
 	bytes := make([]byte, (length+1)/2)
 	if _, err := rand.Read(bytes); err != nil {
-		// Fallback to a fixed string if random fails (should never happen)
-		return strings.Repeat("x", length)
+		// crypto/rand failure is a critical system issue that cannot be recovered from.
+		// Using a predictable fallback would create security vulnerabilities.
+		panic("crypto/rand failed: " + err.Error())
 	}
 	return hex.EncodeToString(bytes)[:length]
 }

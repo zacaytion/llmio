@@ -25,15 +25,25 @@ func GeneratePublicKey() string {
 
 // MakePublicKeyUnique generates keys until one is not taken.
 // The exists function should return true if the key is already in use.
-func MakePublicKeyUnique(exists func(string) bool) string {
+// Returns an error after 100 failed attempts (indicates a bug in exists function).
+func MakePublicKeyUnique(exists func(string) bool) (string, error) {
 	for i := 0; i < 100; i++ {
 		key := GeneratePublicKey()
 		if !exists(key) {
-			return key
+			return key, nil
 		}
 	}
 
-	// After 100 attempts, just return the last one
-	// (collision probability is astronomically low with 128 bits)
-	return GeneratePublicKey()
+	// 100 collisions with 128-bit keys is virtually impossible
+	// This likely indicates the exists function is broken (always returns true)
+	return "", ErrKeyGenerationFailed
+}
+
+// ErrKeyGenerationFailed indicates key generation failed after max attempts.
+var ErrKeyGenerationFailed = errKeyGenerationFailed{}
+
+type errKeyGenerationFailed struct{}
+
+func (errKeyGenerationFailed) Error() string {
+	return "failed to generate unique public key after 100 attempts"
 }

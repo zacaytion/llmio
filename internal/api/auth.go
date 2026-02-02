@@ -11,6 +11,19 @@ import (
 	"github.com/zacaytion/llmio/internal/db"
 )
 
+// dummyPasswordHash is a valid Argon2id hash used for timing-safe comparisons
+// when the user doesn't exist. Generated at init to ensure consistent timing.
+var dummyPasswordHash string
+
+func init() {
+	// Generate a real Argon2id hash for timing consistency
+	hash, err := auth.HashPassword("dummy-timing-placeholder-password")
+	if err != nil {
+		panic("failed to generate dummy hash: " + err.Error())
+	}
+	dummyPasswordHash = hash
+}
+
 // AuthHandler handles authentication-related HTTP requests.
 type AuthHandler struct {
 	queries  *db.Queries
@@ -140,17 +153,43 @@ func (h *AuthHandler) handleRegistration(ctx context.Context, input *Registratio
 	}
 
 	// Generate unique username
+	// Track if we hit a DB error during uniqueness checks
+	var usernameDBError error
 	baseUsername := auth.GenerateUsername(name)
 	username := auth.MakeUsernameUnique(baseUsername, func(u string) bool {
-		exists, _ := h.queries.UsernameExists(ctx, u)
+		exists, err := h.queries.UsernameExists(ctx, u)
+		if err != nil {
+			usernameDBError = err
+			return true // Conservatively treat as "exists" to retry with different username
+		}
 		return exists
 	})
+	if usernameDBError != nil {
+		LogDBError(ctx, "UsernameExists", usernameDBError)
+		return nil, huma.Error500InternalServerError("Database error")
+	}
 
 	// Generate unique public key
-	key := auth.MakePublicKeyUnique(func(k string) bool {
+	var keyDBError error
+	key, err := auth.MakePublicKeyUnique(func(k string) bool {
 		_, err := h.queries.GetUserByKey(ctx, k)
-		return err == nil // key exists if no error
+		if err != nil {
+			if db.IsNotFound(err) {
+				return false // Key doesn't exist, it's available
+			}
+			keyDBError = err
+			return true // Conservatively treat as "exists" to retry
+		}
+		return true // Key exists
 	})
+	if keyDBError != nil {
+		LogDBError(ctx, "GetUserByKey", keyDBError)
+		return nil, huma.Error500InternalServerError("Database error")
+	}
+	if err != nil {
+		LogDBError(ctx, "MakePublicKeyUnique", err)
+		return nil, huma.Error500InternalServerError("Failed to generate unique key")
+	}
 
 	// Create user in database
 	user, err := h.queries.CreateUser(ctx, db.CreateUserParams{
@@ -193,10 +232,22 @@ func (h *AuthHandler) handleLogin(ctx context.Context, input *LoginInput) (*Logi
 	// Look up user by email
 	user, err := h.queries.GetUserByEmail(ctx, email)
 
+	// Check for database errors (not just "not found")
+	var userExists bool
+	if err != nil {
+		if !db.IsNotFound(err) {
+			// Actual database error - log and return 500
+			LogDBError(ctx, "GetUserByEmail", err)
+			return nil, huma.Error500InternalServerError("Database error")
+		}
+		userExists = false
+	} else {
+		userExists = true
+	}
+
 	// Always do a password check to prevent timing attacks (even if user not found)
-	dummyHash := "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$dummyhash"
-	hashToCheck := dummyHash
-	userExists := err == nil
+	// Use the pre-generated valid Argon2id hash to ensure consistent timing
+	hashToCheck := dummyPasswordHash
 	if userExists {
 		hashToCheck = user.PasswordHash
 	}
@@ -204,22 +255,28 @@ func (h *AuthHandler) handleLogin(ctx context.Context, input *LoginInput) (*Logi
 	passwordValid := auth.VerifyPassword(input.Body.Password, hashToCheck)
 
 	// Check all conditions with same error message (no enumeration)
+	// Log failures for security auditing
 	if !userExists {
+		LogAuthFailure(ctx, email, ReasonUserNotFound)
 		return nil, huma.Error401Unauthorized("Invalid credentials")
 	}
 	if !passwordValid {
+		LogAuthFailure(ctx, email, ReasonInvalidPassword)
 		return nil, huma.Error401Unauthorized("Invalid credentials")
 	}
 	if !user.EmailVerified {
+		LogAuthFailure(ctx, email, ReasonEmailNotVerified)
 		return nil, huma.Error401Unauthorized("Invalid credentials")
 	}
 	if user.DeactivatedAt.Valid {
+		LogAuthFailure(ctx, email, ReasonAccountDeactivated)
 		return nil, huma.Error401Unauthorized("Invalid credentials")
 	}
 
 	// Create session
 	session, err := h.sessions.Create(user.ID, "", "") // TODO: extract user agent and IP
 	if err != nil {
+		LogDBError(ctx, "sessions.Create", err)
 		return nil, huma.Error500InternalServerError("Failed to create session")
 	}
 
@@ -309,7 +366,14 @@ func (h *AuthHandler) handleGetCurrentSession(ctx context.Context, input *GetCur
 	// Look up user by ID
 	user, err := h.queries.GetUserByID(ctx, session.UserID)
 	if err != nil {
-		return nil, huma.Error401Unauthorized("Not authenticated")
+		if db.IsNotFound(err) {
+			// User was deleted but session still exists - clean up
+			h.sessions.Delete(input.Cookie)
+			return nil, huma.Error401Unauthorized("Not authenticated")
+		}
+		// Actual database error
+		LogDBError(ctx, "GetUserByID", err)
+		return nil, huma.Error500InternalServerError("Database error")
 	}
 
 	// Check if user is deactivated

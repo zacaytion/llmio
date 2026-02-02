@@ -29,6 +29,18 @@ sqlc generate                 # Regenerate DB types from queries
 - Avoid naming local variables `api` when importing `internal/api` package
 - Port 8080 typically occupied by `gvproxy` (Docker/Podman); use `PORT=8081` for Go server
 
+### Error Handling Patterns
+
+- Use `db.IsNotFound(err)` to check for `pgx.ErrNoRows` (not just `err != nil`)
+- DB errors → 500; NotFound → context-specific (401 for auth, 404 for resources)
+- Crypto/rand failures should panic (not silent fallback) - security-critical
+- Auth failures: log reason server-side, return generic "Invalid credentials" to client
+
+### Security Patterns
+
+- Timing attacks: dummy password hash must be valid Argon2id (verification detects invalid formats)
+- Generate dummy hash at `init()` with `auth.HashPassword("placeholder")` for consistent timing
+
 ### Goose Migrations
 
 - Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix

@@ -48,7 +48,10 @@ func TestMakePublicKeyUnique(t *testing.T) {
 		return key == takenKey
 	}
 
-	unique := MakePublicKeyUnique(checker)
+	unique, err := MakePublicKeyUnique(checker)
+	if err != nil {
+		t.Fatalf("MakePublicKeyUnique() error = %v, want nil", err)
+	}
 
 	// Should be different from taken key
 	if unique == takenKey {
@@ -58,5 +61,20 @@ func TestMakePublicKeyUnique(t *testing.T) {
 	// Should still be valid format
 	if !keyPattern.MatchString(unique) {
 		t.Errorf("MakePublicKeyUnique() = %q, does not match pattern", unique)
+	}
+}
+
+func TestMakePublicKeyUnique_ErrorAfterMaxAttempts(t *testing.T) {
+	// Checker always returns true (key always "taken")
+	checker := func(key string) bool {
+		return true
+	}
+
+	_, err := MakePublicKeyUnique(checker)
+	if err == nil {
+		t.Error("MakePublicKeyUnique() expected error after 100 attempts, got nil")
+	}
+	if err != ErrKeyGenerationFailed {
+		t.Errorf("MakePublicKeyUnique() error = %v, want ErrKeyGenerationFailed", err)
 	}
 }
