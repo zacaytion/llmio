@@ -40,6 +40,10 @@ config.local.yaml
 vendor/
 /server
 
+# Build output
+bin/*
+!bin/.gitkeep
+
 # IDE
 .idea/
 *.iml

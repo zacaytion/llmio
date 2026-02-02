@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "loomio-dev",
+      "Group": "Local",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "loomio_development",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}
