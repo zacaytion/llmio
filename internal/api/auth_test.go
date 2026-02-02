@@ -16,6 +16,19 @@ import (
 	"github.com/zacaytion/llmio/internal/auth"
 )
 
+// testDummyHash is a valid Argon2id hash used for timing-safe password checks in tests.
+// Generated at init to ensure it matches the production pattern (valid hash format required
+// to prevent timing attacks - VerifyPassword returns early on invalid formats).
+var testDummyHash string
+
+func init() {
+	hash, err := auth.HashPassword("test-timing-placeholder")
+	if err != nil {
+		panic("failed to generate test dummy hash: " + err.Error())
+	}
+	testDummyHash = hash
+}
+
 // TestRegisterSuccess tests successful user registration.
 func TestRegisterSuccess(t *testing.T) {
 	handler := newTestAuthHandler()
@@ -306,8 +319,9 @@ func (h *testAuthHandler) handleLogin(ctx context.Context, input *LoginInput) (*
 	user, exists := h.users[email]
 
 	// Always do a password check to prevent timing attacks
-	dummyHash := "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$dummyhash"
-	hashToCheck := dummyHash
+	// Use properly generated hash (testDummyHash) to ensure VerifyPassword doesn't
+	// return early on invalid format, which would create timing differences
+	hashToCheck := testDummyHash
 	if exists {
 		hashToCheck = user.PasswordHash
 	}
@@ -403,6 +417,12 @@ func TestLoginSuccess(t *testing.T) {
 	} else {
 		if !sessionCookie.HttpOnly {
 			t.Error("Session cookie should be HttpOnly")
+		}
+		if !sessionCookie.Secure {
+			t.Error("Session cookie should be Secure")
+		}
+		if sessionCookie.SameSite != http.SameSiteLaxMode {
+			t.Errorf("Session cookie SameSite = %v, want Lax", sessionCookie.SameSite)
 		}
 	}
 

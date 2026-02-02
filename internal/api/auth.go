@@ -135,6 +135,7 @@ func (h *AuthHandler) handleRegistration(ctx context.Context, input *Registratio
 	// Check if email already exists
 	emailExists, err := h.queries.EmailExists(ctx, email)
 	if err != nil {
+		LogDBError(ctx, "EmailExists", err)
 		return nil, huma.Error500InternalServerError("Database error")
 	}
 	if emailExists {
@@ -200,6 +201,7 @@ func (h *AuthHandler) handleRegistration(ctx context.Context, input *Registratio
 		Key:          key,
 	})
 	if err != nil {
+		LogDBError(ctx, "CreateUser", err)
 		return nil, huma.Error500InternalServerError("Failed to create user")
 	}
 
