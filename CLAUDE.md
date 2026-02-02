@@ -35,6 +35,8 @@ sqlc generate                 # Regenerate DB types from queries
 - Viper durations: use `time.Duration` values directly in `SetDefault()`, not strings
 - Viper file not found: use `if !errors.As(err, &viper.ConfigFileNotFoundError{})` to ignore missing files
 - PostgreSQL DSN passwords: single-quote and escape (`\\` then `\'`) for special chars
+- Dead code removal: Check test files (`*_test.go`) before removing package-level vars - tests may depend on them
+- Import cycle: `internal/validation` can't import `internal/config` (config imports validation); duplicate switch logic is intentional
 
 ### Error Handling Patterns
 
@@ -43,6 +45,7 @@ sqlc generate                 # Regenerate DB types from queries
 - Crypto/rand failures should panic (not silent fallback) - security-critical
 - Auth failures: log reason server-side, return generic "Invalid credentials" to client
 - Always call `LogDBError(ctx, "OperationName", err)` before returning 500 for DB errors
+- Validator registration: Use `mustRegister()` pattern that panics on failure (startup-time safety)
 
 ### Logging Patterns
 
