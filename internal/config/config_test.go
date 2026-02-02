@@ -472,6 +472,362 @@ server:
 	}
 }
 
+// T099: Test DatabaseConfig.Validate() catches invalid values.
+func TestDatabaseConfig_Validate(t *testing.T) {
+	validConfig := DatabaseConfig{
+		Host:              "localhost",
+		Port:              5432,
+		User:              "postgres",
+		Name:              "testdb",
+		SSLMode:           "disable",
+		MaxConns:          25,
+		MinConns:          2,
+		MaxConnLifetime:   time.Hour,
+		MaxConnIdleTime:   30 * time.Minute,
+		HealthCheckPeriod: time.Minute,
+	}
+
+	// Valid config should pass
+	if err := validConfig.Validate(); err != nil {
+		t.Errorf("valid config should pass validation, got: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		modify  func(*DatabaseConfig)
+		wantErr string
+	}{
+		{
+			name:    "empty host",
+			modify:  func(c *DatabaseConfig) { c.Host = "" },
+			wantErr: "host cannot be empty",
+		},
+		{
+			name:    "invalid port zero",
+			modify:  func(c *DatabaseConfig) { c.Port = 0 },
+			wantErr: "port must be 1-65535",
+		},
+		{
+			name:    "invalid port negative",
+			modify:  func(c *DatabaseConfig) { c.Port = -1 },
+			wantErr: "port must be 1-65535",
+		},
+		{
+			name:    "invalid port too high",
+			modify:  func(c *DatabaseConfig) { c.Port = 65536 },
+			wantErr: "port must be 1-65535",
+		},
+		{
+			name:    "empty user",
+			modify:  func(c *DatabaseConfig) { c.User = "" },
+			wantErr: "user cannot be empty",
+		},
+		{
+			name:    "empty name",
+			modify:  func(c *DatabaseConfig) { c.Name = "" },
+			wantErr: "name cannot be empty",
+		},
+		{
+			name:    "invalid sslmode",
+			modify:  func(c *DatabaseConfig) { c.SSLMode = "invalid" },
+			wantErr: "sslmode must be one of",
+		},
+		{
+			name:    "max_conns zero",
+			modify:  func(c *DatabaseConfig) { c.MaxConns = 0 },
+			wantErr: "max_conns must be positive",
+		},
+		{
+			name:    "min_conns negative",
+			modify:  func(c *DatabaseConfig) { c.MinConns = -1 },
+			wantErr: "min_conns cannot be negative",
+		},
+		{
+			name:    "min_conns exceeds max_conns",
+			modify:  func(c *DatabaseConfig) { c.MinConns = 30; c.MaxConns = 25 },
+			wantErr: "min_conns (30) cannot exceed max_conns (25)",
+		},
+		{
+			name:    "max_conn_lifetime zero",
+			modify:  func(c *DatabaseConfig) { c.MaxConnLifetime = 0 },
+			wantErr: "max_conn_lifetime must be positive",
+		},
+		{
+			name:    "max_conn_idle_time negative",
+			modify:  func(c *DatabaseConfig) { c.MaxConnIdleTime = -time.Second },
+			wantErr: "max_conn_idle_time must be positive",
+		},
+		{
+			name:    "health_check_period zero",
+			modify:  func(c *DatabaseConfig) { c.HealthCheckPeriod = 0 },
+			wantErr: "health_check_period must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig // copy
+			tt.modify(&cfg)
+			err := cfg.Validate()
+			if err == nil {
+				t.Fatal("expected validation error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+// T100: Test ServerConfig.Validate() catches invalid values.
+func TestServerConfig_Validate(t *testing.T) {
+	validConfig := ServerConfig{
+		Port:         8080,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	if err := validConfig.Validate(); err != nil {
+		t.Errorf("valid config should pass validation, got: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		modify  func(*ServerConfig)
+		wantErr string
+	}{
+		{
+			name:    "invalid port zero",
+			modify:  func(c *ServerConfig) { c.Port = 0 },
+			wantErr: "port must be 1-65535",
+		},
+		{
+			name:    "read_timeout zero",
+			modify:  func(c *ServerConfig) { c.ReadTimeout = 0 },
+			wantErr: "read_timeout must be positive",
+		},
+		{
+			name:    "write_timeout negative",
+			modify:  func(c *ServerConfig) { c.WriteTimeout = -time.Second },
+			wantErr: "write_timeout must be positive",
+		},
+		{
+			name:    "idle_timeout zero",
+			modify:  func(c *ServerConfig) { c.IdleTimeout = 0 },
+			wantErr: "idle_timeout must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig
+			tt.modify(&cfg)
+			err := cfg.Validate()
+			if err == nil {
+				t.Fatal("expected validation error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+// T101: Test SessionConfig.Validate() catches invalid values.
+func TestSessionConfig_Validate(t *testing.T) {
+	validConfig := SessionConfig{
+		Duration:        168 * time.Hour,
+		CleanupInterval: 10 * time.Minute,
+	}
+
+	if err := validConfig.Validate(); err != nil {
+		t.Errorf("valid config should pass validation, got: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		modify  func(*SessionConfig)
+		wantErr string
+	}{
+		{
+			name:    "duration zero",
+			modify:  func(c *SessionConfig) { c.Duration = 0 },
+			wantErr: "duration must be positive",
+		},
+		{
+			name:    "cleanup_interval negative",
+			modify:  func(c *SessionConfig) { c.CleanupInterval = -time.Minute },
+			wantErr: "cleanup_interval must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig
+			tt.modify(&cfg)
+			err := cfg.Validate()
+			if err == nil {
+				t.Fatal("expected validation error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+// T102: Test LoggingConfig.Validate() catches invalid values.
+func TestLoggingConfig_Validate(t *testing.T) {
+	validConfig := LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: "stdout",
+	}
+
+	if err := validConfig.Validate(); err != nil {
+		t.Errorf("valid config should pass validation, got: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		modify  func(*LoggingConfig)
+		wantErr string
+	}{
+		{
+			name:    "invalid level",
+			modify:  func(c *LoggingConfig) { c.Level = "invalid" },
+			wantErr: "level must be one of",
+		},
+		{
+			name:    "invalid format",
+			modify:  func(c *LoggingConfig) { c.Format = "invalid" },
+			wantErr: "format must be one of",
+		},
+		{
+			name:    "empty output",
+			modify:  func(c *LoggingConfig) { c.Output = "" },
+			wantErr: "output cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validConfig
+			tt.modify(&cfg)
+			err := cfg.Validate()
+			if err == nil {
+				t.Fatal("expected validation error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error should contain %q, got: %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+// T105: Test SSLMode.Valid() for all known modes.
+func TestSSLMode_Valid(t *testing.T) {
+	validModes := []SSLMode{
+		SSLModeDisable,
+		SSLModeAllow,
+		SSLModePrefer,
+		SSLModeRequire,
+		SSLModeVerifyCA,
+		SSLModeVerifyFull,
+	}
+
+	for _, mode := range validModes {
+		if !mode.Valid() {
+			t.Errorf("SSLMode %q should be valid", mode)
+		}
+	}
+
+	invalidModes := []SSLMode{"invalid", "DISABLE", "ssl", ""}
+	for _, mode := range invalidModes {
+		if mode.Valid() {
+			t.Errorf("SSLMode %q should be invalid", mode)
+		}
+	}
+}
+
+// T106: Test LogLevel.Valid() for all known levels.
+func TestLogLevel_Valid(t *testing.T) {
+	validLevels := []LogLevel{
+		LogLevelDebug,
+		LogLevelInfo,
+		LogLevelWarn,
+		LogLevelError,
+	}
+
+	for _, level := range validLevels {
+		if !level.Valid() {
+			t.Errorf("LogLevel %q should be valid", level)
+		}
+	}
+
+	invalidLevels := []LogLevel{"invalid", "INFO", "warning", ""}
+	for _, level := range invalidLevels {
+		if level.Valid() {
+			t.Errorf("LogLevel %q should be invalid", level)
+		}
+	}
+}
+
+// T107: Test LogFormat.Valid() for all known formats.
+func TestLogFormat_Valid(t *testing.T) {
+	validFormats := []LogFormat{
+		LogFormatJSON,
+		LogFormatText,
+	}
+
+	for _, format := range validFormats {
+		if !format.Valid() {
+			t.Errorf("LogFormat %q should be valid", format)
+		}
+	}
+
+	invalidFormats := []LogFormat{"invalid", "JSON", "xml", ""}
+	for _, format := range invalidFormats {
+		if format.Valid() {
+			t.Errorf("LogFormat %q should be invalid", format)
+		}
+	}
+}
+
+// T103/T104: Test that Load() fails with invalid config values.
+func TestLoad_ValidationFailure(t *testing.T) {
+	// Create a config file with invalid values
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/invalid_config.yaml"
+
+	yamlContent := `
+database:
+  host: localhost
+  port: 0  # Invalid: must be 1-65535
+  user: postgres
+  name: testdb
+  sslmode: disable
+server:
+  port: 8080
+`
+	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	_, err := Load(configPath)
+	if err == nil {
+		t.Fatal("expected validation error for invalid port, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "validation") {
+		t.Errorf("error should mention validation, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "port") {
+		t.Errorf("error should mention port, got: %v", err)
+	}
+}
+
 // T064: Test for DSN with special characters in password.
 func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
 	tests := []struct {

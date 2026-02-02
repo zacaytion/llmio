@@ -549,12 +549,12 @@ With multiple developers:
 
 **Files**: `internal/config/config.go`
 
-- [ ] T099 [P] Add `Validate() error` method to `DatabaseConfig` in `internal/config/config.go`
-- [ ] T100 [P] Add `Validate() error` method to `ServerConfig` in `internal/config/config.go`
-- [ ] T101 [P] Add `Validate() error` method to `SessionConfig` in `internal/config/config.go`
-- [ ] T102 [P] Add `Validate() error` method to `LoggingConfig` in `internal/config/config.go`
-- [ ] T103 Add `Validate() error` method to `Config` that calls sub-config validators in `internal/config/config.go`
-- [ ] T104 Call `Validate()` in `Load()` before returning config in `internal/config/config.go`
+- [x] T099 [P] Add `Validate() error` method to `DatabaseConfig` in `internal/config/config.go`
+- [x] T100 [P] Add `Validate() error` method to `ServerConfig` in `internal/config/config.go`
+- [x] T101 [P] Add `Validate() error` method to `SessionConfig` in `internal/config/config.go`
+- [x] T102 [P] Add `Validate() error` method to `LoggingConfig` in `internal/config/config.go`
+- [x] T103 Add `Validate() error` method to `Config` that calls sub-config validators in `internal/config/config.go`
+- [x] T104 Call `Validate()` in `Load()` before returning config in `internal/config/config.go`
 
 #### Issue 12: Stringly-Typed Enumerations
 
@@ -562,9 +562,9 @@ With multiple developers:
 
 **Files**: `internal/config/config.go`, `internal/logging/logging.go`
 
-- [ ] T105 [P] Create `SSLMode` type with constants and `Valid()` method in `internal/config/config.go`
-- [ ] T106 [P] Create `LogLevel` type with constants in `internal/logging/logging.go`
-- [ ] T107 [P] Create `LogFormat` type with constants in `internal/logging/logging.go`
+- [x] T105 [P] Create `SSLMode` type with constants and `Valid()` method in `internal/config/config.go`
+- [x] T106 [P] Create `LogLevel` type with constants in `internal/config/config.go`
+- [x] T107 [P] Create `LogFormat` type with constants in `internal/config/config.go`
 
 **Checkpoint**: Type design improvements complete (follow-up PR)
 
