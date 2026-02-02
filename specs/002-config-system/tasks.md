@@ -196,6 +196,8 @@
   - US5 is P3 and can proceed independently after Foundation
 - **Polish (Phase 8)**: Depends on all user stories being complete
 - **Code Review Fixes (Phase 9)**: Depends on Phase 8 completion - addresses review findings before merge
+- **Linter Configuration (Phase 10)**: Depends on Phase 9 completion - stricter linting
+- **PR Review Findings (Phase 11)**: Depends on Phase 10 completion - comprehensive review fixes before merge
 
 ### User Story Dependencies
 
@@ -421,6 +423,200 @@ With multiple developers:
 - [x] T079 Commit changes with message: `chore: enable additional linters and fix godoclint issues`
 
 **Checkpoint**: All linter issues resolved with stricter configuration
+
+---
+
+## Phase 11: PR Review Findings
+
+**Input**: Comprehensive PR review findings from multi-agent analysis
+
+**Purpose**: Address critical and important issues discovered during PR review before merge
+
+### Phase 11.1: Critical Fixes (Must Fix Before Merge)
+
+#### Issue 1: Silent Fallback on Log File Failure
+
+**Problem**: When configured log file can't be opened (permissions, disk full, path doesn't exist), silently falls back to stdout. User configuration is ignored without clear indication.
+
+**File**: `internal/logging/logging.go:107-118`
+
+- [x] T080 [P] Write test for log file open failure returning error in `internal/logging/logging_test.go`
+- [x] T081 Change `getWriterWithCleanup()` to return error instead of silent fallback in `internal/logging/logging.go`
+- [x] T082 Update callers to handle log file error (fail startup or make fallback opt-in) in `cmd/server/main.go`
+
+#### Issue 2: Silent Fallback for Migrations Directory
+
+**Problem**: When migrations directory isn't found, silently defaults to `"migrations"` relative path. Running from wrong directory → silent failure with "no migrations to apply".
+
+**File**: `cmd/migrate/main.go:180-196`
+
+- [x] T083 [P] Write test for `findMigrationsDir()` returning error when not found in `cmd/migrate/main_test.go`
+- [x] T084 Change `findMigrationsDir()` to return `(string, error)` in `cmd/migrate/main.go`
+- [x] T085 Update callers to fail with clear error message in `cmd/migrate/main.go`
+
+**Checkpoint**: Critical issues resolved - silent failures eliminated
+
+---
+
+### Phase 11.2: Important Fixes (Should Fix Before Merge)
+
+#### Issue 3: No Graceful Shutdown for Cleanup Goroutine
+
+**Problem**: `startSessionCleanup` goroutine has no mechanism to stop during shutdown. Minor resource leak.
+
+**File**: `cmd/server/main.go:143-144, 208-218`
+
+- [x] T086 [P] Add context parameter to `startSessionCleanup()` for graceful shutdown in `cmd/server/main.go`
+- [x] T087 Cancel cleanup context in server shutdown handler in `cmd/server/main.go`
+
+#### Issue 4: Discarded BindPFlag Errors
+
+**Problem**: 16+ `_ = v.BindPFlag(...)` calls. Flag name typos would silently fail.
+
+**Files**: `cmd/server/main.go:93-118`, `cmd/migrate/main.go:69-74`
+
+- [x] T088 [P] Create helper function to collect BindPFlag errors in `cmd/server/main.go`
+- [x] T089 [P] Create helper function to collect BindPFlag errors in `cmd/migrate/main.go`
+- [x] T090 Fail startup if any flag binding fails in both commands
+
+#### Issue 5: Silent filepath.Abs Error
+
+**Problem**: Error discarded in `findMigrationsDir()`; returns empty string on failure.
+
+**File**: `cmd/migrate/main.go:190-191`
+
+- [x] T091 Handle `filepath.Abs()` error in `findMigrationsDir()` in `cmd/migrate/main.go` (covered by T084)
+
+#### Issue 6: Invalid Log Level Defaults Silently
+
+**Problem**: Typo like `level: deubg` → silently uses `info`.
+
+**File**: `internal/logging/logging.go:67-79`
+
+- [x] T092 [P] Write test for invalid log level warning in `internal/logging/logging_test.go`
+- [x] T093 Add warning log for invalid log level in `parseLevel()` in `internal/logging/logging.go`
+
+#### Issue 7: Invalid Log Format Defaults Silently
+
+**Problem**: `format: tect` → silently uses JSON.
+
+**File**: `internal/logging/logging.go:125-137`
+
+- [x] T094 [P] Write test for invalid log format warning in `internal/logging/logging_test.go`
+- [x] T095 Add warning log for invalid log format in `createHandler()` in `internal/logging/logging.go`
+
+**Checkpoint**: Important issues resolved - warnings added for silent defaults
+
+---
+
+### Phase 11.3: Test Coverage Gaps
+
+#### Issue 8: Missing Full Priority Chain Test
+
+**Problem**: No test verifying CLI > env > file > defaults all together.
+
+**File**: `internal/config/config_test.go`
+
+- [x] T096 [P] Write test `TestLoad_FullPriorityChain` verifying CLI > env > file > defaults in `internal/config/config_test.go`
+
+#### Issue 9: Missing Env Overrides Config File Test
+
+**Problem**: Env > defaults tested, but not env > file.
+
+**File**: `internal/config/config_test.go`
+
+- [x] T097 [P] Write test `TestLoad_EnvOverridesConfigFile` in `internal/config/config_test.go`
+
+#### Issue 10: Missing File Handle Closure Verification
+
+**Problem**: Cleanup function tested, but not that file is actually closed.
+
+**File**: `internal/logging/logging_test.go`
+
+- [x] T098 [P] Write test verifying file handle is closed after cleanup in `internal/logging/logging_test.go`
+
+**Checkpoint**: Test coverage gaps addressed
+
+---
+
+### Phase 11.4: Type Design Improvements (Follow-up PR)
+
+**Purpose**: Improve type safety and validation - can be deferred to follow-up PR
+
+#### Issue 11: No Validation in Config Types
+
+**Problem**: All config types lack validation; invalid states are representable (e.g., `Port: -1`, `MinConns > MaxConns`).
+
+**Files**: `internal/config/config.go`
+
+- [ ] T099 [P] Add `Validate() error` method to `DatabaseConfig` in `internal/config/config.go`
+- [ ] T100 [P] Add `Validate() error` method to `ServerConfig` in `internal/config/config.go`
+- [ ] T101 [P] Add `Validate() error` method to `SessionConfig` in `internal/config/config.go`
+- [ ] T102 [P] Add `Validate() error` method to `LoggingConfig` in `internal/config/config.go`
+- [ ] T103 Add `Validate() error` method to `Config` that calls sub-config validators in `internal/config/config.go`
+- [ ] T104 Call `Validate()` in `Load()` before returning config in `internal/config/config.go`
+
+#### Issue 12: Stringly-Typed Enumerations
+
+**Problem**: SSLMode, LogLevel, LogFormat should be custom types with validation.
+
+**Files**: `internal/config/config.go`, `internal/logging/logging.go`
+
+- [ ] T105 [P] Create `SSLMode` type with constants and `Valid()` method in `internal/config/config.go`
+- [ ] T106 [P] Create `LogLevel` type with constants in `internal/logging/logging.go`
+- [ ] T107 [P] Create `LogFormat` type with constants in `internal/logging/logging.go`
+
+**Checkpoint**: Type design improvements complete (follow-up PR)
+
+---
+
+### Phase 11.5: Verification
+
+**Purpose**: Ensure all fixes work correctly
+
+- [x] T108 Run full test suite: `go test ./... -v`
+- [x] T109 Run linter: `golangci-lint run ./...`
+- [x] T110 Verify server starts with defaults: `go run ./cmd/server`
+- [x] T111 Verify server starts with config file: `go run ./cmd/server --config config.example.yaml`
+- [x] T112 Verify migrate with test config: `go run ./cmd/migrate --config config.test.yaml status`
+- [x] T113 Commit fixes with message: `fix(config): address PR review findings`
+
+**Checkpoint**: All PR review fixes complete
+
+---
+
+### Phase 11 Dependencies
+
+- **Phase 11.1 (Critical)**: No dependencies - must complete before merge
+- **Phase 11.2 (Important)**: Can run in parallel with 11.1 (different files mostly)
+- **Phase 11.3 (Tests)**: Can run in parallel with 11.1 and 11.2
+- **Phase 11.4 (Type Design)**: Can be deferred to follow-up PR
+- **Phase 11.5 (Verification)**: Depends on 11.1, 11.2, 11.3 completion
+
+### Phase 11 Parallel Opportunities
+
+- T080, T083, T086, T088, T089, T092, T094, T096, T097, T098 can run in parallel (different files or test files)
+- T081 depends on T080 (test first)
+- T082 depends on T081 (implementation first)
+- T084 depends on T083 (test first)
+- T085 depends on T084 (implementation first)
+- T093 depends on T092 (test first)
+- T095 depends on T094 (test first)
+- T099-T102 can run in parallel (different methods)
+- T103 depends on T099-T102 (sub-validators first)
+- T104 depends on T103 (Validate method first)
+- T105, T106, T107 can run in parallel (different files/types)
+
+### Phase 11 Implementation Strategy
+
+**Recommended Order (MVP to Merge)**:
+
+1. **Critical (must fix)**: T080-T085 - Eliminate silent failures
+2. **Important (should fix)**: T086-T095 - Graceful shutdown, flag binding, warnings
+3. **Test gaps**: T096-T098 - Improve coverage
+4. **Verify**: T108-T113 - Run tests and commit
+
+**Deferred to Follow-up PR**: T099-T107 (Type design improvements)
 
 ---
 

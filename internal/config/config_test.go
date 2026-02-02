@@ -379,6 +379,99 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 	}
 }
 
+// T096: Test the full priority chain: CLI > env > file > defaults.
+func TestLoad_FullPriorityChain(t *testing.T) {
+	// Create a temporary YAML config file with specific values
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config.yaml"
+
+	yamlContent := `
+server:
+  port: 8000
+database:
+  name: loomio_from_file
+  host: filehost
+`
+	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	// Set environment variable to override file
+	t.Setenv("LOOMIO_DATABASE_NAME", "loomio_from_env")
+
+	// Create a viper instance with CLI flag to override env
+	v := NewViper()
+
+	// Simulate CLI flag override (highest priority)
+	v.Set("server.port", 9999)
+
+	cfg, err := LoadWithViper(v, configPath)
+	if err != nil {
+		t.Fatalf("LoadWithViper failed: %v", err)
+	}
+
+	// Verify priority chain:
+	// 1. CLI (server.port) should be 9999 (not 8000 from file)
+	if cfg.Server.Port != 9999 {
+		t.Errorf("expected server.port=9999 (CLI override), got %d", cfg.Server.Port)
+	}
+
+	// 2. Env (database.name) should override file value
+	if cfg.Database.Name != "loomio_from_env" {
+		t.Errorf("expected database.name='loomio_from_env' (env override), got %s", cfg.Database.Name)
+	}
+
+	// 3. File (database.host) should override default
+	if cfg.Database.Host != "filehost" {
+		t.Errorf("expected database.host='filehost' (file), got %s", cfg.Database.Host)
+	}
+
+	// 4. Default (database.port) should apply when nothing else specified
+	if cfg.Database.Port != 5432 {
+		t.Errorf("expected database.port=5432 (default), got %d", cfg.Database.Port)
+	}
+}
+
+// T097: Test that environment variables override config file values.
+func TestLoad_EnvOverridesConfigFile(t *testing.T) {
+	// Create a temporary YAML config file
+	tmpDir := t.TempDir()
+	configPath := tmpDir + "/config.yaml"
+
+	yamlContent := `
+database:
+  host: config-file-host
+  name: config-file-db
+server:
+  port: 7000
+`
+	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
+		t.Fatalf("Failed to write temp config: %v", err)
+	}
+
+	// Set env vars to override config file
+	t.Setenv("LOOMIO_DATABASE_HOST", "env-host")
+	t.Setenv("LOOMIO_SERVER_PORT", "7777")
+
+	cfg, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Env should override file
+	if cfg.Database.Host != "env-host" {
+		t.Errorf("expected database.host='env-host' (env override), got %s", cfg.Database.Host)
+	}
+	if cfg.Server.Port != 7777 {
+		t.Errorf("expected server.port=7777 (env override), got %d", cfg.Server.Port)
+	}
+
+	// File value should still apply where env not set
+	if cfg.Database.Name != "config-file-db" {
+		t.Errorf("expected database.name='config-file-db' (file), got %s", cfg.Database.Name)
+	}
+}
+
 // T064: Test for DSN with special characters in password.
 func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
 	tests := []struct {

@@ -48,4 +48,4 @@ vendor/
 *.tmp
 *.swp
 *~
-migrate
+/migrate

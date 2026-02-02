@@ -66,12 +66,10 @@ func main() {
 	rootCmd.PersistentFlags().String("db-sslmode", "disable", "database SSL mode")
 
 	// Bind database flags to viper
-	_ = v.BindPFlag("database.host", rootCmd.PersistentFlags().Lookup("db-host"))
-	_ = v.BindPFlag("database.port", rootCmd.PersistentFlags().Lookup("db-port"))
-	_ = v.BindPFlag("database.user", rootCmd.PersistentFlags().Lookup("db-user"))
-	_ = v.BindPFlag("database.password", rootCmd.PersistentFlags().Lookup("db-password"))
-	_ = v.BindPFlag("database.name", rootCmd.PersistentFlags().Lookup("db-name"))
-	_ = v.BindPFlag("database.sslmode", rootCmd.PersistentFlags().Lookup("db-sslmode"))
+	if err := bindFlags(rootCmd); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	// Subcommands
 	rootCmd.AddCommand(upCmd())
@@ -132,7 +130,10 @@ func createCmd() *cobra.Command {
 		Short: "Create a new migration file",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			migrationsDir := findMigrationsDir()
+			migrationsDir, err := findMigrationsDir()
+			if err != nil {
+				return fmt.Errorf("cannot locate migrations: %w", err)
+			}
 			return goose.Create(nil, migrationsDir, args[0], "sql")
 		},
 	}
@@ -140,7 +141,10 @@ func createCmd() *cobra.Command {
 
 func runMigration(command string) error {
 	// Find migrations directory
-	migrationsDir := findMigrationsDir()
+	migrationsDir, err := findMigrationsDir()
+	if err != nil {
+		return fmt.Errorf("cannot locate migrations: %w", err)
+	}
 
 	// Build DSN from config
 	dsn := cfg.Database.DSN()
@@ -177,7 +181,8 @@ func runMigration(command string) error {
 }
 
 // findMigrationsDir looks for the migrations directory.
-func findMigrationsDir() string {
+// Returns an error if no migrations directory can be found.
+func findMigrationsDir() (string, error) {
 	// Try common locations
 	candidates := []string{
 		"migrations",
@@ -187,11 +192,58 @@ func findMigrationsDir() string {
 
 	for _, dir := range candidates {
 		if info, err := os.Stat(dir); err == nil && info.IsDir() {
-			absPath, _ := filepath.Abs(dir)
-			return absPath
+			absPath, err := filepath.Abs(dir)
+			if err != nil {
+				return "", fmt.Errorf("failed to get absolute path for migrations directory: %w", err)
+			}
+			return absPath, nil
 		}
 	}
 
-	// Default to migrations in current directory
-	return "migrations"
+	return "", fmt.Errorf("migrations directory not found (tried: %v)", candidates)
+}
+
+// These functions wrap os package functions to enable testing.
+var (
+	getwd = os.Getwd
+	chdir = os.Chdir
+)
+
+func bindFlags(cmd *cobra.Command) error {
+	// flagBinder collects BindPFlag errors to catch flag name typos at startup
+	b := &flagBinder{v: v, cmd: cmd}
+
+	b.bind("database.host", "db-host")
+	b.bind("database.port", "db-port")
+	b.bind("database.user", "db-user")
+	b.bind("database.password", "db-password")
+	b.bind("database.name", "db-name")
+	b.bind("database.sslmode", "db-sslmode")
+
+	return b.err()
+}
+
+// flagBinder collects errors from BindPFlag calls.
+type flagBinder struct {
+	v      *viper.Viper
+	cmd    *cobra.Command
+	errors []string
+}
+
+func (b *flagBinder) bind(key, flagName string) {
+	flag := b.cmd.PersistentFlags().Lookup(flagName)
+	if flag == nil {
+		b.errors = append(b.errors, fmt.Sprintf("flag %q not found", flagName))
+		return
+	}
+	if err := b.v.BindPFlag(key, flag); err != nil {
+		b.errors = append(b.errors, fmt.Sprintf("failed to bind %q to %q: %v", flagName, key, err))
+	}
+}
+
+func (b *flagBinder) err() error {
+	if len(b.errors) == 0 {
+		return nil
+	}
+	return fmt.Errorf("flag binding errors: %v", b.errors)
 }

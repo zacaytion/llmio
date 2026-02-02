@@ -80,7 +80,10 @@ func main() {
 	rootCmd.Flags().String("log-output", "stdout", "log output (stdout, stderr, or file path)")
 
 	// Bind flags to viper for priority override
-	bindFlags(rootCmd)
+	if err := bindFlags(rootCmd); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -88,41 +91,74 @@ func main() {
 	}
 }
 
-func bindFlags(cmd *cobra.Command) {
+func bindFlags(cmd *cobra.Command) error {
+	// flagBinder collects BindPFlag errors to catch flag name typos at startup
+	b := &flagBinder{v: v, cmd: cmd}
+
 	// Bind server flags to our viper instance
-	_ = v.BindPFlag("server.port", cmd.Flags().Lookup("port"))
-	_ = v.BindPFlag("server.read_timeout", cmd.Flags().Lookup("http-read-timeout"))
-	_ = v.BindPFlag("server.write_timeout", cmd.Flags().Lookup("http-write-timeout"))
-	_ = v.BindPFlag("server.idle_timeout", cmd.Flags().Lookup("http-idle-timeout"))
+	b.bind("server.port", "port")
+	b.bind("server.read_timeout", "http-read-timeout")
+	b.bind("server.write_timeout", "http-write-timeout")
+	b.bind("server.idle_timeout", "http-idle-timeout")
 
 	// Bind database flags
-	_ = v.BindPFlag("database.host", cmd.Flags().Lookup("db-host"))
-	_ = v.BindPFlag("database.port", cmd.Flags().Lookup("db-port"))
-	_ = v.BindPFlag("database.user", cmd.Flags().Lookup("db-user"))
-	_ = v.BindPFlag("database.password", cmd.Flags().Lookup("db-password"))
-	_ = v.BindPFlag("database.name", cmd.Flags().Lookup("db-name"))
-	_ = v.BindPFlag("database.sslmode", cmd.Flags().Lookup("db-sslmode"))
-	_ = v.BindPFlag("database.max_conns", cmd.Flags().Lookup("db-max-conns"))
-	_ = v.BindPFlag("database.min_conns", cmd.Flags().Lookup("db-min-conns"))
-	_ = v.BindPFlag("database.max_conn_lifetime", cmd.Flags().Lookup("db-max-conn-lifetime"))
-	_ = v.BindPFlag("database.max_conn_idle_time", cmd.Flags().Lookup("db-max-conn-idle-time"))
-	_ = v.BindPFlag("database.health_check_period", cmd.Flags().Lookup("db-health-check-period"))
+	b.bind("database.host", "db-host")
+	b.bind("database.port", "db-port")
+	b.bind("database.user", "db-user")
+	b.bind("database.password", "db-password")
+	b.bind("database.name", "db-name")
+	b.bind("database.sslmode", "db-sslmode")
+	b.bind("database.max_conns", "db-max-conns")
+	b.bind("database.min_conns", "db-min-conns")
+	b.bind("database.max_conn_lifetime", "db-max-conn-lifetime")
+	b.bind("database.max_conn_idle_time", "db-max-conn-idle-time")
+	b.bind("database.health_check_period", "db-health-check-period")
 
 	// Bind session flags
-	_ = v.BindPFlag("session.duration", cmd.Flags().Lookup("session-duration"))
-	_ = v.BindPFlag("session.cleanup_interval", cmd.Flags().Lookup("session-cleanup-interval"))
+	b.bind("session.duration", "session-duration")
+	b.bind("session.cleanup_interval", "session-cleanup-interval")
 
 	// Bind logging flags
-	_ = v.BindPFlag("logging.level", cmd.Flags().Lookup("log-level"))
-	_ = v.BindPFlag("logging.format", cmd.Flags().Lookup("log-format"))
-	_ = v.BindPFlag("logging.output", cmd.Flags().Lookup("log-output"))
+	b.bind("logging.level", "log-level")
+	b.bind("logging.format", "log-format")
+	b.bind("logging.output", "log-output")
+
+	return b.err()
+}
+
+// flagBinder collects errors from BindPFlag calls.
+type flagBinder struct {
+	v      *viper.Viper
+	cmd    *cobra.Command
+	errors []string
+}
+
+func (b *flagBinder) bind(key, flagName string) {
+	flag := b.cmd.Flags().Lookup(flagName)
+	if flag == nil {
+		b.errors = append(b.errors, fmt.Sprintf("flag %q not found", flagName))
+		return
+	}
+	if err := b.v.BindPFlag(key, flag); err != nil {
+		b.errors = append(b.errors, fmt.Sprintf("failed to bind %q to %q: %v", flagName, key, err))
+	}
+}
+
+func (b *flagBinder) err() error {
+	if len(b.errors) == 0 {
+		return nil
+	}
+	return fmt.Errorf("flag binding errors: %v", b.errors)
 }
 
 func runServer(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	// Setup logging from config with cleanup support
-	closeLogger := logging.SetupDefaultWithCleanup(cfg.Logging)
+	closeLogger, err := logging.SetupDefaultWithCleanup(cfg.Logging)
+	if err != nil {
+		return fmt.Errorf("failed to setup logging: %w", err)
+	}
 	defer func() {
 		if err := closeLogger(); err != nil {
 			// Can't use slog here as we're closing it
@@ -140,8 +176,10 @@ func runServer(cmd *cobra.Command, args []string) error {
 	// Create session store with configured duration
 	sessionStore := auth.NewSessionStoreWithConfig(cfg.Session.Duration)
 
-	// Start session cleanup goroutine
-	go startSessionCleanup(sessionStore, cfg.Session.CleanupInterval)
+	// Start session cleanup goroutine with cancellation context
+	cleanupCtx, cancelCleanup := context.WithCancel(context.Background())
+	defer cancelCleanup()
+	go startSessionCleanup(cleanupCtx, sessionStore, cfg.Session.CleanupInterval)
 
 	// Create router using stdlib ServeMux
 	mux := http.NewServeMux()
@@ -205,14 +243,20 @@ func runServer(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func startSessionCleanup(store *auth.SessionStore, interval time.Duration) {
+func startSessionCleanup(ctx context.Context, store *auth.SessionStore, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		cleaned := store.CleanupExpired()
-		if cleaned > 0 {
-			slog.Info("cleaned expired sessions", "count", cleaned)
+	for {
+		select {
+		case <-ctx.Done():
+			slog.DebugContext(ctx, "session cleanup goroutine stopped")
+			return
+		case <-ticker.C:
+			cleaned := store.CleanupExpired()
+			if cleaned > 0 {
+				slog.InfoContext(ctx, "cleaned expired sessions", "count", cleaned)
+			}
 		}
 	}
 }

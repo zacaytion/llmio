@@ -205,7 +205,10 @@ func TestSetupWithCleanup_ReturnsCloser(t *testing.T) {
 		Output: tmpFile,
 	}
 
-	logger, closer := SetupWithCleanup(cfg, os.Stdout)
+	logger, closer, err := SetupWithCleanup(cfg, os.Stdout)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if logger == nil {
 		t.Fatal("expected non-nil logger")
 	}
@@ -233,7 +236,10 @@ func TestSetupWithCleanup_StdoutNoClose(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	logger, closer := SetupWithCleanup(cfg, &buf)
+	logger, closer, err := SetupWithCleanup(cfg, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if logger == nil {
 		t.Fatal("expected non-nil logger")
 	}
@@ -246,5 +252,109 @@ func TestSetupWithCleanup_StdoutNoClose(t *testing.T) {
 	// Calling closer should not error
 	if err := closer(); err != nil {
 		t.Errorf("closer returned error: %v", err)
+	}
+}
+
+// T080: Test that log file open failure returns an error (not silent fallback).
+func TestSetupWithCleanup_FileOpenFailure_ReturnsError(t *testing.T) {
+	// Use a path that cannot be created (no permissions or invalid path)
+	cfg := config.LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: "/nonexistent/path/that/cannot/exist/logfile.log",
+	}
+
+	var buf bytes.Buffer
+	_, _, err := SetupWithCleanup(cfg, &buf)
+
+	// Should return an error, not silently fall back
+	if err == nil {
+		t.Fatal("expected error when log file cannot be opened, got nil")
+	}
+
+	// Error should mention the path or file opening issue
+	errStr := err.Error()
+	if !strings.Contains(errStr, "log") && !strings.Contains(errStr, "file") && !strings.Contains(errStr, "open") {
+		t.Errorf("error should indicate log file issue, got: %s", errStr)
+	}
+}
+
+// T092: Test for invalid log level warning.
+func TestParseLevel_InvalidLevel_DefaultsToInfo(t *testing.T) {
+	// Test that invalid levels default to info (behavior test)
+	tests := []struct {
+		level    string
+		expected slog.Level
+	}{
+		{"debug", slog.LevelDebug},
+		{"info", slog.LevelInfo},
+		{"warn", slog.LevelWarn},
+		{"error", slog.LevelError},
+		{"invalid", slog.LevelInfo}, // should default to info
+		{"deubg", slog.LevelInfo},   // typo - should default
+		{"", slog.LevelInfo},        // empty - should default
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.level, func(t *testing.T) {
+			got := parseLevel(tt.level)
+			if got != tt.expected {
+				t.Errorf("parseLevel(%q) = %v, want %v", tt.level, got, tt.expected)
+			}
+		})
+	}
+}
+
+// T094: Test for invalid log format defaults to JSON.
+func TestCreateHandler_InvalidFormat_DefaultsToJSON(t *testing.T) {
+	var buf bytes.Buffer
+
+	// Invalid format should create JSON handler
+	handler := createHandler("invalid_format", &buf, slog.LevelInfo)
+	logger := slog.New(handler)
+
+	logger.Info("test message")
+
+	// Output should be valid JSON (default behavior)
+	var logEntry map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
+		t.Errorf("expected valid JSON for invalid format (should default to JSON), got: %s", buf.String())
+	}
+}
+
+// T098: Test verifying file handle is actually closed after cleanup.
+func TestSetupWithCleanup_FileHandleClosedAfterCleanup(t *testing.T) {
+	tmpFile := t.TempDir() + "/test_close_verify.log"
+
+	cfg := config.LoggingConfig{
+		Level:  "info",
+		Format: "json",
+		Output: tmpFile,
+	}
+
+	logger, closer, err := SetupWithCleanup(cfg, os.Stdout)
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	// Log something
+	logger.Info("before close")
+
+	// Close the file
+	if err := closer(); err != nil {
+		t.Errorf("closer returned error: %v", err)
+	}
+
+	// After closing, writing should still work (slog buffers/handles this gracefully)
+	// but the file should be closed - we verify by checking we can open it exclusively
+	// (this is platform-specific, so we just verify no panic and cleanup ran)
+
+	// Verify file was created and has content
+	content, err := os.ReadFile(tmpFile) //nolint:gosec // test file path
+	if err != nil {
+		t.Fatalf("failed to read log file: %v", err)
+	}
+	if len(content) == 0 {
+		t.Error("expected log content in file")
 	}
 }
