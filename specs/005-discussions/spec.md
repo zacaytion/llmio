@@ -96,6 +96,8 @@ As a discussion participant, I want the system to track what I have read so that
 - What happens when a group is archived? → Discussions remain accessible but read-only; no new discussions can be created
 - How are @mentions in discussion/comment bodies handled? → Captured as part of rich text; mention events are a future feature (006-events)
 - What if max_depth is set to 0? → All comments appear at root level (flat discussion)
+- What if parent_id references a comment in a different discussion? → Returns 404 (parent not found in this discussion)
+- Can a soft-deleted comment be edited? → No, returns 404 (comment effectively no longer exists for editing)
 
 ## Requirements *(mandatory)*
 
@@ -131,7 +133,7 @@ As a discussion participant, I want the system to track what I have read so that
 - **SC-001**: Users can create a discussion and add their first comment within 60 seconds *(UX metric; applies when frontend exists)*
 - **SC-002**: System correctly enforces group permission flags in 100% of access attempts (verified via permission matrix tests)
 - **SC-003**: Comment threading displays correctly with up to 10 levels of nesting (respecting max_depth configuration) *(backend enforces depth; frontend display deferred)*
-- **SC-004**: 95% of read-state updates complete within 500ms of user opening a discussion
+- **SC-004**: p95 of read-state updates complete within 500ms of user opening a discussion (measured server-side from request receipt to response sent)
 - **SC-005**: Direct discussions are never visible to non-participants (verified via security tests)
 - **SC-006**: Soft-deleted comments retain their children (reply structure preserved) and display "[deleted]" placeholder
 - **SC-007**: Closed discussions prevent 100% of comment creation attempts (verified via integration tests)

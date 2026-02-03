@@ -20,7 +20,7 @@
 **Purpose**: Create directories and initial file scaffolding
 
 **Prerequisite Check** (before any tasks):
-- [ ] T000 Verify Feature 004 migrations exist: `ls migrations/002_create_groups.sql migrations/003_create_memberships.sql` - if missing, sync worktree with main branch or complete Feature 004 first
+- [ ] T000 Verify Feature 004 migrations exist: `ls migrations/003_create_groups.sql migrations/004_create_memberships.sql` - if missing, sync worktree with 004-groups-memberships branch or complete Feature 004 first
 
 - [ ] T001 Create `internal/discussion/` directory for domain logic
 - [ ] T002 [P] Create `internal/db/queries/` directory for sqlc query files
@@ -36,15 +36,15 @@
 
 ### Schema Tests (pgTap) - Write First, Must Fail
 
-- [ ] T004 [P] Create pgTap test for discussions table schema in `tests/pgtap/004_discussions_test.sql`
-- [ ] T005 [P] Create pgTap test for comments table schema in `tests/pgtap/005_comments_test.sql`
-- [ ] T006 [P] Create pgTap test for discussion_readers table schema in `tests/pgtap/006_discussion_readers_test.sql`
+- [ ] T004 [P] Create pgTap test for discussions table schema in `tests/pgtap/006_discussions_test.sql`
+- [ ] T005 [P] Create pgTap test for comments table schema in `tests/pgtap/007_comments_test.sql`
+- [ ] T006 [P] Create pgTap test for discussion_readers table schema in `tests/pgtap/008_discussion_readers_test.sql`
 
 ### Migrations - Make Schema Tests Pass
 
-- [ ] T007 Create migration `migrations/004_create_discussions.sql` (discussions table per data-model.md)
-- [ ] T008 Create migration `migrations/005_create_comments.sql` (comments table with self-referential FK)
-- [ ] T009 Create migration `migrations/006_create_discussion_readers.sql` (read tracking table)
+- [ ] T007 Create migration `migrations/006_create_discussions.sql` (discussions table per data-model.md)
+- [ ] T008 Create migration `migrations/007_create_comments.sql` (comments table with self-referential FK)
+- [ ] T009 Create migration `migrations/008_create_discussion_readers.sql` (read tracking table)
 - [ ] T010 Run `make test-pgtap` to verify all schema tests pass
 
 ### sqlc Queries - Foundational
@@ -245,6 +245,10 @@
 - [ ] T084 Run `golangci-lint run ./...` and fix any issues
 - [ ] T085 Validate quickstart.md scenarios work end-to-end
 - [ ] T086 Run `make test-pgtap` to verify all schema tests still pass
+- [ ] T087 Add sqlc query `ListDiscussionsByGroup` with pagination in `internal/db/queries/discussions.sql`
+- [ ] T088 Add sqlc query `CountDiscussionsByGroup` for total count in `internal/db/queries/discussions.sql`
+- [ ] T089 Implement `GET /discussions` list endpoint with limit/offset in `internal/api/discussions.go`
+- [ ] T090 Write API handler tests for pagination in `internal/api/discussions_test.go`
 
 ---
 
@@ -360,7 +364,7 @@ With multiple developers:
 
 | Metric | Count |
 |--------|-------|
-| Total Tasks | 87 |
+| Total Tasks | 91 |
 | Phase 1 (Setup) | 4 |
 | Phase 2 (Foundational) | 13 |
 | Phase 3 (US1) | 9 |
@@ -369,7 +373,7 @@ With multiple developers:
 | Phase 6 (US4) | 10 |
 | Phase 7 (US5) | 8 |
 | Phase 8 (CRUD) | 12 |
-| Phase 9 (Polish) | 8 |
+| Phase 9 (Polish) | 12 |
 
 | User Story | Task Count | Parallel Opportunities |
 |------------|------------|------------------------|
@@ -381,6 +385,6 @@ With multiple developers:
 | US4 (Direct Discussions) | 10 | 0 (sequential TDD) |
 | US5 (Read Tracking) | 8 | 0 (sequential TDD) |
 | CRUD Completion | 12 | 0 (sequential TDD) |
-| Polish | 8 | 2 |
+| Polish | 12 | 2 |
 
 **MVP Scope**: Phases 1-3 (Setup + Foundational + US1) = 26 tasks

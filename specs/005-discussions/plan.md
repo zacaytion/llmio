@@ -62,16 +62,18 @@ internal/
     └── permissions.go       # Permission checks
 
 migrations/
-├── 002_create_groups.sql       # Feature 004 (dependency)
-├── 003_create_memberships.sql  # Feature 004 (dependency)
-├── 004_create_discussions.sql  # This feature
-├── 005_create_comments.sql     # This feature
-└── 006_create_discussion_readers.sql  # This feature
+├── 002_create_audit_schema.sql        # Feature 004 (dependency)
+├── 003_create_groups.sql              # Feature 004 (dependency)
+├── 004_create_memberships.sql         # Feature 004 (dependency)
+├── 005_enable_auditing.sql            # Feature 004 (dependency)
+├── 006_create_discussions.sql         # This feature
+├── 007_create_comments.sql            # This feature
+└── 008_create_discussion_readers.sql  # This feature
 
 tests/pgtap/
-├── 004_discussions_test.sql    # Schema constraints
-├── 005_comments_test.sql       # Comment threading tests
-└── 006_discussion_readers_test.sql  # Read tracking tests
+├── 006_discussions_test.sql           # Schema constraints
+├── 007_comments_test.sql              # Comment threading tests
+└── 008_discussion_readers_test.sql    # Read tracking tests
 ```
 
 **Structure Decision**: Follows existing `internal/` layout from Features 001-003. Adds `internal/discussion/` for domain logic, keeping API handlers thin.

@@ -34,7 +34,7 @@
 | `title` | VARCHAR(255) | NOT NULL | Required |
 | `description` | TEXT | | Optional body |
 | `group_id` | BIGINT | FK groups(id) ON DELETE CASCADE | NULL = direct discussion |
-| `author_id` | BIGINT | FK users(id) ON DELETE SET NULL, NOT NULL | Creator |
+| `author_id` | BIGINT | FK users(id) ON DELETE SET NULL | Creator (nullable if user deleted) |
 | `private` | BOOLEAN | NOT NULL DEFAULT true | Visibility flag |
 | `max_depth` | INTEGER | NOT NULL DEFAULT 3, CHECK (max_depth >= 0) | Comment nesting limit |
 | `closed_at` | TIMESTAMPTZ | | NULL = open |
@@ -54,7 +54,7 @@
 |--------|------|-------------|-------|
 | `id` | BIGSERIAL | PK | |
 | `discussion_id` | BIGINT | FK discussions(id) ON DELETE CASCADE, NOT NULL | Parent discussion |
-| `author_id` | BIGINT | FK users(id) ON DELETE SET NULL, NOT NULL | Creator |
+| `author_id` | BIGINT | FK users(id) ON DELETE SET NULL | Creator (nullable if user deleted) |
 | `parent_id` | BIGINT | FK comments(id) ON DELETE CASCADE | NULL = top-level |
 | `body` | TEXT | NOT NULL | Comment content |
 | `depth` | INTEGER | NOT NULL DEFAULT 0, CHECK (depth >= 0) | Nesting level (0 = root) |
@@ -132,8 +132,10 @@
 | Entity | Field | Rule |
 |--------|-------|------|
 | Discussion | title | Required, 1-255 characters |
+| Discussion | author_id | Required on creation; becomes NULL if user deleted |
 | Discussion | max_depth | Integer ≥ 0, default 3 |
 | Comment | body | Required, non-empty |
+| Comment | author_id | Required on creation; becomes NULL if user deleted |
 | Comment | depth | Must be ≤ parent discussion's max_depth |
 | DiscussionReader | volume | One of: mute, normal, loud |
 

@@ -9,6 +9,43 @@ info:
 
 paths:
   /discussions:
+    get:
+      operationId: listDiscussions
+      summary: List discussions
+      description: |
+        Returns discussions accessible to the current user.
+        Supports pagination via limit/offset.
+      tags: [discussions]
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Filter by group (omit for all accessible)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: List of discussions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscussionList'
+        '401':
+          description: Not authenticated
+
     post:
       operationId: createDiscussion
       summary: Create a new discussion
@@ -31,10 +68,12 @@ paths:
                 $ref: '#/components/schemas/Discussion'
         '400':
           description: Invalid request (missing title, invalid group_id)
-        '403':
-          description: Permission denied (not a member or flag disabled)
         '401':
           description: Not authenticated
+        '403':
+          description: Permission denied (not a member or flag disabled)
+        '422':
+          description: Validation error (title too long, invalid max_depth)
 
   /discussions/{id}:
     get:
@@ -89,6 +128,8 @@ paths:
           description: Permission denied
         '404':
           description: Discussion not found
+        '422':
+          description: Validation error (title too long, empty title)
 
     delete:
       operationId: deleteDiscussion
@@ -374,3 +415,18 @@ components:
           enum: [mute, normal, loud]
         participant:
           type: boolean
+
+    DiscussionList:
+      type: object
+      properties:
+        discussions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Discussion'
+        total:
+          type: integer
+          description: Total count (for pagination)
+        limit:
+          type: integer
+        offset:
+          type: integer

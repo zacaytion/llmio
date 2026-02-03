@@ -31,18 +31,22 @@ paths:
                 $ref: '#/components/schemas/Comment'
         '400':
           description: Invalid request (empty body, invalid parent_id)
+        '401':
+          description: Not authenticated
         '403':
           description: Access denied or discussion closed
         '404':
-          description: Discussion or parent comment not found
-        '401':
-          description: Not authenticated
+          description: Discussion not found, or parent comment not found in the specified discussion
+        '422':
+          description: Validation error (nesting depth exceeded, empty body)
 
   /comments/{id}:
     patch:
       operationId: updateComment
       summary: Edit a comment
-      description: Only the comment author can edit. Records edited_at timestamp.
+      description: |
+        Only the comment author can edit. Records edited_at timestamp.
+        Cannot edit soft-deleted comments (returns 404).
       tags: [comments]
       parameters:
         - name: id
@@ -70,6 +74,8 @@ paths:
           description: Not the author
         '404':
           description: Comment not found
+        '422':
+          description: Validation error (empty body)
 
     delete:
       operationId: deleteComment
