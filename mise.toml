@@ -8,17 +8,20 @@ config_roots = [
 
 [tools]
 go = "latest"
+node = "22"  # Required for npm-based linters
 "pipx:git+https://github.com/github/spec-kit.git" = "latest"
 pnpm = "latest"
 ruby = "3.4.7"
 "gem:ruby-lsp" = "latest"
+"pipx:squawk-cli" = "latest"
 
 [env]
-_.file = { path = '.env.secrets', redact = true}
+_.file = { path = '.env', redact = true}
 ENABLE_TOOL_SEARCH = true
 MISE_EXPERIMENTAL = 1
 OPENSPEC_TELEMETRY = 0
 DO_NOT_TRACK = 1
+PODMAN_COMPOSE_WARNING_LOGS = 0
 
 [settings]
 # This must be enabled to make the hooks work

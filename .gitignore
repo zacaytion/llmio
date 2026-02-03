@@ -40,6 +40,13 @@ config.local.yaml
 vendor/
 /server
 
+# Build output
+bin/*
+!bin/.gitkeep
+
+# Local artifacts (coverage, logs)
+.var/
+
 # IDE
 .idea/
 *.iml

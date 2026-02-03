@@ -37,6 +37,7 @@ sqlc generate                 # Regenerate DB types from queries
 - PostgreSQL DSN passwords: single-quote and escape (`\\` then `\'`) for special chars
 - Dead code removal: Check test files (`*_test.go`) before removing package-level vars - tests may depend on them
 - Import cycle: `internal/validation` can't import `internal/config` (config imports validation); duplicate switch logic is intentional
+- Viper env prefix: Go app uses `LOOMIO_DATABASE_*` env vars (e.g., `LOOMIO_DATABASE_PASSWORD`), not `DB_*`
 
 ### Error Handling Patterns
 
@@ -63,11 +64,24 @@ sqlc generate                 # Regenerate DB types from queries
 - Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix
 - pgTap schema tests belong in `tests/pgtap/`, NOT in migrations directory
 
+### Makefile & Containers
+
+- `make up/down/logs` - Container lifecycle; `make server/migrate ARGS="..."` - Run binaries with args
+- `make clean` - Remove everything (volumes, binaries, caches); `make clean-go-{build,test,mod,fuzz,all}` - Go caches
+- Container env vars (`POSTGRES_*`) differ from Go app env vars (`LOOMIO_DATABASE_*`); both documented in `.env.example`
+- PostgreSQL 18 volume mount: use `/var/lib/postgresql` (not `/var/lib/postgresql/data`) for `pg_upgrade --link` compatibility
+- Podman Compose volumes: prefixed with project directory name (e.g., `llmio_postgres_data`)
+
 ### PostgreSQL Access
 
-- Use `psql-18` (not `psql`) with `-h localhost -U z` and `PGPASSWORD=password`
-- Example: `PGPASSWORD=password psql-18 -h localhost -U z -d loomio_development -c "SELECT 1;"`
-- Server env vars: `DB_USER=z DB_PASSWORD=password DB_HOST=localhost`
+**Via container (recommended):**
+- Use `psql-18` (not `psql`) with `-h localhost -U postgres` and `PGPASSWORD=postgres`
+- Example: `PGPASSWORD=postgres psql-18 -h localhost -U postgres -d loomio_development -c "SELECT 1;"`
+- Credentials match `.env.example` defaults: `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=postgres`
+
+**Go app connection:**
+- Uses `LOOMIO_DATABASE_*` env vars (Viper prefix), not `POSTGRES_*`
+- Example: `LOOMIO_DATABASE_USER=postgres LOOMIO_DATABASE_PASSWORD=postgres make server`
 
 ### Version Management (mise)
 
@@ -121,9 +135,26 @@ cd orig/loomio && rake db:setup
 Conventional commits enforced via commitlint. Valid types:
 `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `plan`, `refactor`, `revert`, `style`, `test`
 
-Pre-commit hooks run `golangci-lint` on Go files.
+Pre-commit hooks run multiple linters in parallel via Lefthook.
 
 **Pre-commit gotcha**: Linter runs on ALL Go files, not just staged ones. Pre-existing errors anywhere block commits.
+
+### Additional Linters
+
+```bash
+make lint-all         # Run all linters
+make lint-files       # File naming conventions (ls-lint)
+make lint-md          # Markdown style (markdownlint)
+make lint-makefile    # Makefile quality (checkmake)
+make lint-migrations  # SQL migration safety (squawk)
+```
+
+### Linter Gotchas
+
+- squawk: npm package broken; use `pipx:squawk-cli` via mise, invoke with `mise exec -- squawk`
+- ls-lint: Regex rules match filename only (not extension); use `regex:^\d{3}_[a-z_]+$` not `^\d{3}_[a-z_]+\.sql$`
+- checkmake: `minphony`/`phonydeclared` rules have false positives with file-target patterns; disable in `checkmake.ini`
+- markdownlint: Exclude generated/legacy dirs in `.markdownlint-cli2.yaml` globs (discovery, specs, .specify)
 
 ## Architecture
 
@@ -222,6 +253,11 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - `/superpowers:test-driven-development` - During implementation, enforce Red-Green-Refactor
 - `/superpowers:verification-before-completion` - Before claiming done, verify tests pass
 
+### Design Document Storage
+
+- **Always use `/speckit.specify`** to create feature specs and designs - NOT `docs/plans/`
+- All design artifacts go in `specs/N-feature-name/` via speckit workflow
+
 ### Feature Branch Setup
 
 ```bash
@@ -241,6 +277,8 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - PostgreSQL 18 for users; in-memory Go map for sessions (MVP) (001-user-auth)
 - Go 1.25+ + Viper (config), Cobra (CLI), log/slog (stdlib logging) (002-config-system)
 - PostgreSQL 18 (existing), YAML config files (new) (002-config-system)
+- N/A (shell scripts, Makefile, YAML configuration) + Podman, Podman Compose, golangci-lint, goimports (003-dev-workflow)
+- PostgreSQL 18 (container), Redis 8 (container) (003-dev-workflow)
 
 ## Validation Patterns
 
@@ -270,4 +308,5 @@ func Load() (*Config, error) {
 **Cross-field validation**: Use `ltefield`/`gtefield` tags (e.g., `validate:"ltefield=MaxConns"` ensures MinConns ≤ MaxConns).
 
 ## Recent Changes
+- 003-dev-workflow: Added N/A (shell scripts, Makefile, YAML configuration) + Podman, Podman Compose, golangci-lint, goimports
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2

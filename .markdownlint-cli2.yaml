@@ -1,0 +1,16 @@
+config:
+  default: true
+  MD013: false        # Line length (disable - let editors handle)
+  MD033: false        # Inline HTML (needed for some docs)
+  MD041: false        # First line h1 (not always applicable)
+
+globs:
+  - "**/*.md"
+  - "!orig/**"        # Exclude legacy Rails codebase
+  - "!discovery/**"   # Exclude generated specs
+  - "!node_modules/**"
+  - "!.var/**"
+  - "!.specify/**"    # Exclude speckit memory/templates
+  - "!specs/**"       # Exclude feature specs (generated/working docs)
+  - "!docs/**"        # Exclude docs (planning, workflows)
+  - "!CLAUDE.md"      # Exclude Claude Code context file
