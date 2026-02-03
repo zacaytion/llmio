@@ -330,6 +330,7 @@ func Load() (*Config, error) {
 **Cross-field validation**: Use `ltefield`/`gtefield` tags (e.g., `validate:"ltefield=MaxConns"` ensures MinConns ≤ MaxConns).
 
 ## Recent Changes
+- 005-discussions: Added Go 1.25+ + Huma (API), pgx/v5 (database), sqlc (type-safe queries)
 - 004-groups-memberships: Added Go 1.25+ (matches existing codebase) + Huma web framework, pgx/v5, sqlc, go-playground/validator/v10
 - 003-dev-workflow: Added N/A (shell scripts, Makefile, YAML configuration) + Podman, Podman Compose, golangci-lint, goimports
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2

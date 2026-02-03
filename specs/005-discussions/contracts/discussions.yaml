@@ -1,0 +1,376 @@
+# Discussions API Contract
+# Design documentation for Huma implementation
+# Huma Go types are the source of truth; this file aids design review
+
+openapi: 3.1.0
+info:
+  title: Discussions API
+  version: 1.0.0
+
+paths:
+  /discussions:
+    post:
+      operationId: createDiscussion
+      summary: Create a new discussion
+      description: |
+        Creates a discussion within a group (requires membership + permission flag)
+        or as a direct discussion (requires participant list).
+      tags: [discussions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDiscussionRequest'
+      responses:
+        '201':
+          description: Discussion created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discussion'
+        '400':
+          description: Invalid request (missing title, invalid group_id)
+        '403':
+          description: Permission denied (not a member or flag disabled)
+        '401':
+          description: Not authenticated
+
+  /discussions/{id}:
+    get:
+      operationId: getDiscussion
+      summary: Get a discussion by ID
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Discussion details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscussionWithComments'
+        '404':
+          description: Discussion not found
+        '403':
+          description: Access denied (not a participant or member)
+
+    patch:
+      operationId: updateDiscussion
+      summary: Update discussion title or description
+      description: Only the author or group admin can update.
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDiscussionRequest'
+      responses:
+        '200':
+          description: Discussion updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discussion'
+        '403':
+          description: Permission denied
+        '404':
+          description: Discussion not found
+
+    delete:
+      operationId: deleteDiscussion
+      summary: Delete a discussion
+      description: Only the author or group admin can delete.
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Discussion deleted
+        '403':
+          description: Permission denied
+        '404':
+          description: Discussion not found
+
+  /discussions/{id}/close:
+    post:
+      operationId: closeDiscussion
+      summary: Close a discussion
+      description: Prevents new comments. Only author or admin can close.
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Discussion closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discussion'
+        '403':
+          description: Permission denied
+        '404':
+          description: Discussion not found
+        '409':
+          description: Already closed
+
+  /discussions/{id}/reopen:
+    post:
+      operationId: reopenDiscussion
+      summary: Reopen a closed discussion
+      description: Allows new comments. Only author or admin can reopen.
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Discussion reopened
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Discussion'
+        '403':
+          description: Permission denied
+        '404':
+          description: Discussion not found
+        '409':
+          description: Already open
+
+  /discussions/{id}/participants:
+    post:
+      operationId: addParticipant
+      summary: Add a participant to a direct discussion
+      description: Only works for direct discussions (no group). Author only.
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddParticipantRequest'
+      responses:
+        '200':
+          description: Participant added
+        '400':
+          description: Not a direct discussion
+        '403':
+          description: Not the author
+        '404':
+          description: Discussion or user not found
+
+  /discussions/{id}/read-state:
+    put:
+      operationId: updateReadState
+      summary: Update read state for current user
+      description: Records last_read_at and optionally updates volume.
+      tags: [discussions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReadStateRequest'
+      responses:
+        '200':
+          description: Read state updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscussionReader'
+        '403':
+          description: Access denied
+        '404':
+          description: Discussion not found
+
+components:
+  schemas:
+    CreateDiscussionRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        group_id:
+          type: integer
+          format: int64
+          description: Omit for direct discussion
+        participant_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: Required if group_id is omitted
+        private:
+          type: boolean
+          default: true
+        max_depth:
+          type: integer
+          default: 3
+          minimum: 0
+
+    UpdateDiscussionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+
+    AddParticipantRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+
+    UpdateReadStateRequest:
+      type: object
+      properties:
+        volume:
+          type: string
+          enum: [mute, normal, loud]
+
+    Discussion:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        group_id:
+          type: integer
+          format: int64
+          nullable: true
+        author_id:
+          type: integer
+          format: int64
+        private:
+          type: boolean
+        max_depth:
+          type: integer
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DiscussionWithComments:
+      allOf:
+        - $ref: '#/components/schemas/Discussion'
+        - type: object
+          properties:
+            comments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Comment'
+            reader:
+              $ref: '#/components/schemas/DiscussionReader'
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        discussion_id:
+          type: integer
+          format: int64
+        author_id:
+          type: integer
+          format: int64
+          nullable: true
+        parent_id:
+          type: integer
+          format: int64
+          nullable: true
+        body:
+          type: string
+          description: Returns "[deleted]" for soft-deleted comments
+        depth:
+          type: integer
+        edited_at:
+          type: string
+          format: date-time
+          nullable: true
+        discarded_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    DiscussionReader:
+      type: object
+      properties:
+        discussion_id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        last_read_at:
+          type: string
+          format: date-time
+          nullable: true
+        volume:
+          type: string
+          enum: [mute, normal, loud]
+        participant:
+          type: boolean
