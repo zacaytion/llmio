@@ -44,6 +44,15 @@ sqlc generate                 # Regenerate DB types from queries
 - Dead code removal: Check test files (`*_test.go`) before removing package-level vars - tests may depend on them
 - Import cycle: `internal/validation` can't import `internal/config` (config imports validation); duplicate switch logic is intentional
 - Viper env prefix: Go app uses `LOOMIO_DATABASE_*` env vars (e.g., `LOOMIO_DATABASE_PASSWORD`), not `DB_*`
+- SET LOCAL alternative: Use `SELECT set_config('app.var', @value, true)` instead of `SET LOCAL` - sqlc can't parse SET with bind params
+- sqlc nullable booleans: Use `sqlc.narg(field)::boolean` cast in queries to get `pgtype.Bool` (not `interface{}`)
+- testcontainers + Podman: Use `tc.WithProvider(tc.ProviderPodman)` or set `DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock`
+- testcontainers extensions: Use `testcontainers.WithFiles()` to copy extension SQL to `/docker-entrypoint-initdb.d/`
+- pgtap in tests: Requires debian image (not alpine) or custom image with pgtap installed; alpine lacks pgtap package
+- API tests: Each test creates fresh container via `testutil.SetupTestDB()` - slow but isolated; use `SetupTestDBWithSnapshot()` for shared container with reset
+- DB triggers fire on testcontainers: audit.record_version populated during API tests - can verify audit trail in integration tests
+- GroupDetailDTO vs GroupDTO: `current_user_role` only available in detail DTO (returned from getGroup, not createGroup)
+- Last-admin protection: DB trigger raises "Cannot remove or demote the last administrator" - catch PostgreSQL error and return 409
 
 ### Error Handling Patterns
 

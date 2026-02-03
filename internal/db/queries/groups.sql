@@ -3,6 +3,7 @@
 
 -- name: CreateGroup :one
 -- Creates a new group with the given parameters
+-- Uses sqlc.narg for optional boolean flags with explicit ::boolean cast for pgx compatibility
 INSERT INTO groups (
     name, handle, description, parent_id, created_by_id,
     members_can_add_members, members_can_add_guests, members_can_start_discussions,
@@ -10,11 +11,18 @@ INSERT INTO groups (
     members_can_delete_comments, members_can_announce, members_can_create_subgroups,
     admins_can_edit_user_content, parent_members_can_see_discussions
 ) VALUES (
-    $1, $2, $3, $4, $5,
-    COALESCE($6, TRUE), COALESCE($7, TRUE), COALESCE($8, TRUE),
-    COALESCE($9, TRUE), COALESCE($10, FALSE), COALESCE($11, TRUE),
-    COALESCE($12, TRUE), COALESCE($13, FALSE), COALESCE($14, FALSE),
-    COALESCE($15, FALSE), COALESCE($16, FALSE)
+    @name, @handle, @description, @parent_id, @created_by_id,
+    COALESCE(sqlc.narg(members_can_add_members)::boolean, TRUE),
+    COALESCE(sqlc.narg(members_can_add_guests)::boolean, TRUE),
+    COALESCE(sqlc.narg(members_can_start_discussions)::boolean, TRUE),
+    COALESCE(sqlc.narg(members_can_raise_motions)::boolean, TRUE),
+    COALESCE(sqlc.narg(members_can_edit_discussions)::boolean, FALSE),
+    COALESCE(sqlc.narg(members_can_edit_comments)::boolean, TRUE),
+    COALESCE(sqlc.narg(members_can_delete_comments)::boolean, TRUE),
+    COALESCE(sqlc.narg(members_can_announce)::boolean, FALSE),
+    COALESCE(sqlc.narg(members_can_create_subgroups)::boolean, FALSE),
+    COALESCE(sqlc.narg(admins_can_edit_user_content)::boolean, FALSE),
+    COALESCE(sqlc.narg(parent_members_can_see_discussions)::boolean, FALSE)
 )
 RETURNING *;
 

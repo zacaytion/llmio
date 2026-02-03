@@ -1,106 +1,104 @@
-# Implementation Plan: Groups & Memberships
+# Implementation Plan: [FEATURE]
 
-**Branch**: `004-groups-memberships` | **Date**: 2026-02-02 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/004-groups-memberships/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Build organizational containers (Groups) with hierarchy support (subgroups) and permission-based membership system. Groups are the foundational unit for collaborative decision-making - containing members with roles (admin/member), 11 configurable permission flags, and audit logging via PostgreSQL triggers using the supa_audit pattern.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: Go 1.25+ (matches existing codebase)
-**Primary Dependencies**: Huma web framework, pgx/v5, sqlc, go-playground/validator/v10
-**Storage**: PostgreSQL 18 with CITEXT extension (case-insensitive handles), pgx/v5 + sqlc
-**Testing**: Go stdlib `testing` with table-driven tests, pgTap for database triggers/constraints
-**Target Platform**: Linux server (API backend)
-**Project Type**: Web application (Go backend, extends existing internal/ structure)
-**Performance Goals**: Group operations < 100ms p95, permission checks < 10ms
-**Constraints**: Last-admin protection enforced at DB level, audit logging via triggers (not app layer)
-**Scale/Scope**: 10K+ groups, millions of memberships, 11 permission flags per group
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Principle | Requirement | Status | Notes |
-|-----------|-------------|--------|-------|
-| I. Test-First Development | Write failing tests before implementation | ✅ COMPLIANT | pgTap for DB triggers, Go table-driven tests for API |
-| II. Huma-First API Design | Define types in Go, Huma generates OpenAPI | ✅ COMPLIANT | Group/Membership DTOs → Huma operations |
-| III. Security-First | Authorization on all mutations, no shortcuts | ✅ COMPLIANT | Admin-only mutations, permission flag enforcement |
-| IV. Full-Stack Type Safety | sqlc for DB, explicit types, no `interface{}` | ✅ COMPLIANT | sqlc generates typed Group/Membership models |
-| V. Simplicity & YAGNI | Build only what's needed | ✅ COMPLIANT | No email notifications (deferred), MVP permission checks |
-
-**Pre-Design Gate**: ✅ PASSED - All principles aligned
-
-### Post-Design Evaluation
-
-| Principle | Design Artifacts | Status | Verification |
-|-----------|------------------|--------|--------------|
-| I. Test-First | data-model.md defines test cases for triggers | ✅ PASS | pgTap tests planned for last-admin, audit triggers |
-| II. Huma-First | contracts/groups.yaml documents API design | ✅ PASS | Go types will be source of truth; YAML is documentation |
-| III. Security-First | Authorization rules defined in quickstart.md | ✅ PASS | Admin/member role checks on all mutations |
-| IV. Type Safety | data-model.md defines typed entities | ✅ PASS | sqlc generates Group, Membership, audit types |
-| V. YAGNI | Only spec requirements implemented | ✅ PASS | No email notifications, no extra features |
-
-**Post-Design Gate**: ✅ PASSED - Design artifacts align with constitution
+[Gates determined based on constitution file]
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/004-groups-memberships/
+specs/[###-feature]/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
-│   └── groups.yaml      # OpenAPI spec for groups/memberships endpoints
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
-internal/
-├── api/
-│   ├── groups.go          # Huma operations for groups CRUD
-│   ├── groups_test.go     # API integration tests
-│   ├── memberships.go     # Huma operations for memberships
-│   └── memberships_test.go
-├── db/
-│   ├── models.go          # sqlc-generated (Group, Membership types)
-│   ├── groups.sql.go      # sqlc-generated queries
-│   └── memberships.sql.go # sqlc-generated queries
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+src/
+├── models/
+├── services/
+├── cli/
+└── lib/
 
-migrations/
-├── 001_create_users.sql           # (existing)
-├── 002_create_audit_schema.sql    # Audit infrastructure (supa_audit pattern)
-├── 003_create_groups.sql          # Groups table + triggers
-├── 004_create_memberships.sql     # Memberships table + last-admin trigger
-└── 005_enable_auditing.sql        # Enable audit triggers on groups + memberships
+tests/
+├── contract/
+├── integration/
+└── unit/
 
-queries/
-├── groups.sql             # sqlc query definitions
-└── memberships.sql        # sqlc query definitions
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
 
-tests/pgtap/
-├── 002_audit_schema_test.sql      # Audit trigger tests
-├── 003_groups_test.sql            # Group constraints/triggers
-└── 004_memberships_test.sql       # Last-admin protection tests
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Extends existing Go backend structure with new internal/api handlers and internal/db models. Audit infrastructure is a shared schema (002_) used by both groups and memberships tables.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-*No violations - all complexity is justified by spec requirements:*
-
-| Design Choice | Justification |
-|---------------|---------------|
-| PostgreSQL triggers for audit | TC-001/TC-002 requirement; ensures audit capture even if app has bugs |
-| Last-admin trigger | TC-005 requirement; DB-level enforcement prevents race conditions |
-| 11 permission flags | FR-019 requirement; matches original Loomio's proven governance model |
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |

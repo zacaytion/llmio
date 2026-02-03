@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // RunPgTapTest executes a single pgTap test file against the container.
@@ -272,6 +274,11 @@ func SetupTestDBWithSnapshot(ctx context.Context, t *testing.T) (connStr string,
 	}
 
 	return connStr, restore, cleanup
+}
+
+// NewPoolFromConnStr creates a pgxpool.Pool from a connection string.
+func NewPoolFromConnStr(ctx context.Context, connStr string) (*pgxpool.Pool, error) {
+	return pgxpool.New(ctx, connStr)
 }
 
 // ExecSQL executes arbitrary SQL against the container for test setup.

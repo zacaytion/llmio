@@ -29,14 +29,14 @@ This feature adds organizational containers (Groups) with hierarchy support and 
 | POST | `/api/v1/groups/{id}/archive` | Archive group |
 | POST | `/api/v1/groups/{id}/unarchive` | Unarchive group |
 | POST | `/api/v1/groups/{id}/subgroups` | Create subgroup |
-| GET | `/api/v1/groups/handle/{handle}` | Lookup by handle |
+| GET | `/api/v1/group-by-handle/{handle}` | Lookup by handle |
 
 ### Memberships
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v1/groups/{id}/memberships` | List group members |
-| POST | `/api/v1/groups/{id}/memberships` | Invite user |
+| GET | `/api/v1/groups/{groupId}/memberships` | List group members |
+| POST | `/api/v1/groups/{groupId}/memberships` | Invite user |
 | DELETE | `/api/v1/memberships/{id}` | Remove member (admin only) |
 | POST | `/api/v1/memberships/{id}/accept` | Accept invitation |
 | POST | `/api/v1/memberships/{id}/promote` | Promote to admin |
@@ -56,7 +56,7 @@ curl -X POST http://localhost:8080/api/v1/groups \
 
 # Response: {"group": {"id": 1, "name": "Climate Action Team", "handle": "climate-action-team", ...}}
 
-# Invite a user
+# Invite a user (note: path uses {groupId} not {id})
 curl -X POST http://localhost:8080/api/v1/groups/1/memberships \
   -H "Cookie: loomio_session=..." \
   -H "Content-Type: application/json" \

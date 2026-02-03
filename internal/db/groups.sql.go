@@ -82,36 +82,44 @@ INSERT INTO groups (
     admins_can_edit_user_content, parent_members_can_see_discussions
 ) VALUES (
     $1, $2, $3, $4, $5,
-    COALESCE($6, TRUE), COALESCE($7, TRUE), COALESCE($8, TRUE),
-    COALESCE($9, TRUE), COALESCE($10, FALSE), COALESCE($11, TRUE),
-    COALESCE($12, TRUE), COALESCE($13, FALSE), COALESCE($14, FALSE),
-    COALESCE($15, FALSE), COALESCE($16, FALSE)
+    COALESCE($6::boolean, TRUE),
+    COALESCE($7::boolean, TRUE),
+    COALESCE($8::boolean, TRUE),
+    COALESCE($9::boolean, TRUE),
+    COALESCE($10::boolean, FALSE),
+    COALESCE($11::boolean, TRUE),
+    COALESCE($12::boolean, TRUE),
+    COALESCE($13::boolean, FALSE),
+    COALESCE($14::boolean, FALSE),
+    COALESCE($15::boolean, FALSE),
+    COALESCE($16::boolean, FALSE)
 )
 RETURNING id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at
 `
 
 type CreateGroupParams struct {
-	Name        string      `json:"name"`
-	Handle      string      `json:"handle"`
-	Description pgtype.Text `json:"description"`
-	ParentID    pgtype.Int8 `json:"parent_id"`
-	CreatedByID int64       `json:"created_by_id"`
-	Column6     interface{} `json:"column_6"`
-	Column7     interface{} `json:"column_7"`
-	Column8     interface{} `json:"column_8"`
-	Column9     interface{} `json:"column_9"`
-	Column10    interface{} `json:"column_10"`
-	Column11    interface{} `json:"column_11"`
-	Column12    interface{} `json:"column_12"`
-	Column13    interface{} `json:"column_13"`
-	Column14    interface{} `json:"column_14"`
-	Column15    interface{} `json:"column_15"`
-	Column16    interface{} `json:"column_16"`
+	Name                           string      `json:"name"`
+	Handle                         string      `json:"handle"`
+	Description                    pgtype.Text `json:"description"`
+	ParentID                       pgtype.Int8 `json:"parent_id"`
+	CreatedByID                    int64       `json:"created_by_id"`
+	MembersCanAddMembers           pgtype.Bool `json:"members_can_add_members"`
+	MembersCanAddGuests            pgtype.Bool `json:"members_can_add_guests"`
+	MembersCanStartDiscussions     pgtype.Bool `json:"members_can_start_discussions"`
+	MembersCanRaiseMotions         pgtype.Bool `json:"members_can_raise_motions"`
+	MembersCanEditDiscussions      pgtype.Bool `json:"members_can_edit_discussions"`
+	MembersCanEditComments         pgtype.Bool `json:"members_can_edit_comments"`
+	MembersCanDeleteComments       pgtype.Bool `json:"members_can_delete_comments"`
+	MembersCanAnnounce             pgtype.Bool `json:"members_can_announce"`
+	MembersCanCreateSubgroups      pgtype.Bool `json:"members_can_create_subgroups"`
+	AdminsCanEditUserContent       pgtype.Bool `json:"admins_can_edit_user_content"`
+	ParentMembersCanSeeDiscussions pgtype.Bool `json:"parent_members_can_see_discussions"`
 }
 
 // sqlc queries for groups table
 // See: data-model.md for entity definition
 // Creates a new group with the given parameters
+// Uses sqlc.narg for optional boolean flags with explicit ::boolean cast for pgx compatibility
 func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (*Group, error) {
 	row := q.db.QueryRow(ctx, createGroup,
 		arg.Name,
@@ -119,17 +127,17 @@ func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (*Grou
 		arg.Description,
 		arg.ParentID,
 		arg.CreatedByID,
-		arg.Column6,
-		arg.Column7,
-		arg.Column8,
-		arg.Column9,
-		arg.Column10,
-		arg.Column11,
-		arg.Column12,
-		arg.Column13,
-		arg.Column14,
-		arg.Column15,
-		arg.Column16,
+		arg.MembersCanAddMembers,
+		arg.MembersCanAddGuests,
+		arg.MembersCanStartDiscussions,
+		arg.MembersCanRaiseMotions,
+		arg.MembersCanEditDiscussions,
+		arg.MembersCanEditComments,
+		arg.MembersCanDeleteComments,
+		arg.MembersCanAnnounce,
+		arg.MembersCanCreateSubgroups,
+		arg.AdminsCanEditUserContent,
+		arg.ParentMembersCanSeeDiscussions,
 	)
 	var i Group
 	err := row.Scan(

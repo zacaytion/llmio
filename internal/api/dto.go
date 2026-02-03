@@ -115,6 +115,8 @@ type GroupDetailDTO struct {
 	MemberCount     int64  `json:"member_count"`
 	AdminCount      int64  `json:"admin_count"`
 	CurrentUserRole string `json:"current_user_role"`
+	// Parent status (for subgroups)
+	ParentArchived *bool `json:"parent_archived,omitempty"`
 }
 
 // GroupDetailDTOFromGroup converts a db.Group to GroupDetailDTO with counts.

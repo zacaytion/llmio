@@ -26,10 +26,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx driver for database/sql
 )
@@ -53,9 +55,9 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	migrationsDir := filepath.Join(projectRoot, "migrations")
 
 	// Create init script that enables required extensions
+	// Note: pgtap is only needed for database-level tests run separately via make test-pgtap
 	initScript := `
 		CREATE EXTENSION IF NOT EXISTS citext;
-		CREATE EXTENSION IF NOT EXISTS pgtap;
 	`
 
 	container, err := postgres.Run(ctx,
@@ -64,12 +66,19 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),
 		postgres.WithSQLDriver("pgx"),
+		postgres.WithInitScripts(), // Clear default init scripts
 		testcontainers.WithStartupCommand(
 			testcontainers.NewRawCommand([]string{
 				"sh", "-c",
 				fmt.Sprintf("echo '%s' > /docker-entrypoint-initdb.d/00-extensions.sql", initScript),
 			}),
 		),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(60*time.Second),
+		),
+		testcontainers.WithProvider(testcontainers.ProviderPodman),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start postgres container: %w", err)
