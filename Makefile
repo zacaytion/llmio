@@ -10,7 +10,7 @@ GO_SRC := $(shell find . -name '*.go' -not -path './vendor/*')
 
 .PHONY: all help up down logs clean-volumes \
         build build-server build-migrate run-server run-migrate server migrate install tidy \
-        test coverage-view lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
+        test coverage-view psql test-pgtap lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
         clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all
 
 # Default target (required by checkmake)
@@ -93,6 +93,26 @@ test: .var/coverage ## Run tests with coverage
 coverage-view: .var/coverage/coverage.out ## View coverage report in browser
 	@test -s .var/coverage/coverage.out || (echo "ERROR: No coverage data. Run 'make test' first." >&2; exit 1)
 	go tool cover -html=.var/coverage/coverage.out
+
+##@ Database
+
+# Database connection parameters (from compose.yml defaults)
+DB_HOST ?= localhost
+DB_PORT ?= 5432
+DB_NAME ?= loomio_development
+DB_USER ?= postgres
+DB_PASSWORD ?= postgres
+
+psql: ## Connect to PostgreSQL via psql (usage: make psql or make psql DB_NAME=loomio_test)
+	PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME)
+
+test-pgtap: ## Run pgTap database tests (requires pgtap extension)
+	@echo "Running pgTap tests..."
+	@for f in tests/pgtap/*.sql; do \
+		echo "Testing: $$f"; \
+		PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f "$$f" || exit 1; \
+	done
+	@echo "All pgTap tests passed!"
 
 ##@ Quality
 

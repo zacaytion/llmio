@@ -1,12 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR: clarify API design workflow)
+Version change: 1.1.0 → 1.2.0 (MINOR: add /speckit.analyze remediation policy)
 
-Modified principles:
-- II. Spec-First API Design → II. Huma-First API Design (renamed + workflow clarified)
+Modified principles: None
 
-Added sections: None
+Added sections:
+- "Specification Analysis (`/speckit.analyze`)" under Development Workflow
 
 Removed sections: None
 
@@ -18,10 +18,13 @@ Templates requiring updates:
 Deferred items: None
 
 Amendment rationale:
-The 001-user-auth implementation revealed that Huma's native type system provides
-better DX than oapi-codegen generation. Huma defines types in Go and exports
-OpenAPI at runtime, inverting the original spec-first assumption. This amendment
-codifies the actual working pattern while preserving the contract-first spirit.
+The 004-groups-memberships analysis revealed that automatically suggesting
+remediation edits for MEDIUM+ severity issues improves specification quality
+and catches gaps before implementation begins. This policy ensures consistent
+handling of analysis findings across all features.
+
+Previous version (1.1.0) changes:
+- II. Spec-First API Design → II. Huma-First API Design (renamed + workflow clarified)
 -->
 
 # Loomio Rewrite Constitution
@@ -137,6 +140,13 @@ Deviations require constitution amendment with documented justification.
 - Security-related changes require explicit security review
 - Constitution violations block merge
 
+### Specification Analysis (`/speckit.analyze`)
+
+- After running `/speckit.analyze`, automatically suggest remediation edits for ALL issues with severity above LOW (i.e., MEDIUM, HIGH, CRITICAL)
+- LOW severity issues are reported but remediation is optional
+- User must approve remediation edits before they are applied
+- CRITICAL issues MUST be resolved before `/speckit.implement`
+
 ### Project Structure
 
 ```
@@ -175,4 +185,4 @@ tests/            # Additional test files
 - Violations require explicit justification in Complexity Tracking table
 - This constitution supersedes conflicting practices
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-01 | **Last Amended**: 2026-02-02
+**Version**: 1.2.0 | **Ratified**: 2026-02-01 | **Last Amended**: 2026-02-02

@@ -1,0 +1,872 @@
+# OpenAPI 3.1 Design Documentation for Groups & Memberships
+# Note: Huma generates the canonical OpenAPI at runtime from Go types.
+# This file serves as human-readable design documentation.
+
+openapi: 3.1.0
+info:
+  title: Groups & Memberships API
+  version: 1.0.0
+  description: |
+    API for managing organizational groups and their memberships.
+    Part of the Loomio rewrite - Feature 004.
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Groups
+    description: Group CRUD and configuration
+  - name: Memberships
+    description: Member management and invitations
+
+paths:
+  # ============================================================
+  # GROUPS
+  # ============================================================
+
+  /groups:
+    post:
+      operationId: createGroup
+      summary: Create a new group
+      description: |
+        Creates a new group and automatically adds the creator as an administrator.
+        A URL-safe handle is auto-generated from the name if not provided.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Group created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Handle already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      operationId: listGroups
+      summary: List user's groups
+      description: Returns all groups the authenticated user is an active member of.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: include_archived
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include archived groups in results
+      responses:
+        '200':
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /groups/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+        description: Group ID
+
+    get:
+      operationId: getGroup
+      summary: Get group details
+      description: Returns group details including permission flags. Requires membership.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateGroup
+      summary: Update group details
+      description: Updates group name, description, or permission flags. Admin only.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGroupRequest'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /groups/{id}/archive:
+    post:
+      operationId: archiveGroup
+      summary: Archive a group
+      description: Soft-deletes the group. Archived groups are hidden from listings but accessible directly.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Group archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /groups/{id}/unarchive:
+    post:
+      operationId: unarchiveGroup
+      summary: Unarchive a group
+      description: Restores an archived group to active status.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Group unarchived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /groups/{id}/subgroups:
+    post:
+      operationId: createSubgroup
+      summary: Create a subgroup
+      description: Creates a subgroup under the specified parent group.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Parent group ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Subgroup created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    get:
+      operationId: listSubgroups
+      summary: List subgroups
+      description: Returns all subgroups of the specified group.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of subgroups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /groups/handle/{handle}:
+    get:
+      operationId: getGroupByHandle
+      summary: Get group by handle
+      description: Looks up a group by its URL-safe handle. Requires membership.
+      tags: [Groups]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 100
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # MEMBERSHIPS
+  # ============================================================
+
+  /groups/{id}/memberships:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+        description: Group ID
+
+    get:
+      operationId: listMemberships
+      summary: List group memberships
+      description: Returns all memberships (active and pending) for the group.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, active, pending]
+            default: all
+          description: Filter by membership status
+      responses:
+        '200':
+          description: List of memberships
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      operationId: inviteMember
+      summary: Invite a user to the group
+      description: |
+        Creates a pending membership (invitation) for the specified user.
+        Requires admin role or members_can_add_members permission.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteMemberRequest'
+      responses:
+        '201':
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: User is already a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /memberships/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+        description: Membership ID
+
+    get:
+      operationId: getMembership
+      summary: Get membership details
+      description: Returns details of a specific membership.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Membership details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: removeMember
+      summary: Remove a member from the group
+      description: |
+        Removes the membership. Admin only.
+        Cannot remove the last administrator.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Member removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Cannot remove last administrator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /memberships/{id}/accept:
+    post:
+      operationId: acceptInvitation
+      summary: Accept a membership invitation
+      description: Accepts a pending invitation. The invited user becomes an active member.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Invitation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not the invited user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Already accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /memberships/{id}/promote:
+    post:
+      operationId: promoteMember
+      summary: Promote member to admin
+      description: Promotes a regular member to administrator. Admin only.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Member promoted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /memberships/{id}/demote:
+    post:
+      operationId: demoteMember
+      summary: Demote admin to member
+      description: |
+        Demotes an administrator to regular member. Admin only.
+        Cannot demote the last administrator.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Admin demoted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Cannot demote last administrator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me/invitations:
+    get:
+      operationId: listMyInvitations
+      summary: List pending invitations
+      description: Returns all pending membership invitations for the current user.
+      tags: [Memberships]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of pending invitations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+# ============================================================
+# COMPONENTS
+# ============================================================
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: loomio_session
+
+  schemas:
+    # -------------------- Request Schemas --------------------
+
+    CreateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Group display name
+        handle:
+          type: string
+          minLength: 3
+          maxLength: 100
+          pattern: '^[a-z0-9][a-z0-9-]*[a-z0-9]$'
+          description: URL-safe identifier (auto-generated if omitted)
+        description:
+          type: string
+          description: Optional group description
+        inherit_permissions:
+          type: boolean
+          default: false
+          description: |
+            When creating a subgroup, if true, copy permission flags from parent group.
+            If false (default), use system defaults. Only applicable when parent_id is set.
+
+    UpdateGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+        members_can_add_members:
+          type: boolean
+        members_can_add_guests:
+          type: boolean
+        members_can_start_discussions:
+          type: boolean
+        members_can_raise_motions:
+          type: boolean
+        members_can_edit_discussions:
+          type: boolean
+        members_can_edit_comments:
+          type: boolean
+        members_can_delete_comments:
+          type: boolean
+        members_can_announce:
+          type: boolean
+        members_can_create_subgroups:
+          type: boolean
+        admins_can_edit_user_content:
+          type: boolean
+        parent_members_can_see_discussions:
+          type: boolean
+
+    InviteMemberRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          description: ID of user to invite
+        role:
+          type: string
+          enum: [admin, member]
+          default: member
+          description: Role to assign when invitation is accepted
+
+    # -------------------- Response Schemas --------------------
+
+    GroupDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        handle:
+          type: string
+        description:
+          type: string
+        parent_id:
+          type: integer
+          format: int64
+          nullable: true
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    GroupDetailDTO:
+      allOf:
+        - $ref: '#/components/schemas/GroupDTO'
+        - type: object
+          properties:
+            members_can_add_members:
+              type: boolean
+            members_can_add_guests:
+              type: boolean
+            members_can_start_discussions:
+              type: boolean
+            members_can_raise_motions:
+              type: boolean
+            members_can_edit_discussions:
+              type: boolean
+            members_can_edit_comments:
+              type: boolean
+            members_can_delete_comments:
+              type: boolean
+            members_can_announce:
+              type: boolean
+            members_can_create_subgroups:
+              type: boolean
+            admins_can_edit_user_content:
+              type: boolean
+            parent_members_can_see_discussions:
+              type: boolean
+            member_count:
+              type: integer
+            admin_count:
+              type: integer
+            current_user_role:
+              type: string
+              enum: [admin, member]
+              description: Role of the authenticated user in this group
+
+    MembershipDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        group_id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        role:
+          type: string
+          enum: [admin, member]
+        accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null if invitation is pending
+        created_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/UserSummaryDTO'
+        inviter:
+          $ref: '#/components/schemas/UserSummaryDTO'
+
+    UserSummaryDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        username:
+          type: string
+
+    InvitationDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        group:
+          $ref: '#/components/schemas/GroupDTO'
+        inviter:
+          $ref: '#/components/schemas/UserSummaryDTO'
+        role:
+          type: string
+          enum: [admin, member]
+        created_at:
+          type: string
+          format: date-time
+
+    # -------------------- Wrapper Responses --------------------
+
+    GroupResponse:
+      type: object
+      properties:
+        group:
+          $ref: '#/components/schemas/GroupDTO'
+
+    GroupDetailResponse:
+      type: object
+      properties:
+        group:
+          $ref: '#/components/schemas/GroupDetailDTO'
+
+    GroupListResponse:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupDTO'
+
+    MembershipResponse:
+      type: object
+      properties:
+        membership:
+          $ref: '#/components/schemas/MembershipDTO'
+
+    MembershipDetailResponse:
+      type: object
+      properties:
+        membership:
+          $ref: '#/components/schemas/MembershipDTO'
+        group:
+          $ref: '#/components/schemas/GroupDTO'
+
+    MembershipListResponse:
+      type: object
+      properties:
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/MembershipDTO'
+
+    InvitationListResponse:
+      type: object
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvitationDTO'
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: unauthorized
+            message: Not authenticated
+
+    Forbidden:
+      description: Not authorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: forbidden
+            message: You do not have permission to access this resource
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: not_found
+            message: Resource not found
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: validation_error
+            message: Validation failed
+            details:
+              - field: name
+                message: Name is required

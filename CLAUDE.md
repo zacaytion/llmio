@@ -23,6 +23,12 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### Go Gotchas
 
+- testcontainers-go: Use `internal/testutil` for isolated DB tests; `SetupTestDBWithSnapshot()` for fast reset
+- testcontainers-go: Requires Docker/Podman running; tests auto-skip if unavailable
+- sqlc queries: Use struct params, e.g., `queries.GetMembershipByGroupAndUser(ctx, db.GetMembershipByGroupAndUserParams{GroupID: id, UserID: uid})`
+- Audit context: Use `db.SetAuditContext(ctx, tx, userID)` or `db.WithAuditContext()` for mutations that need actor tracking
+- Group handles: 3-100 chars, `^[a-z0-9][a-z0-9-]*[a-z0-9]$`, case-insensitive via CITEXT
+- Config tests (`internal/config`) have pre-existing failures; don't block on them for unrelated work
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
 - golangci-lint autofix: use `golangci-lint run ./... --fix` to auto-fix gofmt/goimports issues
 - Import ordering: stdlib first, blank line, then third-party (goimports enforces this)
@@ -63,9 +69,13 @@ sqlc generate                 # Regenerate DB types from queries
 
 - Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix
 - pgTap schema tests belong in `tests/pgtap/`, NOT in migrations directory
+- supa_audit pattern: `record_id` is TEXT (not UUID) for tables with BIGSERIAL PKs; cast with `::TEXT`
 
 ### Makefile & Containers
 
+- `make psql` connects to dev database; `make psql DB_NAME=loomio_test` for test database
+- `make test-pgtap` runs pgTap tests (requires pgtap extension installed in database)
+- pgTap tests depend on their migration completing first; not truly parallel with migration writes
 - `make up/down/logs` - Container lifecycle; `make server/migrate ARGS="..."` - Run binaries with args
 - `make clean` - Remove everything (volumes, binaries, caches); `make clean-go-{build,test,mod,fuzz,all}` - Go caches
 - Container env vars (`POSTGRES_*`) differ from Go app env vars (`LOOMIO_DATABASE_*`); both documented in `.env.example`
@@ -245,6 +255,7 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 
 - Code review fixes: Add as new phase in `specs/$feature/tasks.md`, not separate `tasks-fixes.md`
 - Task IDs must be unique: Continue numbering from last task (e.g., T055+ if T054 exists)
+- `/speckit.analyze` remediation: Automatically suggest edits for MEDIUM+ severity issues; LOW issues are reported but optional (see constitution v1.2.0)
 
 ### Superpowers Integration
 
@@ -279,6 +290,8 @@ This project uses speckit commands for spec-first TDD development. See `docs/spe
 - PostgreSQL 18 (existing), YAML config files (new) (002-config-system)
 - N/A (shell scripts, Makefile, YAML configuration) + Podman, Podman Compose, golangci-lint, goimports (003-dev-workflow)
 - PostgreSQL 18 (container), Redis 8 (container) (003-dev-workflow)
+- Go 1.25+ (matches existing codebase) + Huma web framework, pgx/v5, sqlc, go-playground/validator/v10 (004-groups-memberships)
+- PostgreSQL 18 with CITEXT extension (case-insensitive handles), pgx/v5 + sqlc (004-groups-memberships)
 
 ## Validation Patterns
 
@@ -308,5 +321,6 @@ func Load() (*Config, error) {
 **Cross-field validation**: Use `ltefield`/`gtefield` tags (e.g., `validate:"ltefield=MaxConns"` ensures MinConns ≤ MaxConns).
 
 ## Recent Changes
+- 004-groups-memberships: Added Go 1.25+ (matches existing codebase) + Huma web framework, pgx/v5, sqlc, go-playground/validator/v10
 - 003-dev-workflow: Added N/A (shell scripts, Makefile, YAML configuration) + Podman, Podman Compose, golangci-lint, goimports
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2
