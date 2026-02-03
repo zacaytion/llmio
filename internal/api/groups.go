@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/text/runes"
@@ -194,6 +196,17 @@ func (h *GroupHandler) handleCreateGroup(ctx context.Context, input *CreateGroup
 					Message:  "Name is too short to generate a handle (need at least 3 alphanumeric characters)",
 				})
 		}
+	} else {
+		// T139: Validate user-provided handle format
+		handle = strings.ToLower(handle) // Normalize to lowercase
+		if !isValidHandle(handle) {
+			return nil, huma.Error422UnprocessableEntity("Invalid handle format",
+				&huma.ErrorDetail{
+					Location: "body.handle",
+					Message:  "Handle must be 3-100 characters, start and end with alphanumeric, contain only lowercase letters, numbers, and hyphens",
+					Value:    handle,
+				})
+		}
 	}
 
 	// Build description as pgtype.Text
@@ -238,7 +251,7 @@ func (h *GroupHandler) handleCreateGroup(ctx context.Context, input *CreateGroup
 		_, membershipErr := txQueries.CreateMembership(ctx, db.CreateMembershipParams{
 			GroupID:   group.ID,
 			UserID:    session.UserID,
-			Role:      "admin",
+			Role:      RoleAdmin,
 			InviterID: session.UserID, // Self-invited
 			AcceptedAt: pgtype.Timestamptz{
 				Time:  group.CreatedAt.Time, // Same timestamp as group creation
@@ -267,11 +280,14 @@ func (h *GroupHandler) handleCreateGroup(ctx context.Context, input *CreateGroup
 }
 
 // isUniqueViolation checks if the error is a PostgreSQL unique constraint violation.
+// T156: Uses pgconn.PgError type assertion for reliable error detection, even with wrapped errors.
 func isUniqueViolation(err error, constraintName string) bool {
-	// pgx returns errors with a Code field for PostgreSQL error codes
-	// 23505 is the PostgreSQL error code for unique_violation
-	errStr := err.Error()
-	return strings.Contains(errStr, "23505") && strings.Contains(errStr, constraintName)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		// 23505 is the PostgreSQL error code for unique_violation
+		return pgErr.Code == "23505" && pgErr.ConstraintName == constraintName
+	}
+	return false
 }
 
 // handleRegex matches valid handle characters after initial slugification.
@@ -279,6 +295,22 @@ var handleRegex = regexp.MustCompile(`[^a-z0-9-]+`)
 
 // multiHyphenRegex matches multiple consecutive hyphens.
 var multiHyphenRegex = regexp.MustCompile(`-+`)
+
+// validHandleRegex validates the complete handle format:
+// - 3-100 characters
+// - Starts with alphanumeric, ends with alphanumeric
+// - Only lowercase alphanumeric and hyphens in between
+// T139: Handle format validation regex
+var validHandleRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
+
+// isValidHandle validates a handle against format requirements.
+// Handles must be 3-100 chars, start/end with alphanumeric, only contain lowercase alphanumeric and hyphens.
+func isValidHandle(handle string) bool {
+	if len(handle) < 3 || len(handle) > 100 {
+		return false
+	}
+	return validHandleRegex.MatchString(handle)
+}
 
 // GenerateHandle creates a URL-safe handle from a group name.
 // The handle is:
@@ -297,8 +329,13 @@ func GenerateHandle(name string) string {
 	}
 
 	// Step 1: Normalize Unicode (NFD decomposition)
+	// T137: Handle transform.String errors with fallback to original name
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	result, _, _ := transform.String(t, name)
+	result, _, err := transform.String(t, name)
+	if err != nil {
+		// Fallback to original name on transform error (e.g., invalid UTF-8)
+		result = name
+	}
 
 	// Step 2: Lowercase
 	result = strings.ToLower(result)
@@ -385,7 +422,7 @@ func itoa(i int) string {
 }
 
 // ============================================================
-// T074: Implement handleGetGroup handler
+// GET /api/v1/groups/{id} - Get group details
 // ============================================================
 
 // GetGroupInput is the request for getting a group.
@@ -426,27 +463,25 @@ func (h *GroupHandler) handleGetGroup(ctx context.Context, input *GetGroupInput)
 		return nil, huma.Error403Forbidden("Not a member of this group")
 	}
 
-	// Get member counts
-	memberCount, err := h.queries.CountGroupMembers(ctx, input.ID)
+	// T170: Get member stats with single query (more efficient than two separate queries)
+	stats, err := h.queries.CountGroupMembershipStats(ctx, input.ID)
 	if err != nil {
-		LogDBError(ctx, "CountGroupMembers", err)
-		return nil, huma.Error500InternalServerError("Database error")
-	}
-
-	adminCount, err := h.queries.CountGroupAdmins(ctx, input.ID)
-	if err != nil {
-		LogDBError(ctx, "CountGroupAdmins", err)
+		LogDBError(ctx, "CountGroupMembershipStats", err)
 		return nil, huma.Error500InternalServerError("Database error")
 	}
 
 	// Build response with full details
 	output := &GetGroupOutput{}
-	output.Body.Group = GroupDetailDTOFromGroup(authCtx.Group, memberCount, adminCount, authCtx.GetRole())
+	output.Body.Group = GroupDetailDTOFromGroup(authCtx.Group, stats.MemberCount, stats.AdminCount, authCtx.GetRole())
 
 	// Check if parent is archived (for subgroups - T103a)
+	// T121: Log error when parent fetch fails, don't silently suppress
 	if authCtx.Group.ParentID.Valid {
 		parentGroup, err := h.queries.GetGroupByID(ctx, authCtx.Group.ParentID.Int64)
-		if err == nil && parentGroup.ArchivedAt.Valid {
+		if err != nil {
+			// Log the error but don't fail the request - parent info is supplementary
+			LogDBError(ctx, "GetParentGroup", err)
+		} else if parentGroup.ArchivedAt.Valid {
 			t := true
 			output.Body.Group.ParentArchived = &t
 		}
@@ -456,7 +491,7 @@ func (h *GroupHandler) handleGetGroup(ctx context.Context, input *GetGroupInput)
 }
 
 // ============================================================
-// T072-T073: Implement handleUpdateGroup handler
+// PATCH /api/v1/groups/{id} - Update group settings
 // ============================================================
 
 // UpdateGroupInput is the request for updating a group.
@@ -510,6 +545,11 @@ func (h *GroupHandler) handleUpdateGroup(ctx context.Context, input *UpdateGroup
 
 	if !authCtx.CanUpdateGroup() {
 		return nil, huma.Error403Forbidden("Admin role required to update group")
+	}
+
+	// T142: Check if group is archived before allowing updates
+	if authCtx.Group.ArchivedAt.Valid {
+		return nil, huma.Error409Conflict("Cannot update an archived group")
 	}
 
 	// Build update params - use pgtype for nullable fields
@@ -609,7 +649,7 @@ func (h *GroupHandler) handleUpdateGroup(ctx context.Context, input *UpdateGroup
 }
 
 // ============================================================
-// T086-T091: Implement subgroup handlers
+// Subgroup handlers
 // ============================================================
 
 // CreateSubgroupInput is the request for creating a subgroup.
@@ -690,6 +730,17 @@ func (h *GroupHandler) handleCreateSubgroup(ctx context.Context, input *CreateSu
 					Message:  "Name is too short to generate a handle",
 				})
 		}
+	} else {
+		// T140: Validate user-provided handle format for subgroups
+		handle = strings.ToLower(handle) // Normalize to lowercase
+		if !isValidHandle(handle) {
+			return nil, huma.Error422UnprocessableEntity("Invalid handle format",
+				&huma.ErrorDetail{
+					Location: "body.handle",
+					Message:  "Handle must be 3-100 characters, start and end with alphanumeric, contain only lowercase letters, numbers, and hyphens",
+					Value:    handle,
+				})
+		}
 	}
 
 	// Build description
@@ -753,7 +804,7 @@ func (h *GroupHandler) handleCreateSubgroup(ctx context.Context, input *CreateSu
 		_, membershipErr := txQueries.CreateMembership(ctx, db.CreateMembershipParams{
 			GroupID:   group.ID,
 			UserID:    session.UserID,
-			Role:      "admin",
+			Role:      RoleAdmin,
 			InviterID: session.UserID,
 			AcceptedAt: pgtype.Timestamptz{
 				Time:  group.CreatedAt.Time,
@@ -776,7 +827,7 @@ func (h *GroupHandler) handleCreateSubgroup(ctx context.Context, input *CreateSu
 
 	// Build response - new subgroup has 1 member (creator) who is admin
 	output := &CreateSubgroupOutput{}
-	output.Body.Group = GroupDetailDTOFromGroup(group, 1, 1, "admin")
+	output.Body.Group = GroupDetailDTOFromGroup(group, 1, 1, RoleAdmin)
 	return output, nil
 }
 
@@ -839,7 +890,7 @@ func (h *GroupHandler) handleListSubgroups(ctx context.Context, input *ListSubgr
 }
 
 // ============================================================
-// T100-T107: Implement archive/unarchive and list handlers
+// Archive/unarchive and list handlers
 // ============================================================
 
 // ArchiveGroupInput is the request for archiving a group.
@@ -1070,9 +1121,13 @@ func (h *GroupHandler) handleGetGroupByHandle(ctx context.Context, input *GetGro
 	output.Body.Group = GroupDetailDTOFromGroup(group, memberCount, adminCount, authCtx.GetRole())
 
 	// Check if parent is archived (for subgroups)
+	// T122: Log error when parent fetch fails, don't silently suppress
 	if group.ParentID.Valid {
 		parentGroup, err := h.queries.GetGroupByID(ctx, group.ParentID.Int64)
-		if err == nil && parentGroup.ArchivedAt.Valid {
+		if err != nil {
+			// Log the error but don't fail the request - parent info is supplementary
+			LogDBError(ctx, "GetParentGroup", err)
+		} else if parentGroup.ArchivedAt.Valid {
 			t := true
 			output.Body.Group.ParentArchived = &t
 		}

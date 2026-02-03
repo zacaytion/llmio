@@ -72,6 +72,28 @@ func (q *Queries) CountGroupMembers(ctx context.Context, groupID int64) (int64, 
 	return member_count, err
 }
 
+const countGroupMembershipStats = `-- name: CountGroupMembershipStats :one
+SELECT
+    COUNT(*) AS member_count,
+    COUNT(*) FILTER (WHERE role = 'admin') AS admin_count
+FROM memberships
+WHERE group_id = $1 AND accepted_at IS NOT NULL
+`
+
+type CountGroupMembershipStatsRow struct {
+	MemberCount int64 `json:"member_count"`
+	AdminCount  int64 `json:"admin_count"`
+}
+
+// T169: Combined query to get both member and admin counts in a single query
+// More efficient than two separate queries for handleGetGroup
+func (q *Queries) CountGroupMembershipStats(ctx context.Context, groupID int64) (*CountGroupMembershipStatsRow, error) {
+	row := q.db.QueryRow(ctx, countGroupMembershipStats, groupID)
+	var i CountGroupMembershipStatsRow
+	err := row.Scan(&i.MemberCount, &i.AdminCount)
+	return &i, err
+}
+
 const createGroup = `-- name: CreateGroup :one
 
 INSERT INTO groups (

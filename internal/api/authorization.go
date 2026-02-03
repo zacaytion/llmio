@@ -6,7 +6,15 @@ import (
 	"github.com/zacaytion/llmio/internal/db"
 )
 
+// Role constants to avoid magic strings scattered across the codebase.
+// T127: Create Role type with constants (RoleAdmin, RoleMember)
+const (
+	RoleAdmin  = "admin"
+	RoleMember = "member"
+)
+
 // AuthorizationContext holds authorization-related data for a request.
+// Note: The fields are exported for read access in handlers.
 type AuthorizationContext struct {
 	UserID     int64
 	Membership *db.Membership
@@ -20,10 +28,8 @@ type AuthorizationContext struct {
 func NewAuthorizationContext(ctx context.Context, queries *db.Queries, userID, groupID int64) (*AuthorizationContext, error) {
 	// Load group first
 	group, err := queries.GetGroupByID(ctx, groupID)
+	// T167: Simplified - both NotFound and other errors return the error
 	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, err
-		}
 		return nil, err
 	}
 
@@ -44,7 +50,7 @@ func NewAuthorizationContext(ctx context.Context, queries *db.Queries, userID, g
 	if membership != nil && membership.AcceptedAt.Valid {
 		authCtx.Membership = membership
 		authCtx.IsMember = true
-		authCtx.IsAdmin = membership.Role == "admin"
+		authCtx.IsAdmin = membership.Role == RoleAdmin
 	}
 
 	return authCtx, nil

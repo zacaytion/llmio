@@ -11,6 +11,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/zacaytion/llmio/internal/auth"
@@ -981,5 +982,681 @@ func TestListMyInvitations(t *testing.T) {
 		if _, ok := invitation["inviter"]; !ok {
 			t.Errorf("invitation %d missing inviter info", i)
 		}
+	}
+}
+
+// ============================================================
+// Phase 10: Code Review Fixes - Critical Tests
+// ============================================================
+
+// TestDemoteMember_ConcurrentRaceCondition tests that concurrent demote requests
+// are handled correctly when the DB trigger blocks the last admin demotion.
+// T116: Write test for concurrent demote race condition
+//
+// The TOCTOU race condition scenario:
+// 1. Group has exactly 2 admins
+// 2. Two concurrent demote requests check admin count (both see 2)
+// 3. Both requests proceed to demote
+// 4. First succeeds (count goes to 1), second should fail (DB trigger)
+//
+// This test verifies the handler properly catches the DB trigger error.
+func TestDemoteMember_ConcurrentRaceCondition(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	// Create two admins
+	admin1User := setup.createTestUser(t, "admin1@example.com", "Admin One")
+	admin1Token := setup.createTestSession(t, admin1User.ID)
+
+	admin2User := setup.createTestUser(t, "admin2@example.com", "Admin Two")
+	admin2Token := setup.createTestSession(t, admin2User.ID)
+
+	// Create group (admin1 becomes admin)
+	groupID := setup.createTestGroup(t, admin1Token, "Test Group")
+
+	// Invite admin2 and accept, then promote to admin
+	admin2MembershipID := setup.inviteAndAccept(t, admin1Token, admin2Token, groupID, admin2User.ID)
+
+	// Promote admin2 to admin
+	promoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/promote", admin2MembershipID), nil)
+	promoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: admin1Token})
+	promoteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(promoteW, promoteReq)
+	if promoteW.Code != http.StatusOK {
+		t.Fatalf("failed to promote admin2: %d: %s", promoteW.Code, promoteW.Body.String())
+	}
+
+	// Get admin1's membership ID
+	admin1Membership, err := setup.queries.GetMembershipByGroupAndUser(context.Background(), db.GetMembershipByGroupAndUserParams{
+		GroupID: groupID,
+		UserID:  admin1User.ID,
+	})
+	if err != nil {
+		t.Fatalf("failed to get admin1 membership: %v", err)
+	}
+
+	// Now we have 2 admins. Demote admin2 first (should succeed, leaving 1 admin)
+	demote1Req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/demote", admin2MembershipID), nil)
+	demote1Req.AddCookie(&http.Cookie{Name: "loomio_session", Value: admin1Token})
+	demote1W := httptest.NewRecorder()
+	setup.mux.ServeHTTP(demote1W, demote1Req)
+
+	if demote1W.Code != http.StatusOK {
+		t.Fatalf("first demote should succeed: %d: %s", demote1W.Code, demote1W.Body.String())
+	}
+
+	// Now try to demote admin1 (the last admin) - should fail with 409 from DB trigger
+	demote2Req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/demote", admin1Membership.ID), nil)
+	demote2Req.AddCookie(&http.Cookie{Name: "loomio_session", Value: admin1Token})
+	demote2W := httptest.NewRecorder()
+	setup.mux.ServeHTTP(demote2W, demote2Req)
+
+	// The handler should catch the DB trigger error and return 409
+	if demote2W.Code != http.StatusConflict {
+		t.Errorf("demoting last admin should return 409 Conflict, got %d: %s", demote2W.Code, demote2W.Body.String())
+	}
+
+	if !bytes.Contains(demote2W.Body.Bytes(), []byte("last admin")) {
+		t.Errorf("error should mention last admin, got: %s", demote2W.Body.String())
+	}
+}
+
+// TestRemoveMember_ConcurrentRaceCondition tests that concurrent remove requests
+// are handled correctly when the DB trigger blocks the last admin removal.
+// T118: Write test for concurrent remove race condition
+func TestRemoveMember_ConcurrentRaceCondition(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	// Create two admins
+	admin1User := setup.createTestUser(t, "admin1@example.com", "Admin One")
+	admin1Token := setup.createTestSession(t, admin1User.ID)
+
+	admin2User := setup.createTestUser(t, "admin2@example.com", "Admin Two")
+	admin2Token := setup.createTestSession(t, admin2User.ID)
+
+	// Create group (admin1 becomes admin)
+	groupID := setup.createTestGroup(t, admin1Token, "Test Group")
+
+	// Invite admin2 and accept, then promote to admin
+	admin2MembershipID := setup.inviteAndAccept(t, admin1Token, admin2Token, groupID, admin2User.ID)
+
+	// Promote admin2 to admin
+	promoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/promote", admin2MembershipID), nil)
+	promoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: admin1Token})
+	promoteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(promoteW, promoteReq)
+	if promoteW.Code != http.StatusOK {
+		t.Fatalf("failed to promote admin2: %d: %s", promoteW.Code, promoteW.Body.String())
+	}
+
+	// Get admin1's membership ID
+	admin1Membership, err := setup.queries.GetMembershipByGroupAndUser(context.Background(), db.GetMembershipByGroupAndUserParams{
+		GroupID: groupID,
+		UserID:  admin1User.ID,
+	})
+	if err != nil {
+		t.Fatalf("failed to get admin1 membership: %v", err)
+	}
+
+	// Remove admin2 first (should succeed, leaving 1 admin)
+	remove1Req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/memberships/%d", admin2MembershipID), nil)
+	remove1Req.AddCookie(&http.Cookie{Name: "loomio_session", Value: admin1Token})
+	remove1W := httptest.NewRecorder()
+	setup.mux.ServeHTTP(remove1W, remove1Req)
+
+	if remove1W.Code != http.StatusNoContent {
+		t.Fatalf("first remove should succeed: %d: %s", remove1W.Code, remove1W.Body.String())
+	}
+
+	// Now try to remove admin1 (the last admin) - should fail with 409 from DB trigger
+	remove2Req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/memberships/%d", admin1Membership.ID), nil)
+	remove2Req.AddCookie(&http.Cookie{Name: "loomio_session", Value: admin1Token})
+	remove2W := httptest.NewRecorder()
+	setup.mux.ServeHTTP(remove2W, remove2Req)
+
+	// The handler should catch the DB trigger error and return 409
+	if remove2W.Code != http.StatusConflict {
+		t.Errorf("removing last admin should return 409 Conflict, got %d: %s", remove2W.Code, remove2W.Body.String())
+	}
+
+	if !bytes.Contains(remove2W.Body.Bytes(), []byte("last admin")) {
+		t.Errorf("error should mention last admin, got: %s", remove2W.Body.String())
+	}
+}
+
+// TestAcceptInvitation_AlreadyAccepted tests that accepting an already-accepted invitation returns 409.
+// T143: Write test for accepting already-accepted invitation returns 409
+func TestAcceptInvitation_AlreadyAccepted(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	inviteeUser := setup.createTestUser(t, "invitee@example.com", "Invitee User")
+	inviteeToken := setup.createTestSession(t, inviteeUser.ID)
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+
+	// Invite and accept once
+	membershipID := setup.inviteAndAccept(t, adminToken, inviteeToken, groupID, inviteeUser.ID)
+
+	// Try to accept again - should return 409
+	acceptReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/accept", membershipID), nil)
+	acceptReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: inviteeToken})
+	acceptW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(acceptW, acceptReq)
+
+	if acceptW.Code != http.StatusConflict {
+		t.Errorf("accepting already-accepted invitation should return 409 Conflict, got %d: %s", acceptW.Code, acceptW.Body.String())
+	}
+
+	if !bytes.Contains(acceptW.Body.Bytes(), []byte("already been accepted")) {
+		t.Errorf("error should mention already accepted, got: %s", acceptW.Body.String())
+	}
+}
+
+// TestPromoteMember_AlreadyAdmin tests that promoting an already-admin member returns 409.
+// T144: Write test for promoting already-admin returns 409
+func TestPromoteMember_AlreadyAdmin(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	otherUser := setup.createTestUser(t, "other@example.com", "Other User")
+	otherToken := setup.createTestSession(t, otherUser.ID)
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+
+	// Invite, accept, and promote to admin
+	membershipID := setup.inviteAndAccept(t, adminToken, otherToken, groupID, otherUser.ID)
+
+	// Promote to admin
+	promoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/promote", membershipID), nil)
+	promoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	promoteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(promoteW, promoteReq)
+	if promoteW.Code != http.StatusOK {
+		t.Fatalf("first promote should succeed: %d: %s", promoteW.Code, promoteW.Body.String())
+	}
+
+	// Try to promote again - should return 409
+	promote2Req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/promote", membershipID), nil)
+	promote2Req.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	promote2W := httptest.NewRecorder()
+	setup.mux.ServeHTTP(promote2W, promote2Req)
+
+	if promote2W.Code != http.StatusConflict {
+		t.Errorf("promoting already-admin should return 409 Conflict, got %d: %s", promote2W.Code, promote2W.Body.String())
+	}
+
+	if !bytes.Contains(promote2W.Body.Bytes(), []byte("already an admin")) {
+		t.Errorf("error should mention already admin, got: %s", promote2W.Body.String())
+	}
+}
+
+// TestDemoteMember_AlreadyMember tests that demoting an already-member returns 409.
+// T145: Write test for demoting already-member returns 409
+func TestDemoteMember_AlreadyMember(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	memberUser := setup.createTestUser(t, "member@example.com", "Member User")
+	memberToken := setup.createTestSession(t, memberUser.ID)
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+
+	// Invite and accept (role=member by default)
+	membershipID := setup.inviteAndAccept(t, adminToken, memberToken, groupID, memberUser.ID)
+
+	// Try to demote a member (already not admin) - should return 409
+	demoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/demote", membershipID), nil)
+	demoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	demoteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(demoteW, demoteReq)
+
+	if demoteW.Code != http.StatusConflict {
+		t.Errorf("demoting already-member should return 409 Conflict, got %d: %s", demoteW.Code, demoteW.Body.String())
+	}
+
+	if !bytes.Contains(demoteW.Body.Bytes(), []byte("already a regular member")) {
+		t.Errorf("error should mention already member, got: %s", demoteW.Body.String())
+	}
+}
+
+// TestRemoveMember_NonAdminNonMember tests that non-members cannot remove members.
+// T125/T146: Write test for non-member cannot remove member
+func TestRemoveMember_NonMemberCannotRemove(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	memberUser := setup.createTestUser(t, "member@example.com", "Member User")
+	memberToken := setup.createTestSession(t, memberUser.ID)
+
+	outsiderUser := setup.createTestUser(t, "outsider@example.com", "Outsider User")
+	outsiderToken := setup.createTestSession(t, outsiderUser.ID)
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+
+	// Invite and accept member
+	membershipID := setup.inviteAndAccept(t, adminToken, memberToken, groupID, memberUser.ID)
+
+	// Outsider (non-member) tries to remove member - should fail with 403
+	removeReq := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/memberships/%d", membershipID), nil)
+	removeReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: outsiderToken})
+	removeW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(removeW, removeReq)
+
+	if removeW.Code != http.StatusForbidden {
+		t.Errorf("non-member should not be able to remove members, got %d: %s", removeW.Code, removeW.Body.String())
+	}
+}
+
+// TestRemoveMember_MemberCannotRemoveOther tests that members (non-admin) cannot remove other members.
+// T146: Write test for member (non-admin) cannot remove another member
+func TestRemoveMember_MemberCannotRemoveOther(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	member1User := setup.createTestUser(t, "member1@example.com", "Member One")
+	member1Token := setup.createTestSession(t, member1User.ID)
+
+	member2User := setup.createTestUser(t, "member2@example.com", "Member Two")
+	member2Token := setup.createTestSession(t, member2User.ID)
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+
+	// Invite and accept both members
+	_ = setup.inviteAndAccept(t, adminToken, member1Token, groupID, member1User.ID)
+	member2MembershipID := setup.inviteAndAccept(t, adminToken, member2Token, groupID, member2User.ID)
+
+	// Member1 tries to remove Member2 - should fail with 403
+	removeReq := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/memberships/%d", member2MembershipID), nil)
+	removeReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: member1Token})
+	removeW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(removeW, removeReq)
+
+	if removeW.Code != http.StatusForbidden {
+		t.Errorf("member should not be able to remove other members, got %d: %s", removeW.Code, removeW.Body.String())
+	}
+}
+
+// TestInviteMember_NonAdminCannotInviteAsAdmin tests that non-admins cannot invite with admin role.
+// T130: Write test for non-admin inviting with admin role returns 403
+func TestInviteMember_NonAdminCannotInviteAsAdmin(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	memberUser := setup.createTestUser(t, "member@example.com", "Member User")
+	memberToken := setup.createTestSession(t, memberUser.ID)
+
+	inviteeUser := setup.createTestUser(t, "invitee@example.com", "Invitee User")
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group with Invite Permission")
+
+	// Enable members_can_add_members
+	patchBody := map[string]any{"members_can_add_members": true}
+	patchBytes, _ := json.Marshal(patchBody)
+	patchReq := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/groups/%d", groupID), bytes.NewBuffer(patchBytes))
+	patchReq.Header.Set("Content-Type", "application/json")
+	patchReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	patchW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(patchW, patchReq)
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("failed to enable members_can_add_members: %d: %s", patchW.Code, patchW.Body.String())
+	}
+
+	// Invite member and accept
+	_ = setup.inviteAndAccept(t, adminToken, memberToken, groupID, memberUser.ID)
+
+	// Member tries to invite with admin role - should fail
+	body := map[string]any{"user_id": inviteeUser.ID, "role": "admin"}
+	bodyBytes, _ := json.Marshal(body)
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/memberships", groupID), bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "loomio_session", Value: memberToken})
+
+	w := httptest.NewRecorder()
+	setup.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("non-admin inviting with admin role should return 403, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestPendingInvitation_CannotViewGroup tests that pending members cannot view group details.
+// T123: Write test for pending invitation cannot view group
+func TestPendingInvitation_CannotViewGroup(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	pendingUser := setup.createTestUser(t, "pending@example.com", "Pending User")
+	pendingToken := setup.createTestSession(t, pendingUser.ID)
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+
+	// Invite pendingUser but DON'T accept
+	body := map[string]any{"user_id": pendingUser.ID, "role": "member"}
+	bodyBytes, _ := json.Marshal(body)
+	inviteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/memberships", groupID), bytes.NewBuffer(bodyBytes))
+	inviteReq.Header.Set("Content-Type", "application/json")
+	inviteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	inviteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(inviteW, inviteReq)
+	if inviteW.Code != http.StatusCreated {
+		t.Fatalf("invite failed: %d: %s", inviteW.Code, inviteW.Body.String())
+	}
+
+	// Pending user tries to view group - should fail
+	getReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/groups/%d", groupID), nil)
+	getReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: pendingToken})
+	getW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(getW, getReq)
+
+	if getW.Code != http.StatusForbidden {
+		t.Errorf("pending member should not be able to view group, got %d: %s", getW.Code, getW.Body.String())
+	}
+}
+
+// TestPendingInvitation_CannotInviteMembers tests that pending members cannot invite others.
+// T124: Write test for pending invitation cannot invite members
+func TestPendingInvitation_CannotInviteMembers(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	pendingUser := setup.createTestUser(t, "pending@example.com", "Pending User")
+	pendingToken := setup.createTestSession(t, pendingUser.ID)
+
+	otherUser := setup.createTestUser(t, "other@example.com", "Other User")
+
+	groupID := setup.createTestGroup(t, adminToken, "Test Group with Invite Permission")
+
+	// Enable members_can_add_members
+	patchBody := map[string]any{"members_can_add_members": true}
+	patchBytes, _ := json.Marshal(patchBody)
+	patchReq := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/groups/%d", groupID), bytes.NewBuffer(patchBytes))
+	patchReq.Header.Set("Content-Type", "application/json")
+	patchReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	patchW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(patchW, patchReq)
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("failed to enable members_can_add_members: %d: %s", patchW.Code, patchW.Body.String())
+	}
+
+	// Invite pendingUser but DON'T accept
+	body := map[string]any{"user_id": pendingUser.ID, "role": "member"}
+	bodyBytes, _ := json.Marshal(body)
+	inviteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/memberships", groupID), bytes.NewBuffer(bodyBytes))
+	inviteReq.Header.Set("Content-Type", "application/json")
+	inviteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	inviteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(inviteW, inviteReq)
+	if inviteW.Code != http.StatusCreated {
+		t.Fatalf("invite failed: %d: %s", inviteW.Code, inviteW.Body.String())
+	}
+
+	// Pending user tries to invite another user - should fail
+	inviteBody := map[string]any{"user_id": otherUser.ID, "role": "member"}
+	inviteBytes, _ := json.Marshal(inviteBody)
+	pendingInviteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/memberships", groupID), bytes.NewBuffer(inviteBytes))
+	pendingInviteReq.Header.Set("Content-Type", "application/json")
+	pendingInviteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: pendingToken})
+	pendingInviteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(pendingInviteW, pendingInviteReq)
+
+	if pendingInviteW.Code != http.StatusForbidden {
+		t.Errorf("pending member should not be able to invite others, got %d: %s", pendingInviteW.Code, pendingInviteW.Body.String())
+	}
+}
+
+// TestGetMembership_NonMemberCannot tests that non-members cannot view memberships.
+// T166: Write test for non-member cannot GET /api/v1/memberships/{id} returns 403
+func TestGetMembership_NonMemberCannot(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	// Create admin and non-member
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	memberUser := setup.createTestUser(t, "member@example.com", "Member User")
+	memberToken := setup.createTestSession(t, memberUser.ID)
+
+	nonMemberUser := setup.createTestUser(t, "nonmember@example.com", "Non Member")
+	nonMemberToken := setup.createTestSession(t, nonMemberUser.ID)
+
+	// Create group and add member
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+	membershipID := setup.inviteAndAccept(t, adminToken, memberToken, groupID, memberUser.ID)
+
+	// Test 1: Member can view their own membership
+	t.Run("member can view own membership", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/memberships/%d", membershipID), nil)
+		req.AddCookie(&http.Cookie{Name: "loomio_session", Value: memberToken})
+		w := httptest.NewRecorder()
+		setup.mux.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("member should be able to view own membership, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	// Test 2: Non-member cannot view membership
+	t.Run("non-member cannot view membership", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/memberships/%d", membershipID), nil)
+		req.AddCookie(&http.Cookie{Name: "loomio_session", Value: nonMemberToken})
+		w := httptest.NewRecorder()
+		setup.mux.ServeHTTP(w, req)
+
+		if w.Code != http.StatusForbidden {
+			t.Errorf("non-member should get 403, got %d: %s", w.Code, w.Body.String())
+		}
+		if !bytes.Contains(w.Body.Bytes(), []byte("Not a member")) {
+			t.Errorf("error should indicate not a member, got: %s", w.Body.String())
+		}
+	})
+}
+
+// TestArchivedGroup_MembershipOperations tests that membership operations
+// are blocked on archived groups.
+// T158-T165: Archived group mutation restrictions
+func TestArchivedGroup_MembershipOperations(t *testing.T) {
+	setup := setupMembershipsTest(t)
+	defer setup.cleanup()
+
+	// Create admin and member
+	adminUser := setup.createTestUser(t, "admin@example.com", "Admin User")
+	adminToken := setup.createTestSession(t, adminUser.ID)
+
+	memberUser := setup.createTestUser(t, "member@example.com", "Member User")
+	memberToken := setup.createTestSession(t, memberUser.ID)
+
+	inviteeUser := setup.createTestUser(t, "invitee@example.com", "Invitee User")
+
+	// Create group and add member
+	groupID := setup.createTestGroup(t, adminToken, "Test Group")
+	membershipID := setup.inviteAndAccept(t, adminToken, memberToken, groupID, memberUser.ID)
+
+	// Archive the group
+	archiveReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/archive", groupID), nil)
+	archiveReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	archiveW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(archiveW, archiveReq)
+	if archiveW.Code != http.StatusOK {
+		t.Fatalf("failed to archive group: %d: %s", archiveW.Code, archiveW.Body.String())
+	}
+
+	// T158: Test inviting member to archived group returns 409
+	t.Run("T158_invite_to_archived_group", func(t *testing.T) {
+		inviteBody := map[string]any{"user_id": inviteeUser.ID, "role": "member"}
+		inviteBytes, _ := json.Marshal(inviteBody)
+		inviteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/memberships", groupID), bytes.NewBuffer(inviteBytes))
+		inviteReq.Header.Set("Content-Type", "application/json")
+		inviteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+		inviteW := httptest.NewRecorder()
+		setup.mux.ServeHTTP(inviteW, inviteReq)
+
+		if inviteW.Code != http.StatusConflict {
+			t.Errorf("invite to archived group should return 409, got %d: %s", inviteW.Code, inviteW.Body.String())
+		}
+		if !bytes.Contains(inviteW.Body.Bytes(), []byte("archived")) {
+			t.Errorf("error should mention archived, got: %s", inviteW.Body.String())
+		}
+	})
+
+	// T160: Test promoting member in archived group returns 409
+	t.Run("T160_promote_in_archived_group", func(t *testing.T) {
+		promoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/promote", membershipID), nil)
+		promoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+		promoteW := httptest.NewRecorder()
+		setup.mux.ServeHTTP(promoteW, promoteReq)
+
+		if promoteW.Code != http.StatusConflict {
+			t.Errorf("promote in archived group should return 409, got %d: %s", promoteW.Code, promoteW.Body.String())
+		}
+		if !bytes.Contains(promoteW.Body.Bytes(), []byte("archived")) {
+			t.Errorf("error should mention archived, got: %s", promoteW.Body.String())
+		}
+	})
+
+	// First we need to unarchive, promote, then re-archive to test demote
+	unarchiveReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/unarchive", groupID), nil)
+	unarchiveReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	unarchiveW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(unarchiveW, unarchiveReq)
+	if unarchiveW.Code != http.StatusOK {
+		t.Fatalf("failed to unarchive group: %d: %s", unarchiveW.Code, unarchiveW.Body.String())
+	}
+
+	// Promote member to admin
+	promoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/promote", membershipID), nil)
+	promoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	promoteW := httptest.NewRecorder()
+	setup.mux.ServeHTTP(promoteW, promoteReq)
+	if promoteW.Code != http.StatusOK {
+		t.Fatalf("failed to promote member: %d: %s", promoteW.Code, promoteW.Body.String())
+	}
+
+	// Re-archive
+	archiveReq2 := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/groups/%d/archive", groupID), nil)
+	archiveReq2.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+	archiveW2 := httptest.NewRecorder()
+	setup.mux.ServeHTTP(archiveW2, archiveReq2)
+	if archiveW2.Code != http.StatusOK {
+		t.Fatalf("failed to re-archive group: %d: %s", archiveW2.Code, archiveW2.Body.String())
+	}
+
+	// T162: Test demoting member in archived group returns 409
+	t.Run("T162_demote_in_archived_group", func(t *testing.T) {
+		demoteReq := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/memberships/%d/demote", membershipID), nil)
+		demoteReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+		demoteW := httptest.NewRecorder()
+		setup.mux.ServeHTTP(demoteW, demoteReq)
+
+		if demoteW.Code != http.StatusConflict {
+			t.Errorf("demote in archived group should return 409, got %d: %s", demoteW.Code, demoteW.Body.String())
+		}
+		if !bytes.Contains(demoteW.Body.Bytes(), []byte("archived")) {
+			t.Errorf("error should mention archived, got: %s", demoteW.Body.String())
+		}
+	})
+
+	// T164: Test removing member from archived group returns 409
+	t.Run("T164_remove_from_archived_group", func(t *testing.T) {
+		removeReq := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/memberships/%d", membershipID), nil)
+		removeReq.AddCookie(&http.Cookie{Name: "loomio_session", Value: adminToken})
+		removeW := httptest.NewRecorder()
+		setup.mux.ServeHTTP(removeW, removeReq)
+
+		if removeW.Code != http.StatusConflict {
+			t.Errorf("remove from archived group should return 409, got %d: %s", removeW.Code, removeW.Body.String())
+		}
+		if !bytes.Contains(removeW.Body.Bytes(), []byte("archived")) {
+			t.Errorf("error should mention archived, got: %s", removeW.Body.String())
+		}
+	})
+}
+
+// TestIsLastAdminTriggerError_ErrorDetection tests that isLastAdminTriggerError
+// correctly identifies the PostgreSQL P0001 error from the last-admin protection trigger.
+// T157: Verify DB trigger error code P0001 detection
+func TestIsLastAdminTriggerError_ErrorDetection(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "exact trigger error",
+			err: &pgconn.PgError{
+				Code:    "P0001",
+				Message: "Cannot remove or demote the last administrator of a group",
+			},
+			want: true,
+		},
+		{
+			name: "wrapped trigger error",
+			err: fmt.Errorf("transaction failed: %w", &pgconn.PgError{
+				Code:    "P0001",
+				Message: "Cannot remove or demote the last administrator of a group",
+			}),
+			want: true,
+		},
+		{
+			name: "P0001 but different message (not our trigger)",
+			err: &pgconn.PgError{
+				Code:    "P0001",
+				Message: "Some other custom error",
+			},
+			want: false,
+		},
+		{
+			name: "different code with similar message",
+			err: &pgconn.PgError{
+				Code:    "23505", // unique_violation
+				Message: "last administrator",
+			},
+			want: false,
+		},
+		{
+			name: "plain string error containing keywords",
+			err:  fmt.Errorf("P0001 last administrator error"),
+			want: false,
+		},
+		{
+			name: "nil error",
+			err:  nil,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isLastAdminTriggerError(tt.err)
+			if got != tt.want {
+				t.Errorf("isLastAdminTriggerError() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

@@ -22,9 +22,9 @@ import (
 //	    return nil
 //	})
 func SetAuditContext(ctx context.Context, tx pgx.Tx, userID int64) error {
-	// SET LOCAL doesn't support parameterized queries, but since userID is an int64,
-	// string interpolation is safe (no SQL injection possible)
-	_, err := tx.Exec(ctx, fmt.Sprintf("SET LOCAL app.current_user_id = '%d'", userID))
+	// T135: Use SELECT set_config() instead of SET LOCAL per CLAUDE.md
+	// The third parameter (true) means "is_local" - setting is transaction-scoped
+	_, err := tx.Exec(ctx, fmt.Sprintf("SELECT set_config('app.current_user_id', '%d', true)", userID))
 	return err
 }
 

@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 
 -- Audit schema for tracking all changes to groups and memberships
--- Based on supi_audit pattern with xact_id for transaction correlation
+-- Based on supa_audit pattern with xact_id for transaction correlation
 
 CREATE SCHEMA IF NOT EXISTS audit;
 

@@ -14,7 +14,7 @@
 - [x] CHK002 Are all CRUD operations for Memberships explicitly documented? (create/invite, read, update/promote/demote, delete/remove) [Completeness, Spec §FR-010-018]
 - [x] CHK003 Is a listing endpoint specified for user's own groups? [Completeness, contracts/groups.yaml GET /groups]
 - [x] CHK004 Is a listing endpoint specified for subgroups under a parent? [Completeness, contracts/groups.yaml GET /groups/{id}/subgroups]
-- [x] CHK005 Is a lookup-by-handle endpoint specified for human-readable URLs? [Completeness, Spec §FR-003, contracts/groups.yaml GET /groups/handle/{handle}]
+- [x] CHK005 Is a lookup-by-handle endpoint specified for human-readable URLs? [Completeness, Spec §FR-003, contracts/groups.yaml GET /group-by-handle/{handle}]
 - [x] CHK006 Is a listing endpoint specified for user's pending invitations? [Completeness, contracts/groups.yaml GET /users/me/invitations]
 - [x] CHK007 Are membership status filter requirements documented? (all/active/pending) [Gap, contracts/groups.yaml listMemberships]
 

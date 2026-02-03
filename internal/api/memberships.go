@@ -1,18 +1,32 @@
-// Package api provides HTTP handlers and DTOs for the authentication API.
 package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
 )
+
+// isLastAdminTriggerError checks if the error is from the last-admin protection trigger.
+// The trigger raises PostgreSQL error P0001 with message "Cannot remove or demote the last administrator".
+// T157: Uses pgconn.PgError type assertion for reliable error detection.
+func isLastAdminTriggerError(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		// P0001 is RAISE EXCEPTION, and we check the message matches our trigger
+		return pgErr.Code == "P0001" && strings.Contains(pgErr.Message, "last administrator")
+	}
+	return false
+}
 
 // MembershipHandler handles membership-related HTTP requests.
 type MembershipHandler struct {
@@ -217,6 +231,17 @@ func (h *MembershipHandler) handleInviteMember(ctx context.Context, input *Invit
 		return nil, huma.Error403Forbidden("Not authorized to invite members")
 	}
 
+	// T159: Check if group is archived before allowing invitations
+	if authCtx.Group.ArchivedAt.Valid {
+		return nil, huma.Error409Conflict("Cannot invite members to an archived group")
+	}
+
+	// Non-admins cannot invite with admin role (privilege escalation prevention)
+	// T131: Only admins can grant admin role
+	if input.Body.Role == RoleAdmin && !authCtx.IsAdmin {
+		return nil, huma.Error403Forbidden("Only admins can invite with admin role")
+	}
+
 	// Verify the user to invite exists
 	invitee, err := h.queries.GetUserByID(ctx, input.Body.UserID)
 	if err != nil {
@@ -230,7 +255,7 @@ func (h *MembershipHandler) handleInviteMember(ctx context.Context, input *Invit
 	// Default role to "member" if not specified
 	role := input.Body.Role
 	if role == "" {
-		role = "member"
+		role = RoleMember
 	}
 
 	// Execute in transaction with audit context
@@ -292,8 +317,12 @@ func (h *MembershipHandler) handleInviteMember(ctx context.Context, input *Invit
 	}
 
 	// Get inviter info for complete response
+	// T134: Log warning when inviter fetch fails (non-blocking)
 	inviter, err := h.queries.GetUserByID(ctx, session.UserID)
-	if err == nil {
+	if err != nil {
+		// Log but don't fail - inviter info is supplementary
+		LogDBError(ctx, "GetInviterInfo", err)
+	} else {
 		output.Body.Membership.Inviter.Name = inviter.Name
 		output.Body.Membership.Inviter.Username = inviter.Username
 	}
@@ -549,8 +578,13 @@ func (h *MembershipHandler) handlePromoteMember(ctx context.Context, input *Prom
 		return nil, huma.Error403Forbidden("Only admins can promote members")
 	}
 
+	// T161: Check if group is archived before allowing promotions
+	if authCtx.Group.ArchivedAt.Valid {
+		return nil, huma.Error409Conflict("Cannot promote members in an archived group")
+	}
+
 	// Check if already admin
-	if membership.Role == "admin" {
+	if membership.Role == RoleAdmin {
 		return nil, huma.Error409Conflict("Member is already an admin")
 	}
 
@@ -565,7 +599,7 @@ func (h *MembershipHandler) handlePromoteMember(ctx context.Context, input *Prom
 		var updateErr error
 		updatedMembership, updateErr = txQueries.UpdateMembershipRole(ctx, db.UpdateMembershipRoleParams{
 			ID:   input.MembershipID,
-			Role: "admin",
+			Role: RoleAdmin,
 		})
 		if updateErr != nil {
 			return fmt.Errorf("UpdateMembershipRole: %w", updateErr)
@@ -631,8 +665,13 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 		return nil, huma.Error403Forbidden("Only admins can demote members")
 	}
 
+	// T163: Check if group is archived before allowing demotions
+	if authCtx.Group.ArchivedAt.Valid {
+		return nil, huma.Error409Conflict("Cannot demote members in an archived group")
+	}
+
 	// Check if already member
-	if membership.Role == "member" {
+	if membership.Role == RoleMember {
 		return nil, huma.Error409Conflict("Member is already a regular member")
 	}
 
@@ -658,7 +697,7 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 		var updateErr error
 		updatedMembership, updateErr = txQueries.UpdateMembershipRole(ctx, db.UpdateMembershipRoleParams{
 			ID:   input.MembershipID,
-			Role: "member",
+			Role: RoleMember,
 		})
 		if updateErr != nil {
 			return fmt.Errorf("UpdateMembershipRole: %w", updateErr)
@@ -667,6 +706,10 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 	})
 
 	if err != nil {
+		// T157: Check for last-admin trigger error (race condition protection)
+		if isLastAdminTriggerError(err) {
+			return nil, huma.Error409Conflict("Cannot demote the last admin of a group")
+		}
 		LogDBError(ctx, "DemoteMember", err)
 		return nil, huma.Error500InternalServerError("Database error")
 	}
@@ -720,8 +763,13 @@ func (h *MembershipHandler) handleRemoveMember(ctx context.Context, input *Remov
 		return nil, huma.Error403Forbidden("Only admins can remove members")
 	}
 
+	// T165: Check if group is archived before allowing removals
+	if authCtx.Group.ArchivedAt.Valid {
+		return nil, huma.Error409Conflict("Cannot remove members from an archived group")
+	}
+
 	// Check if this is the last admin (can't remove last admin)
-	if membership.Role == "admin" {
+	if membership.Role == RoleAdmin {
 		adminCount, countErr := h.queries.CountAdminsByGroup(ctx, membership.GroupID)
 		if countErr != nil {
 			LogDBError(ctx, "CountAdminsByGroup", countErr)
@@ -747,6 +795,10 @@ func (h *MembershipHandler) handleRemoveMember(ctx context.Context, input *Remov
 	})
 
 	if err != nil {
+		// T157: Check for last-admin trigger error (race condition protection)
+		if isLastAdminTriggerError(err) {
+			return nil, huma.Error409Conflict("Cannot remove the last admin of a group")
+		}
 		LogDBError(ctx, "RemoveMember", err)
 		return nil, huma.Error500InternalServerError("Database error")
 	}

@@ -93,6 +93,15 @@ WHERE group_id = $1 AND accepted_at IS NOT NULL;
 SELECT COUNT(*) AS admin_count FROM memberships
 WHERE group_id = $1 AND role = 'admin' AND accepted_at IS NOT NULL;
 
+-- name: CountGroupMembershipStats :one
+-- T169: Combined query to get both member and admin counts in a single query
+-- More efficient than two separate queries for handleGetGroup
+SELECT
+    COUNT(*) AS member_count,
+    COUNT(*) FILTER (WHERE role = 'admin') AS admin_count
+FROM memberships
+WHERE group_id = $1 AND accepted_at IS NOT NULL;
+
 -- name: HandleExists :one
 -- Checks if a handle is already taken
 SELECT EXISTS(SELECT 1 FROM groups WHERE handle = $1) AS exists;

@@ -1,4 +1,4 @@
-// Package api provides HTTP handlers and DTOs for the authentication API.
+// Package api provides HTTP handlers and DTOs for the groups, memberships, and authentication APIs.
 package api
 
 import (
@@ -64,6 +64,11 @@ type SuccessResponse struct {
 // ============================================
 
 // GroupDTO represents a group in API responses (basic view).
+// T171: Handle field has format constraints:
+//   - Length: 3-100 characters
+//   - Pattern: ^[a-z0-9][a-z0-9-]*[a-z0-9]$ (lowercase alphanumeric with hyphens, must start/end with alphanumeric)
+//   - Case: Always lowercase (normalized via CITEXT in database)
+//   - Uniqueness: Globally unique across all groups
 type GroupDTO struct {
 	ID          int64      `json:"id"`
 	Name        string     `json:"name"`
@@ -96,6 +101,10 @@ func GroupDTOFromGroup(g *db.Group) GroupDTO {
 
 // GroupDetailDTO extends GroupDTO with permission flags and member counts.
 // Used for getGroup responses where full detail is needed.
+// T173: CurrentUserRole indicates the requesting user's role in this group:
+//   - "admin": User is an administrator of the group
+//   - "member": User is a regular member of the group
+//   - "": (empty string) User is not a member (should not normally occur in getGroup responses, as non-members get 403)
 type GroupDetailDTO struct {
 	GroupDTO
 
@@ -114,7 +123,7 @@ type GroupDetailDTO struct {
 	// Counts
 	MemberCount     int64  `json:"member_count"`
 	AdminCount      int64  `json:"admin_count"`
-	CurrentUserRole string `json:"current_user_role"`
+	CurrentUserRole string `json:"current_user_role"` // T173: "admin", "member", or "" (see type docs)
 	// Parent status (for subgroups)
 	ParentArchived *bool `json:"parent_archived,omitempty"`
 }
@@ -161,6 +170,11 @@ func UserSummaryDTOFromUser(u *db.User) UserSummaryDTO {
 }
 
 // MembershipDTO represents a membership in API responses.
+// T172: AcceptedAt semantics:
+//   - nil (omitted in JSON): Pending invitation that has not been accepted yet
+//   - non-nil: Active membership with acceptance timestamp
+//   - Only accepted members (AcceptedAt != nil) are counted as active members
+//   - Pending members have limited permissions (cannot view group, cannot invite others)
 type MembershipDTO struct {
 	ID         int64           `json:"id"`
 	GroupID    int64           `json:"group_id"`

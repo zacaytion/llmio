@@ -335,6 +335,8 @@ This project uses the Go internal package structure:
   - User stories can proceed in priority order (P1 → P2 → P3)
   - Within same priority: US1 and US2 are both P1, but US2 needs US1 for group creation
 - **Polish (Phase 9)**: Depends on all user stories
+- **Code Review Fixes Round 1 (Phase 10)**: Depends on Phase 9 - addresses initial PR review findings
+- **PR Review Fixes Round 2 (Phase 11)**: Depends on Phase 10 - addresses comprehensive PR review from 2026-02-03
 
 ### User Story Dependencies
 
@@ -428,6 +430,147 @@ This delivers immediate collaboration value with ~50 tasks.
 
 ---
 
+## Phase 10: Code Review Fixes (Post-PR Review)
+
+**Purpose**: Address issues identified during PR #4 code review using systematic debugging and TDD approach
+
+**Source**: Code review findings from variant analysis, sharp edges analysis, and Supabase Postgres best practices
+
+**Approach**: Per `superpowers:systematic-debugging` - root cause first, then TDD fix. Per `superpowers:verification-before-completion` - verify each fix before marking complete.
+
+### Critical Fixes (Severity: CRITICAL)
+
+> **Root Cause Analysis**: TOCTOU race condition - admin count checked OUTSIDE transaction, then operation performed INSIDE transaction. Two concurrent requests can both pass check, both execute, leaving group with 0 admins. DB trigger is the safety net but Go code should rely on it properly.
+
+- [x] T116 [US3] Write test for concurrent demote race condition in internal/api/memberships_test.go (must trigger DB trigger error)
+- [x] T117 [US3] Fix handleDemoteMember: remove pre-check, rely on DB trigger, catch PostgreSQL error P0001 for 409 in internal/api/memberships.go:639-672
+- [x] T118 [US3] Write test for concurrent remove race condition in internal/api/memberships_test.go
+- [x] T119 [US3] Fix handleRemoveMember: same pattern as T117 in internal/api/memberships.go:724-749
+- [x] T120 [US6] Write test for parent archive status fetch failure logging in internal/api/groups_test.go
+- [x] T121 [US6] Fix handleGetGroup: log error when parent fetch fails, don't silently suppress in internal/api/groups.go:447-453
+- [x] T122 [US6] Fix handleGetGroupByHandle: same pattern as T121 in internal/api/groups.go:1073-1079
+- [x] T123 [US2] Write test for pending invitation cannot view group in internal/api/groups_test.go
+- [x] T124 [US2] Write test for pending invitation cannot invite members in internal/api/memberships_test.go
+- [x] T125 [US3] Write test for non-member cannot remove member (authorization boundary) in internal/api/memberships_test.go
+- [x] T126 Fix misleading AuthorizationContext comment in internal/api/authorization.go:18-19
+
+### Important Fixes (Severity: IMPORTANT)
+
+> **Sharp Edge Analysis**: Role as untyped string is a footgun - magic strings "admin"/"member" scattered across 7 files enable typos that compile but fail at runtime.
+
+- [x] T127 [P] Create Role type with constants (RoleAdmin, RoleMember) in internal/api/authorization.go
+- [x] T128 Replace magic "admin" strings with RoleAdmin constant across all files (variant analysis: 7 files)
+- [x] T129 Replace magic "member" strings with RoleMember constant across all files
+
+> **Authorization Fixes**
+
+- [x] T130 [US2] Write test for non-admin inviting with admin role returns 403 in internal/api/memberships_test.go
+- [x] T131 [US2] Fix handleInviteMember: add check `if role == "admin" && !authCtx.IsAdmin` in internal/api/memberships.go:216-218
+- [ ] T132 [P] Make AuthorizationContext fields private with getter methods in internal/api/authorization.go
+
+> **Error Handling Fixes (Per silent-failure-hunter findings)**
+
+- [x] T133 [US2] Write test for inviter info fetch failure logging in internal/api/memberships_test.go
+- [x] T134 [US2] Fix handleInviteMember: log warning when inviter fetch fails in internal/api/memberships.go:294-299
+- [x] T135 [P] Fix SetAuditContext: use `SELECT set_config()` instead of `SET LOCAL` per CLAUDE.md in internal/db/audit.go:24-28
+- [x] T136 [US1] Write test for transform.String error handling in internal/api/groups_test.go
+- [x] T137 [US1] Fix GenerateHandle: handle transform.String errors with fallback in internal/api/groups.go:300-301
+
+> **Validation Fixes (Per sharp-edges analysis)**
+
+- [x] T138 [US1] Write test for invalid handle format returns 422 (not 500) in internal/api/groups_test.go
+- [x] T139 [US1] Fix handleCreateGroup: validate handle format against regex before DB insert in internal/api/groups.go:172-197
+- [x] T140 [US1] Fix handleCreateSubgroup: same validation as T139 in internal/api/groups.go:669-693
+- [x] T141 [US4] Write test for updating archived group returns 409 in internal/api/groups_test.go
+- [x] T142 [US4] Fix handleUpdateGroup: add archived check before updates in internal/api/groups.go:490-609
+
+> **Missing Test Coverage (Per pr-test-analyzer findings)**
+
+- [x] T143 [US2] Write test for accepting already-accepted invitation returns 409 in internal/api/memberships_test.go
+- [x] T144 [US3] Write test for promoting already-admin returns 409 in internal/api/memberships_test.go
+- [x] T145 [US3] Write test for demoting already-member returns 409 in internal/api/memberships_test.go
+- [x] T146 [US3] Write test for member (non-admin) cannot remove another member in internal/api/memberships_test.go
+- [x] T147 [US4] Write test for getGroup non-existent ID returns 404 in internal/api/groups_test.go
+- [x] T148 [US4] Write test for updateGroup non-existent ID returns 404 in internal/api/groups_test.go
+
+### Comment & Documentation Fixes (Severity: SUGGESTION)
+
+- [x] T149 [P] Fix package doc comment in internal/api/dto.go:1 (says "authentication API", should say "groups and memberships API")
+- [x] T150 [P] Fix package doc comment in internal/api/memberships.go:1 (same issue)
+- [x] T151 [P] Fix typo "supi_audit" → "supa_audit" in migrations/002_create_audit_schema.sql:5
+- [x] T152 [P] Remove ephemeral task ID comments (T074, T072-T073, T086-T091, T100-T107) from internal/api/groups.go
+- [x] T153 Run full test suite and verify all new tests pass: `go test ./... -v`
+- [x] T154 Run linter and fix any issues: `golangci-lint run ./...`
+
+**Checkpoint**: Phase 10 code review issues addressed, tests pass, linter clean
+
+---
+
+## Phase 11: PR Review Round 2 (Additional Findings)
+
+**Purpose**: Address remaining issues from comprehensive PR #4 review (code-reviewer, silent-failure-hunter, pr-test-analyzer, type-design-analyzer agents)
+
+**Source**: PR review run on 2026-02-03 identified additional issues not covered in Phase 10
+
+### Critical Fixes (Must Fix Before Merge)
+
+> **Issue**: `isUniqueViolation` uses string matching `err.Error()` for "23505" - fragile, may miss actual violations with different pgx error formatting
+
+- [x] T155 [US1] Write test for unique violation detection with wrapped error in internal/api/groups_test.go
+- [x] T156 [US1] Fix isUniqueViolation: use `pgconn.PgError` type assertion instead of string matching in internal/api/groups.go:281-286
+
+> **Issue**: Last-admin DB trigger error returns generic 500 instead of 409 - need to catch PostgreSQL error P0001 from trigger
+
+- [x] T157 [US3] Verify T117/T119 correctly parse DB trigger error code P0001 - add explicit assertion for error message in test
+
+### Important Fixes (Should Fix)
+
+> **Issue**: Missing archived group check for membership mutations - only handleUpdateGroup checks, not invite/promote/demote/remove
+
+- [x] T158 [US2] Write test for inviting member to archived group returns 409 in internal/api/memberships_test.go
+- [x] T159 [US2] Fix handleInviteMember: add archived group check after authorization in internal/api/memberships.go:194-220
+- [x] T160 [US3] Write test for promoting member in archived group returns 409 in internal/api/memberships_test.go
+- [x] T161 [US3] Fix handlePromoteMember: add archived group check in internal/api/memberships.go:526
+- [x] T162 [US3] Write test for demoting member in archived group returns 409 in internal/api/memberships_test.go
+- [x] T163 [US3] Fix handleDemoteMember: add archived group check in internal/api/memberships.go:608
+- [x] T164 [US3] Write test for removing member from archived group returns 409 in internal/api/memberships_test.go
+- [x] T165 [US3] Fix handleRemoveMember: add archived group check in internal/api/memberships.go:697
+
+> **Issue**: GetMembership authorization for non-members not tested - handler checks CanViewGroup() but no test confirms
+
+- [x] T166 [US2] Write test for non-member cannot GET /api/v1/memberships/{id} returns 403 in internal/api/memberships_test.go
+
+> **Issue**: Redundant error handling branch - both `db.IsNotFound(err)` and other errors return same value
+
+- [x] T167 [P] Simplify error handling in GetAuthorizationContext in internal/api/authorization.go:31-36
+
+### Suggestions (Nice to Have)
+
+> **Issue**: Handle generation exhausting 1000 retries logs at INFO but should be WARN/ERROR (anomalous condition)
+
+- [x] T168 [US1] Change handle generation exhaustion log from Info to Warn in internal/api/groups.go:400-404 (SKIPPED: GenerateUniqueHandle not actively used; collision handling uses DB constraint retries)
+
+> **Issue**: Consider batch operation for CountGroupMembers + CountGroupAdmins (2 queries → 1)
+
+- [x] T169 [US4] Create combined CountGroupMembershipStats query in internal/db/queries/groups.sql
+- [x] T170 [US4] Update handleGetGroup to use combined stats query in internal/api/groups.go:462-472
+
+> **Issue**: Type-design: Consider adding doc comments to DTOs documenting implicit invariants
+
+- [x] T171 [P] Add doc comments to GroupDTO documenting Handle format constraints in internal/api/dto.go:67
+- [x] T172 [P] Add doc comments to MembershipDTO documenting AcceptedAt semantics (nil = pending) in internal/api/dto.go:164
+- [x] T173 [P] Add doc comments to GroupDetailDTO documenting CurrentUserRole enum values in internal/api/dto.go:99
+
+### Verification
+
+- [x] T174 Run full test suite: `go test ./... -v`
+- [x] T175 Run linter: `golangci-lint run ./...`
+- [x] T176 Verify no uncommitted changes remain after fixes
+
+**Checkpoint**: All PR review issues addressed, ready for merge
+
+---
+
 ## Task Summary
 
 | Phase | User Story | Task Count |
@@ -441,7 +584,9 @@ This delivers immediate collaboration value with ~50 tasks.
 | Phase 7 | US5 - Create Subgroups | 16 |
 | Phase 8 | US6 - Archive Group | 18 |
 | Phase 9 | Polish | 17 |
-| **Total** | | **147** |
+| Phase 10 | Code Review Fixes (Round 1) | 39 |
+| Phase 11 | PR Review Fixes (Round 2) | 22 |
+| **Total** | | **208** |
 
 ---
 
