@@ -135,9 +135,26 @@ cd orig/loomio && rake db:setup
 Conventional commits enforced via commitlint. Valid types:
 `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `plan`, `refactor`, `revert`, `style`, `test`
 
-Pre-commit hooks run `golangci-lint` on Go files.
+Pre-commit hooks run multiple linters in parallel via Lefthook.
 
 **Pre-commit gotcha**: Linter runs on ALL Go files, not just staged ones. Pre-existing errors anywhere block commits.
+
+### Additional Linters
+
+```bash
+make lint-all         # Run all linters
+make lint-files       # File naming conventions (ls-lint)
+make lint-md          # Markdown style (markdownlint)
+make lint-makefile    # Makefile quality (checkmake)
+make lint-migrations  # SQL migration safety (squawk)
+```
+
+### Linter Gotchas
+
+- squawk: npm package broken; use `pipx:squawk-cli` via mise, invoke with `mise exec -- squawk`
+- ls-lint: Regex rules match filename only (not extension); use `regex:^\d{3}_[a-z_]+$` not `^\d{3}_[a-z_]+\.sql$`
+- checkmake: `minphony`/`phonydeclared` rules have false positives with file-target patterns; disable in `checkmake.ini`
+- markdownlint: Exclude generated/legacy dirs in `.markdownlint-cli2.yaml` globs (discovery, specs, .specify)
 
 ## Architecture
 

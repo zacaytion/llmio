@@ -1,0 +1,22 @@
+ls:
+  .go: snake_case               # Go convention: password_hasher.go
+  .yaml: kebab-case
+  .yml: kebab-case
+  .md: kebab-case | PascalCase | SCREAMING_SNAKE_CASE  # Allow CLAUDE.md, README.md
+  .sh: kebab-case
+  .toml: kebab-case
+  .json: kebab-case
+  .ini: kebab-case
+
+  migrations:
+    .sql: regex:^\d{3}_[a-z_]+$   # Validates filename without extension
+
+ignore:
+  - .git
+  - .var
+  - node_modules
+  - orig
+  - vendor
+  - bin
+  - .specify
+  - discovery

@@ -1,0 +1,14 @@
+pg_version = "18.0"
+excluded_paths = ["**/test_*.sql"]
+
+# Initial schema migrations need different rules than incremental migrations:
+# - Initial CREATE TABLE doesn't benefit from CONCURRENTLY (no existing data)
+# - SET timeouts not needed for initial schema (no contention)
+# - DROP TABLE in down migrations is expected
+excluded_rules = [
+    "require-concurrent-index-creation",  # Initial schema: no existing data to block
+    "prefer-robust-stmts",                 # IF NOT EXISTS less important for initial schema
+    "require-timeout-settings",            # No contention on empty database
+    "ban-drop-table",                      # Down migrations intentionally drop tables
+    "prefer-identity",                     # BIGSERIAL is fine, identity is newer syntax
+]

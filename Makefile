@@ -8,10 +8,13 @@ VOLUMES := llmio_postgres_data llmio_pgadmin_data
 # Go source files for dependency tracking
 GO_SRC := $(shell find . -name '*.go' -not -path './vendor/*')
 
-.PHONY: help up down logs clean-volumes \
+.PHONY: all help up down logs clean-volumes \
         build build-server build-migrate run-server run-migrate server migrate install tidy \
-        test coverage-view lint lint-fix fmt \
+        test coverage-view lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
         clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all
+
+# Default target (required by checkmake)
+all: build
 
 ##@ Containers
 
@@ -96,11 +99,25 @@ coverage-view: .var/coverage/coverage.out ## View coverage report in browser
 .var/log:
 	@mkdir -p .var/log || (echo "ERROR: Cannot create .var/log directory" >&2; exit 1)
 
-lint: .var/log ## Run linter (exit code preserved via pipefail)
+lint: .var/log ## Run Go linter (exit code preserved via pipefail)
 	golangci-lint run ./... 2>&1 | tee .var/log/golangci-lint.log
 
-lint-fix: ## Run linter with auto-fix
+lint-fix: ## Run Go linter with auto-fix
 	golangci-lint run ./... --fix
+
+lint-files: ## Lint file/directory naming conventions
+	pnpm exec ls-lint
+
+lint-md: ## Lint markdown files
+	pnpm exec markdownlint-cli2
+
+lint-makefile: ## Lint Makefile
+	go tool checkmake Makefile
+
+lint-migrations: ## Lint SQL migrations for safety
+	mise exec -- squawk migrations/*.sql
+
+lint-all: lint lint-files lint-md lint-makefile lint-migrations ## Run all linters
 
 fmt: ## Format code
 	gofmt -w . && goimports -w -local github.com/zacaytion/llmio .

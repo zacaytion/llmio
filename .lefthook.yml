@@ -5,6 +5,23 @@ pre-commit:
       run: golangci-lint run --fix --timeout 2m
       glob: "*.go"
       stage_fixed: true
+
+    - name: lint files
+      run: pnpm exec ls-lint
+
+    - name: lint markdown
+      run: pnpm exec markdownlint-cli2 --fix
+      glob: "*.md"
+      stage_fixed: true
+
+    - name: lint makefile
+      run: go tool checkmake Makefile
+      glob: "Makefile"
+
+    - name: lint migrations
+      run: mise exec -- squawk migrations/*.sql
+      glob: "migrations/*.sql"
+
 commit-msg:
   commands:
     commitlint:
