@@ -2,12 +2,12 @@ pre-commit:
   parallel: true
   jobs:
     - name: lint go
-      run: golangci-lint run --fix --timeout 2m
+      run: golangci-lint run --config .config/golangci.yml --fix --timeout 2m
       glob: "*.go"
       stage_fixed: true
 
     - name: lint files
-      run: pnpm exec ls-lint
+      run: pnpm exec ls-lint -config .config/ls-lint.yml
 
     - name: lint markdown
       run: pnpm exec markdownlint-cli2 --fix
@@ -15,14 +15,14 @@ pre-commit:
       stage_fixed: true
 
     - name: lint makefile
-      run: go tool checkmake Makefile
+      run: go tool checkmake --config .config/checkmake.ini Makefile
       glob: "Makefile"
 
     - name: lint migrations
-      run: mise exec -- squawk migrations/*.sql
+      run: mise exec -- squawk --config .config/squawk.toml migrations/*.sql
       glob: "migrations/*.sql"
 
 commit-msg:
   commands:
     commitlint:
-      run: pnpx commitlint --edit {1}
+      run: pnpx commitlint --config .config/commitlintrc.yml --edit {1}

@@ -100,22 +100,22 @@ coverage-view: .var/coverage/coverage.out ## View coverage report in browser
 	@mkdir -p .var/log || (echo "ERROR: Cannot create .var/log directory" >&2; exit 1)
 
 lint: .var/log ## Run Go linter (exit code preserved via pipefail)
-	golangci-lint run ./... 2>&1 | tee .var/log/golangci-lint.log
+	golangci-lint run --config .config/golangci.yml ./... 2>&1 | tee .var/log/golangci-lint.log
 
 lint-fix: ## Run Go linter with auto-fix
-	golangci-lint run ./... --fix
+	golangci-lint run --config .config/golangci.yml ./... --fix
 
 lint-files: ## Lint file/directory naming conventions
-	pnpm exec ls-lint
+	pnpm exec ls-lint -config .config/ls-lint.yml
 
 lint-md: ## Lint markdown files
 	pnpm exec markdownlint-cli2
 
 lint-makefile: ## Lint Makefile
-	go tool checkmake Makefile
+	go tool checkmake --config .config/checkmake.ini Makefile
 
 lint-migrations: ## Lint SQL migrations for safety
-	mise exec -- squawk migrations/*.sql
+	mise exec -- squawk --config .config/squawk.toml migrations/*.sql
 
 lint-all: lint lint-files lint-md lint-makefile lint-migrations ## Run all linters
 
