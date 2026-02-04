@@ -85,7 +85,7 @@ func (s *testAPISetup) createTestUser(t *testing.T, email, name string) *db.User
 		t.Fatalf("failed to verify user: %v", err)
 	}
 
-	return &user
+	return user
 }
 
 // createTestSession creates a session for a user.
@@ -124,13 +124,17 @@ func Test_CreateGroup_ValidInput(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var resp map[string]any
+	var resp struct {
+		Group struct {
+			Handle string `json:"handle"`
+		} `json:"group"`
+	}
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("failed to parse response: %v", err)
 	}
 
-	if resp["handle"] != "test-group" {
-		t.Errorf("expected handle 'test-group', got %v", resp["handle"])
+	if resp.Group.Handle != "test-group" {
+		t.Errorf("expected handle 'test-group', got %v", resp.Group.Handle)
 	}
 }
 

@@ -160,18 +160,30 @@ func (p *PostgresContainer) Snapshot(ctx context.Context) error {
 		return fmt.Errorf("terminate connections failed with exit code %d", exitCode)
 	}
 
-	// Create template database
+	// Drop existing template if it exists (separate command to avoid transaction issues)
 	exitCode, reader, err = p.container.Exec(ctx, []string{
 		"psql",
 		"-U", "postgres",
-		"-c", "DROP DATABASE IF EXISTS loomio_test_template; CREATE DATABASE loomio_test_template TEMPLATE loomio_test;",
+		"-c", "DROP DATABASE IF EXISTS loomio_test_template;",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to drop template: %w", err)
+	}
+	drainReader(reader)
+	// Ignore exit code - DROP IF EXISTS may fail if DB doesn't exist
+
+	// Create template database from current state
+	exitCode, reader, err = p.container.Exec(ctx, []string{
+		"psql",
+		"-U", "postgres",
+		"-c", "CREATE DATABASE loomio_test_template TEMPLATE loomio_test;",
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create template: %w", err)
 	}
-	drainReader(reader)
+	output := drainReader(reader)
 	if exitCode != 0 {
-		return fmt.Errorf("create template failed with exit code %d", exitCode)
+		return fmt.Errorf("create template failed with exit code %d: %s", exitCode, string(output))
 	}
 
 	return nil
@@ -194,18 +206,32 @@ func (p *PostgresContainer) Restore(ctx context.Context) error {
 		return fmt.Errorf("terminate connections failed with exit code %d", exitCode)
 	}
 
-	// Drop and recreate from template
+	// Drop existing test database (separate command to avoid transaction issues)
 	exitCode, reader, err = p.container.Exec(ctx, []string{
 		"psql",
 		"-U", "postgres",
-		"-c", "DROP DATABASE loomio_test; CREATE DATABASE loomio_test TEMPLATE loomio_test_template;",
+		"-c", "DROP DATABASE IF EXISTS loomio_test;",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to drop test database: %w", err)
+	}
+	drainReader(reader)
+	if exitCode != 0 {
+		return fmt.Errorf("drop database failed with exit code %d", exitCode)
+	}
+
+	// Recreate from template
+	exitCode, reader, err = p.container.Exec(ctx, []string{
+		"psql",
+		"-U", "postgres",
+		"-c", "CREATE DATABASE loomio_test TEMPLATE loomio_test_template;",
 	})
 	if err != nil {
 		return fmt.Errorf("failed to restore from template: %w", err)
 	}
-	drainReader(reader)
+	output := drainReader(reader)
 	if exitCode != 0 {
-		return fmt.Errorf("restore failed with exit code %d", exitCode)
+		return fmt.Errorf("restore failed with exit code %d: %s", exitCode, string(output))
 	}
 
 	return nil

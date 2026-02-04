@@ -9,7 +9,7 @@ import (
 	"github.com/zacaytion/llmio/internal/testutil"
 )
 
-func Test_Main(m *testing.M) {
+func TestMain(m *testing.M) {
 	os.Exit(testutil.RunIntegrationTests(m,
 		testutil.WithMigrations(),
 		// No snapshot needed - pgTap tests are read-only schema checks
