@@ -1,3 +1,5 @@
+//go:build integration
+
 package api
 
 import (
@@ -17,7 +19,7 @@ import (
 
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
-	"github.com/zacaytion/llmio/internal/testutil"
+	"github.com/zacaytion/llmio/internal/db/testutil"
 )
 
 // testGroupsSetup holds shared test infrastructure for group tests.
