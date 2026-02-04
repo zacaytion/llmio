@@ -80,6 +80,10 @@ install: ## Download Go dependencies
 tidy: ## Tidy Go modules
 	go mod tidy
 
+node_modules: package.json pnpm-lock.yaml
+	@pnpm install
+
+
 ##@ Testing
 
 .var/coverage:
@@ -125,11 +129,11 @@ lint: .var/log ## Run Go linter (exit code preserved via pipefail)
 lint-fix: ## Run Go linter with auto-fix
 	golangci-lint run --config .config/golangci.yml ./... --fix
 
-lint-files: ## Lint file/directory naming conventions
-	pnpm exec ls-lint -config .config/ls-lint.yml
+lint-files: node_modules ## Lint file/directory naming conventions
+	@node_modules/.bin/ls-lint -config .config/ls-lint.yml
 
-lint-md: ## Lint markdown files
-	pnpm exec markdownlint-cli2
+lint-md: node_modules ## Lint markdown files
+	@node_modules/.bin/markdownlint-cli2
 
 lint-makefile: ## Lint Makefile
 	go tool checkmake --config .config/checkmake.ini Makefile
