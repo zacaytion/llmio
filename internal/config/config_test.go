@@ -57,10 +57,43 @@ func TestConfigStructs(t *testing.T) {
 	}
 }
 
+// clearLoomioEnvVars clears all LOOMIO_* environment variables for the duration of the test.
+// This ensures tests for defaults aren't affected by env vars set in the shell.
+func clearLoomioEnvVars(t *testing.T) {
+	t.Helper()
+	envVars := []string{
+		"LOOMIO_DATABASE_HOST",
+		"LOOMIO_DATABASE_PORT",
+		"LOOMIO_DATABASE_USER",
+		"LOOMIO_DATABASE_PASSWORD",
+		"LOOMIO_DATABASE_NAME",
+		"LOOMIO_DATABASE_SSLMODE",
+		"LOOMIO_DATABASE_MAX_CONNS",
+		"LOOMIO_DATABASE_MIN_CONNS",
+		"LOOMIO_DATABASE_MAX_CONN_LIFETIME",
+		"LOOMIO_DATABASE_MAX_CONN_IDLE_TIME",
+		"LOOMIO_DATABASE_HEALTH_CHECK_PERIOD",
+		"LOOMIO_SERVER_PORT",
+		"LOOMIO_SERVER_READ_TIMEOUT",
+		"LOOMIO_SERVER_WRITE_TIMEOUT",
+		"LOOMIO_SERVER_IDLE_TIMEOUT",
+		"LOOMIO_SESSION_DURATION",
+		"LOOMIO_SESSION_CLEANUP_INTERVAL",
+		"LOOMIO_LOGGING_LEVEL",
+		"LOOMIO_LOGGING_FORMAT",
+		"LOOMIO_LOGGING_OUTPUT",
+	}
+	for _, env := range envVars {
+		t.Setenv(env, "")
+	}
+}
+
 // T006: Test for Load() with defaults.
 //
 //nolint:gocyclo // Test function validating many config defaults - complexity is intentional
 func TestLoad_Defaults(t *testing.T) {
+	clearLoomioEnvVars(t) // Clear any env vars that might override defaults
+
 	cfg, err := Load("")
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
@@ -192,6 +225,8 @@ database:
 
 // T023: Test for config.test.yaml loading different database name.
 func TestLoad_TestConfig(t *testing.T) {
+	clearLoomioEnvVars(t) // Clear env vars so file values are used
+
 	// Create a temporary test config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.test.yaml"
@@ -248,6 +283,8 @@ logging:
 
 // T013: Test for YAML file loading.
 func TestLoad_YAMLFile(t *testing.T) {
+	clearLoomioEnvVars(t) // Clear env vars so file values are used
+
 	// Create a temporary YAML config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
@@ -383,6 +420,8 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 
 // T096: Test the full priority chain: CLI > env > file > defaults.
 func TestLoad_FullPriorityChain(t *testing.T) {
+	clearLoomioEnvVars(t) // Clear all env vars first
+
 	// Create a temporary YAML config file with specific values
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
@@ -398,7 +437,7 @@ database:
 		t.Fatalf("Failed to write temp config: %v", err)
 	}
 
-	// Set environment variable to override file
+	// Set environment variable to override file (after clearing)
 	t.Setenv("LOOMIO_DATABASE_NAME", "loomio_from_env")
 
 	// Create a viper instance with CLI flag to override env
@@ -436,6 +475,8 @@ database:
 
 // T097: Test that environment variables override config file values.
 func TestLoad_EnvOverridesConfigFile(t *testing.T) {
+	clearLoomioEnvVars(t) // Clear all env vars first
+
 	// Create a temporary YAML config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
@@ -451,7 +492,7 @@ server:
 		t.Fatalf("Failed to write temp config: %v", err)
 	}
 
-	// Set env vars to override config file
+	// Set env vars to override config file (after clearing)
 	t.Setenv("LOOMIO_DATABASE_HOST", "env-host")
 	t.Setenv("LOOMIO_SERVER_PORT", "7777")
 
@@ -800,6 +841,8 @@ func TestLogFormat_Valid(t *testing.T) {
 
 // T103/T104: Test that Load() fails with invalid config values.
 func TestLoad_ValidationFailure(t *testing.T) {
+	clearLoomioEnvVars(t) // Clear env vars so invalid file values are used
+
 	// Create a config file with invalid values
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/invalid_config.yaml"

@@ -23,12 +23,12 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### Go Gotchas
 
-- testcontainers-go: Use `internal/testutil` for isolated DB tests; `SetupTestDBWithSnapshot()` for fast reset
+- testcontainers-go: Use `internal/db/testutil` for isolated DB tests; `SetupTestDBWithSnapshot()` for fast reset
 - testcontainers-go: Requires Docker/Podman running; tests auto-skip if unavailable
 - sqlc queries: Use struct params, e.g., `queries.GetMembershipByGroupAndUser(ctx, db.GetMembershipByGroupAndUserParams{GroupID: id, UserID: uid})`
 - Audit context: Use `db.SetAuditContext(ctx, tx, userID)` or `db.WithAuditContext()` for mutations that need actor tracking
 - Group handles: 3-100 chars, `^[a-z0-9][a-z0-9-]*[a-z0-9]$`, case-insensitive via CITEXT
-- Config tests (`internal/config`) have pre-existing failures; don't block on them for unrelated work
+- Config tests: Use `clearLoomioEnvVars(t)` helper to isolate tests from shell env vars
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
 - golangci-lint autofix: use `golangci-lint run ./... --fix` to auto-fix gofmt/goimports issues
 - Import ordering: stdlib first, blank line, then third-party (goimports enforces this)
@@ -76,8 +76,8 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### Goose Migrations
 
-- Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix
-- pgTap schema tests belong in `tests/pgtap/`, NOT in migrations directory
+- Goose treats ALL `*.sql` files in `db/migrations/` as migrations based on numeric prefix
+- pgTap schema tests are in `db/tests/` and run via `go test -run TestPgTap ./internal/db/...`
 - supa_audit pattern: `record_id` is TEXT (not UUID) for tables with BIGSERIAL PKs; cast with `::TEXT`
 
 ### Makefile & Containers
