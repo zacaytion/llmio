@@ -1,6 +1,6 @@
-//go:build pgtap
+//go:build integration
 
-package db_test
+package api_test
 
 import (
 	"os"
@@ -12,6 +12,6 @@ import (
 func Test_Main(m *testing.M) {
 	os.Exit(testutil.RunIntegrationTests(m,
 		testutil.WithMigrations(),
-		// No snapshot needed - pgTap tests are read-only schema checks
+		testutil.WithSnapshot(),
 	))
 }

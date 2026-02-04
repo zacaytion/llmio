@@ -119,7 +119,7 @@ func (s *testGroupsSetup) createTestSession(t *testing.T, userID int64) string {
 
 // TestCreateGroup_TableDriven is the main table-driven test for createGroup handler.
 // T016: Write table-driven tests for createGroup handler
-func TestCreateGroup_TableDriven(t *testing.T) {
+func Test_CreateGroup_TableDriven(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -245,7 +245,7 @@ func TestCreateGroup_TableDriven(t *testing.T) {
 
 // TestCreateGroup_HandleConflict tests that handle conflicts return 409.
 // T019: Test handle conflict → 409 Conflict
-func TestCreateGroup_HandleConflict(t *testing.T) {
+func Test_CreateGroup_HandleConflict(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -288,7 +288,7 @@ func TestCreateGroup_HandleConflict(t *testing.T) {
 // TestCreateGroup_HandleAutoGeneration tests handle auto-generation from name.
 // T020a: Test handle auto-generated from name with spaces → "my group" becomes "my-group"
 // T020b: Test handle auto-generated from name with special chars → "Team @#$% 2026" becomes "team-2026"
-func TestCreateGroup_HandleAutoGeneration(t *testing.T) {
+func Test_CreateGroup_HandleAutoGeneration(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -363,7 +363,7 @@ func TestCreateGroup_HandleAutoGeneration(t *testing.T) {
 
 // TestCreateGroup_HandleCollisionRetry tests automatic suffix on collision.
 // T020c: Test handle auto-generated collision retry
-func TestCreateGroup_HandleCollisionRetry(t *testing.T) {
+func Test_CreateGroup_HandleCollisionRetry(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -448,7 +448,7 @@ func TestCreateGroup_HandleCollisionRetry(t *testing.T) {
 
 // TestCreateGroup_CreatorBecomesAdmin verifies that the creator automatically becomes an admin.
 // This is part of T017 but explicitly tests the membership creation.
-func TestCreateGroup_CreatorBecomesAdmin(t *testing.T) {
+func Test_CreateGroup_CreatorBecomesAdmin(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -505,7 +505,7 @@ func TestCreateGroup_CreatorBecomesAdmin(t *testing.T) {
 
 // TestUpdateGroup_PermissionFlags tests updating group permission flags.
 // T066-T067: Write table-driven tests for updateGroup handler
-func TestUpdateGroup_PermissionFlags(t *testing.T) {
+func Test_UpdateGroup_PermissionFlags(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -547,7 +547,7 @@ func TestUpdateGroup_PermissionFlags(t *testing.T) {
 
 // TestUpdateGroup_NonAdmin tests that non-admins cannot update groups.
 // T068: Test non-admin tries to update → 403 Forbidden
-func TestUpdateGroup_NonAdmin(t *testing.T) {
+func Test_UpdateGroup_NonAdmin(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -580,7 +580,7 @@ func TestUpdateGroup_NonAdmin(t *testing.T) {
 
 // TestInviteMember_PermissionFlag tests that members_can_add_members flag is enforced.
 // T069-T070: Test members_can_add_members enforcement
-func TestInviteMember_PermissionFlag(t *testing.T) {
+func Test_InviteMember_PermissionFlag(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -644,7 +644,7 @@ func TestInviteMember_PermissionFlag(t *testing.T) {
 
 // TestInviteMember_AdminBypass tests that admins can invite even when members_can_add_members=false.
 // T070a: Test admin bypass
-func TestInviteMember_AdminBypass(t *testing.T) {
+func Test_InviteMember_AdminBypass(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -684,7 +684,7 @@ func TestInviteMember_AdminBypass(t *testing.T) {
 
 // TestGetGroup_PermissionFlags tests that getGroup returns all permission flags.
 // T071: Test getGroup returns all 11 permission flags
-func TestGetGroup_PermissionFlags(t *testing.T) {
+func Test_GetGroup_PermissionFlags(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -825,7 +825,7 @@ func (s *testGroupsSetup) acceptInvitation(t *testing.T, token string, userID, g
 
 // TestCreateSubgroup_AdminCreates tests that an admin can create a subgroup.
 // T080-T081: Write table-driven tests for createSubgroup handler
-func TestCreateSubgroup_AdminCreates(t *testing.T) {
+func Test_CreateSubgroup_AdminCreates(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -877,7 +877,7 @@ func TestCreateSubgroup_AdminCreates(t *testing.T) {
 
 // TestCreateSubgroup_MemberWithPermission tests that a member with permission can create subgroups.
 // T082: Test member with permission creates subgroup → allowed
-func TestCreateSubgroup_MemberWithPermission(t *testing.T) {
+func Test_CreateSubgroup_MemberWithPermission(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -923,7 +923,7 @@ func TestCreateSubgroup_MemberWithPermission(t *testing.T) {
 
 // TestCreateSubgroup_MemberWithoutPermission tests that a member without permission cannot create subgroups.
 // T083: Test member without permission → 403 Forbidden
-func TestCreateSubgroup_MemberWithoutPermission(t *testing.T) {
+func Test_CreateSubgroup_MemberWithoutPermission(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -957,7 +957,7 @@ func TestCreateSubgroup_MemberWithoutPermission(t *testing.T) {
 
 // TestCreateSubgroup_AdminBypass tests that admin can create subgroups even when permission is disabled.
 // T083a: Test admin bypass
-func TestCreateSubgroup_AdminBypass(t *testing.T) {
+func Test_CreateSubgroup_AdminBypass(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -984,7 +984,7 @@ func TestCreateSubgroup_AdminBypass(t *testing.T) {
 
 // TestListSubgroups tests that listSubgroups returns child groups.
 // T084: Test listSubgroups returns child groups
-func TestListSubgroups(t *testing.T) {
+func Test_ListSubgroups(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1022,7 +1022,7 @@ func TestListSubgroups(t *testing.T) {
 
 // TestCreateSubgroup_SelfRefBlocked tests that a subgroup cannot be its own parent.
 // T085: Test subgroup cannot be its own parent (self-ref blocked)
-func TestCreateSubgroup_SelfRefBlocked(t *testing.T) {
+func Test_CreateSubgroup_SelfRefBlocked(t *testing.T) {
 	// This is actually blocked at the database level by CONSTRAINT groups_parent_not_self
 	// The API doesn't allow setting parent_id to self because you create subgroups via POST to parent
 	// So this test verifies the database constraint by checking that if somehow parent_id=id, it fails
@@ -1032,7 +1032,7 @@ func TestCreateSubgroup_SelfRefBlocked(t *testing.T) {
 
 // TestCreateSubgroup_InheritPermissions tests that subgroups can inherit parent permissions.
 // T085a: Test subgroup with inherit_permissions=true copies parent permission flags
-func TestCreateSubgroup_InheritPermissions(t *testing.T) {
+func Test_CreateSubgroup_InheritPermissions(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1093,7 +1093,7 @@ func TestCreateSubgroup_InheritPermissions(t *testing.T) {
 
 // TestCreateSubgroup_DefaultPermissions tests that subgroups use defaults without inheritance.
 // T085b: Test subgroup with inherit_permissions=false uses default permission flags
-func TestCreateSubgroup_DefaultPermissions(t *testing.T) {
+func Test_CreateSubgroup_DefaultPermissions(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1180,7 +1180,7 @@ func (s *testGroupsSetup) createSubgroup(t *testing.T, token string, parentID in
 
 // TestArchiveGroup_AdminArchives tests that an admin can archive a group.
 // T093-T094: Write table-driven tests for archiveGroup handler
-func TestArchiveGroup_AdminArchives(t *testing.T) {
+func Test_ArchiveGroup_AdminArchives(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1215,7 +1215,7 @@ func TestArchiveGroup_AdminArchives(t *testing.T) {
 
 // TestArchiveGroup_NonAdmin tests that non-admins cannot archive groups.
 // T095: Test non-admin tries to archive → 403 Forbidden
-func TestArchiveGroup_NonAdmin(t *testing.T) {
+func Test_ArchiveGroup_NonAdmin(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1245,7 +1245,7 @@ func TestArchiveGroup_NonAdmin(t *testing.T) {
 
 // TestListGroups_ExcludesArchived tests that archived groups are excluded by default.
 // T096: Test archived group excluded from listGroups (default)
-func TestListGroups_ExcludesArchived(t *testing.T) {
+func Test_ListGroups_ExcludesArchived(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1295,7 +1295,7 @@ func TestListGroups_ExcludesArchived(t *testing.T) {
 
 // TestListGroups_IncludesArchived tests that archived groups can be included.
 // T097: Test archived group included with include_archived=true
-func TestListGroups_IncludesArchived(t *testing.T) {
+func Test_ListGroups_IncludesArchived(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1339,7 +1339,7 @@ func TestListGroups_IncludesArchived(t *testing.T) {
 
 // TestUnarchiveGroup tests that unarchive sets archived_at to NULL.
 // T098: Test unarchive sets archived_at to NULL
-func TestUnarchiveGroup(t *testing.T) {
+func Test_UnarchiveGroup(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1383,7 +1383,7 @@ func TestUnarchiveGroup(t *testing.T) {
 
 // TestGetGroup_ArchivedAccessible tests that archived groups are still accessible by ID.
 // T099: Test archived group accessible via getGroup/getGroupByHandle
-func TestGetGroup_ArchivedAccessible(t *testing.T) {
+func Test_GetGroup_ArchivedAccessible(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1426,7 +1426,7 @@ func TestGetGroup_ArchivedAccessible(t *testing.T) {
 
 // TestSubgroup_ArchivedParent tests that subgroups show parent_archived indicator.
 // T099a: Test subgroup with archived parent shows parent relationship as archived
-func TestSubgroup_ArchivedParent(t *testing.T) {
+func Test_Subgroup_ArchivedParent(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1478,7 +1478,7 @@ func TestSubgroup_ArchivedParent(t *testing.T) {
 
 // TestHandleCaseInsensitiveConflict tests that handles are case-insensitive for uniqueness.
 // T177: Test handle case-insensitive conflict: create "MyGroup", then "mygroup" → 409
-func TestHandleCaseInsensitiveConflict(t *testing.T) {
+func Test_HandleCaseInsensitiveConflict(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1521,7 +1521,7 @@ func TestHandleCaseInsensitiveConflict(t *testing.T) {
 
 // TestGetGroupByHandle_CaseInsensitive tests that group lookup by handle is case-insensitive.
 // T178: Test GET by handle case-insensitive: create "climate-team", fetch via "CLIMATE-TEAM" → 200
-func TestGetGroupByHandle_CaseInsensitive(t *testing.T) {
+func Test_GetGroupByHandle_CaseInsensitive(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1570,7 +1570,7 @@ func TestGetGroupByHandle_CaseInsensitive(t *testing.T) {
 
 // TestUpdateGroup_ArchivedReturns409 tests that updating an archived group returns 409.
 // T179: Test PATCH /api/v1/groups/{id} on archived group returns 409
-func TestUpdateGroup_ArchivedReturns409(t *testing.T) {
+func Test_UpdateGroup_ArchivedReturns409(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1613,7 +1613,7 @@ func TestUpdateGroup_ArchivedReturns409(t *testing.T) {
 
 // TestHandleValidation_BoundaryLengths tests handle length boundary cases.
 // T195-T198: Test handle boundary lengths (3, 2, 100, 101 chars)
-func TestHandleValidation_BoundaryLengths(t *testing.T) {
+func Test_HandleValidation_BoundaryLengths(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1696,7 +1696,7 @@ func TestHandleValidation_BoundaryLengths(t *testing.T) {
 
 // TestCreateSubgroup_ArchivedParentReturns409 tests that creating a subgroup under an archived parent returns 409.
 // T202: Test creating subgroup under archived parent returns 409
-func TestCreateSubgroup_ArchivedParentReturns409(t *testing.T) {
+func Test_CreateSubgroup_ArchivedParentReturns409(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1732,7 +1732,7 @@ func TestCreateSubgroup_ArchivedParentReturns409(t *testing.T) {
 
 // TestCreateSubgroup_SelfRefBlocked_API tests that the API prevents self-referencing at the API level.
 // T204: Unskip or add API-level test for subgroup cannot be its own parent
-func TestCreateSubgroup_SelfRefBlocked_API(t *testing.T) {
+func Test_CreateSubgroup_SelfRefBlocked_API(t *testing.T) {
 	// The original test was skipped because the API design prevents self-reference by construction:
 	// You create subgroups by POSTing to /groups/{parent_id}/subgroups, which creates a NEW group
 	// with parent_id set to the parent. There's no way to make a group its own parent via the API.
@@ -1795,7 +1795,7 @@ func TestCreateSubgroup_SelfRefBlocked_API(t *testing.T) {
 
 // TestIsUniqueViolation_WrappedErrors tests that isUniqueViolation works with wrapped errors.
 // T155: Test for unique violation detection with wrapped error
-func TestIsUniqueViolation_WrappedErrors(t *testing.T) {
+func Test_IsUniqueViolation_WrappedErrors(t *testing.T) {
 	// Import pgconn in test
 	// This is a unit test for the isUniqueViolation function
 
@@ -1880,7 +1880,7 @@ func TestIsUniqueViolation_WrappedErrors(t *testing.T) {
 
 // TestGetGroup_ParentArchiveStatus tests that parent archive status is correctly reported.
 // T185: Test normal case where parent exists and is fetched successfully
-func TestGetGroup_ParentArchiveStatus(t *testing.T) {
+func Test_GetGroup_ParentArchiveStatus(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 
@@ -1927,7 +1927,7 @@ func TestGetGroup_ParentArchiveStatus(t *testing.T) {
 // Note: Integration testing of database errors during parent fetch is difficult without mocks.
 // The implementation (T183/T184) handles this by setting ParentArchiveStatusUnknown=true on error.
 // This test documents the expected behavior; actual error path is verified through code review.
-func TestGetGroup_ParentArchiveStatusUnknown_Documented(t *testing.T) {
+func Test_GetGroup_ParentArchiveStatusUnknown_Documented(t *testing.T) {
 	// This test documents the expected behavior when parent fetch fails:
 	// - ParentArchived remains nil (unknown)
 	// - ParentArchiveStatusUnknown is set to true
@@ -1953,7 +1953,7 @@ func TestGetGroup_ParentArchiveStatusUnknown_Documented(t *testing.T) {
 
 // TestListGroupsByUserWithCounts_IntegrationTest tests the optimized query that returns groups with counts.
 // T193: Write integration test for ListGroupsByUserWithCounts query
-func TestListGroupsByUserWithCounts_IntegrationTest(t *testing.T) {
+func Test_ListGroupsByUserWithCounts_IntegrationTest(t *testing.T) {
 	setup := setupGroupsTest(t)
 	defer setup.cleanup()
 

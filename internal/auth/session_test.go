@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestSessionStore_Create(t *testing.T) {
+func Test_SessionStore_Create(t *testing.T) {
 	store := NewSessionStore()
 
 	session, err := store.Create(123, "Mozilla/5.0", "192.168.1.1")
@@ -31,7 +31,7 @@ func TestSessionStore_Create(t *testing.T) {
 	}
 }
 
-func TestSessionStore_Get(t *testing.T) {
+func Test_SessionStore_Get(t *testing.T) {
 	store := NewSessionStore()
 
 	// Create a session
@@ -72,7 +72,7 @@ func TestSessionStore_Get(t *testing.T) {
 	}
 }
 
-func TestSessionStore_Delete(t *testing.T) {
+func Test_SessionStore_Delete(t *testing.T) {
 	store := NewSessionStore()
 
 	// Create a session
@@ -88,7 +88,7 @@ func TestSessionStore_Delete(t *testing.T) {
 	}
 }
 
-func TestSessionStore_Expiry(t *testing.T) {
+func Test_SessionStore_Expiry(t *testing.T) {
 	store := NewSessionStore()
 
 	// Create a session with a very short expiry for testing
@@ -109,7 +109,7 @@ func TestSessionStore_Expiry(t *testing.T) {
 	}
 }
 
-func TestSessionStore_GetByUserID(t *testing.T) {
+func Test_SessionStore_GetByUserID(t *testing.T) {
 	store := NewSessionStore()
 
 	// Create multiple sessions for the same user
@@ -130,7 +130,7 @@ func TestSessionStore_GetByUserID(t *testing.T) {
 	}
 }
 
-func TestSessionStore_DeleteByUserID(t *testing.T) {
+func Test_SessionStore_DeleteByUserID(t *testing.T) {
 	store := NewSessionStore()
 
 	// Create sessions for multiple users
@@ -155,7 +155,7 @@ func TestSessionStore_DeleteByUserID(t *testing.T) {
 	}
 }
 
-func TestSessionStore_Cleanup(t *testing.T) {
+func Test_SessionStore_Cleanup(t *testing.T) {
 	store := NewSessionStore()
 
 	// Create a valid session
@@ -207,7 +207,7 @@ func TestSessionStore_Cleanup(t *testing.T) {
 }
 
 // T015: Test for NewSessionStoreWithConfig.
-func TestNewSessionStoreWithConfig(t *testing.T) {
+func Test_NewSessionStoreWithConfig(t *testing.T) {
 	customDuration := 24 * time.Hour // 1 day instead of default 7 days
 
 	store := NewSessionStoreWithConfig(customDuration)

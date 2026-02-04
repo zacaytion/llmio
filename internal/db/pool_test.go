@@ -9,7 +9,7 @@ import (
 )
 
 // T014: Test for NewPoolFromConfig.
-func TestNewPoolFromConfig(t *testing.T) {
+func Test_NewPoolFromConfig(t *testing.T) {
 	// This test verifies the function signature and config mapping.
 	// It does NOT actually connect to a database (that would be an integration test).
 
@@ -58,7 +58,7 @@ func TestNewPoolFromConfig(t *testing.T) {
 
 // TestNewPoolFromConfig_FunctionExists verifies the function signature compiles.
 // This will fail to compile if NewPoolFromConfig doesn't exist with the right signature.
-func TestNewPoolFromConfig_FunctionExists(t *testing.T) {
+func Test_NewPoolFromConfig_FunctionExists(t *testing.T) {
 	// This is a compile-time check. If NewPoolFromConfig doesn't exist,
 	// the test file won't compile.
 	var _ = NewPoolFromConfig // Reference the function to ensure it exists
@@ -66,7 +66,7 @@ func TestNewPoolFromConfig_FunctionExists(t *testing.T) {
 
 // T137: Test that NewPoolFromConfig returns error for invalid connection.
 // This is an integration test that verifies error handling for unreachable hosts.
-func TestNewPoolFromConfig_ConnectionError(t *testing.T) {
+func Test_NewPoolFromConfig_ConnectionError(t *testing.T) {
 	cfg := config.DatabaseConfig{
 		Host:              "nonexistent.invalid.host.example.com",
 		Port:              5432,

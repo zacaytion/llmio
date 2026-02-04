@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestGet_ReturnsSameInstance(t *testing.T) {
+func Test_Get_ReturnsSameInstance(t *testing.T) {
 	v1 := Get()
 	v2 := Get()
 
@@ -13,7 +13,7 @@ func TestGet_ReturnsSameInstance(t *testing.T) {
 	}
 }
 
-func TestValidate_ValidStruct(t *testing.T) {
+func Test_Validate_ValidStruct(t *testing.T) {
 	type sample struct {
 		Name string `validate:"required"`
 		Age  int    `validate:"min=0,max=150"`
@@ -25,7 +25,7 @@ func TestValidate_ValidStruct(t *testing.T) {
 	}
 }
 
-func TestValidate_InvalidStruct(t *testing.T) {
+func Test_Validate_InvalidStruct(t *testing.T) {
 	type sample struct {
 		Name string `validate:"required"`
 	}
@@ -36,7 +36,7 @@ func TestValidate_InvalidStruct(t *testing.T) {
 	}
 }
 
-func TestValidateSSLMode(t *testing.T) {
+func Test_ValidateSSLMode(t *testing.T) {
 	tests := []struct {
 		name    string
 		value   string
@@ -69,7 +69,7 @@ func TestValidateSSLMode(t *testing.T) {
 	}
 }
 
-func TestValidateLogLevel(t *testing.T) {
+func Test_ValidateLogLevel(t *testing.T) {
 	tests := []struct {
 		name    string
 		value   string
@@ -100,7 +100,7 @@ func TestValidateLogLevel(t *testing.T) {
 	}
 }
 
-func TestValidateLogFormat(t *testing.T) {
+func Test_ValidateLogFormat(t *testing.T) {
 	tests := []struct {
 		name    string
 		value   string
@@ -132,7 +132,7 @@ func TestValidateLogFormat(t *testing.T) {
 // T130: Test that custom validators are registered successfully.
 // This test verifies that all custom validators (sslmode, loglevel, logformat)
 // are properly registered and can be used in validation.
-func TestCustomValidatorsRegistered(t *testing.T) {
+func Test_CustomValidatorsRegistered(t *testing.T) {
 	// Get the validator instance - this triggers registration
 	v := Get()
 	if v == nil {

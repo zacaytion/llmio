@@ -1,3 +1,5 @@
+//go:build integration
+
 package api
 
 import (
@@ -15,12 +17,12 @@ import (
 
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
-	"github.com/zacaytion/llmio/internal/testutil"
+	"github.com/zacaytion/llmio/internal/db/testutil"
 )
 
 // T109: Integration test - full group creation → invite → accept → promote workflow
 // This test verifies the complete user journey through the groups and memberships API.
-func TestIntegration_FullGroupWorkflow(t *testing.T) {
+func Test_Integration_FullGroupWorkflow(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup test infrastructure

@@ -10,7 +10,7 @@ import (
 )
 
 // T005: Test for Config struct existence.
-func TestConfigStructs(t *testing.T) {
+func Test_ConfigStructs(t *testing.T) {
 	// Verify structs can be instantiated with expected fields
 	cfg := Config{
 		Database: DatabaseConfig{
@@ -91,7 +91,7 @@ func clearLoomioEnvVars(t *testing.T) {
 // T006: Test for Load() with defaults.
 //
 //nolint:gocyclo // Test function validating many config defaults - complexity is intentional
-func TestLoad_Defaults(t *testing.T) {
+func Test_Load_Defaults(t *testing.T) {
 	clearLoomioEnvVars(t) // Clear any env vars that might override defaults
 
 	cfg, err := Load("")
@@ -166,7 +166,7 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 // T033: Test for environment variable override (LOOMIO_*).
-func TestLoad_EnvVarOverride(t *testing.T) {
+func Test_Load_EnvVarOverride(t *testing.T) {
 	// Set environment variable
 	t.Setenv("LOOMIO_SERVER_PORT", "9001")
 	t.Setenv("LOOMIO_DATABASE_NAME", "loomio_from_env")
@@ -186,7 +186,7 @@ func TestLoad_EnvVarOverride(t *testing.T) {
 }
 
 // T028: Test for CLI flag override of config file value.
-func TestLoadWithViper_CLIOverride(t *testing.T) {
+func Test_LoadWithViper_CLIOverride(t *testing.T) {
 	// Create a temporary YAML config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
@@ -224,7 +224,7 @@ database:
 }
 
 // T023: Test for config.test.yaml loading different database name.
-func TestLoad_TestConfig(t *testing.T) {
+func Test_Load_TestConfig(t *testing.T) {
 	clearLoomioEnvVars(t) // Clear env vars so file values are used
 
 	// Create a temporary test config file
@@ -282,7 +282,7 @@ logging:
 }
 
 // T013: Test for YAML file loading.
-func TestLoad_YAMLFile(t *testing.T) {
+func Test_Load_YAMLFile(t *testing.T) {
 	clearLoomioEnvVars(t) // Clear env vars so file values are used
 
 	// Create a temporary YAML config file
@@ -338,7 +338,7 @@ server:
 }
 
 // T058: Test that invalid YAML returns error with file information.
-func TestLoad_InvalidYAML(t *testing.T) {
+func Test_Load_InvalidYAML(t *testing.T) {
 	// Create a temporary file with invalid YAML
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/invalid.yaml"
@@ -377,7 +377,7 @@ func containsAny(s string, substrings []string) bool {
 }
 
 // T007: Test for DatabaseConfig.DSN() method.
-func TestDatabaseConfig_DSN(t *testing.T) {
+func Test_DatabaseConfig_DSN(t *testing.T) {
 	tests := []struct {
 		name     string
 		config   DatabaseConfig
@@ -419,7 +419,7 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 }
 
 // T096: Test the full priority chain: CLI > env > file > defaults.
-func TestLoad_FullPriorityChain(t *testing.T) {
+func Test_Load_FullPriorityChain(t *testing.T) {
 	clearLoomioEnvVars(t) // Clear all env vars first
 
 	// Create a temporary YAML config file with specific values
@@ -474,7 +474,7 @@ database:
 }
 
 // T097: Test that environment variables override config file values.
-func TestLoad_EnvOverridesConfigFile(t *testing.T) {
+func Test_Load_EnvOverridesConfigFile(t *testing.T) {
 	clearLoomioEnvVars(t) // Clear all env vars first
 
 	// Create a temporary YAML config file
@@ -517,7 +517,7 @@ server:
 
 // T099: Test DatabaseConfig validation catches invalid values.
 // Uses go-playground/validator; tests check for field name in error.
-func TestDatabaseConfig_Validate(t *testing.T) {
+func Test_DatabaseConfig_Validate(t *testing.T) {
 	validConfig := DatabaseConfig{
 		Host:              "localhost",
 		Port:              5432,
@@ -624,7 +624,7 @@ func TestDatabaseConfig_Validate(t *testing.T) {
 }
 
 // T100: Test ServerConfig validation catches invalid values.
-func TestServerConfig_Validate(t *testing.T) {
+func Test_ServerConfig_Validate(t *testing.T) {
 	validConfig := ServerConfig{
 		Port:         8080,
 		ReadTimeout:  15 * time.Second,
@@ -679,7 +679,7 @@ func TestServerConfig_Validate(t *testing.T) {
 }
 
 // T101: Test SessionConfig validation catches invalid values.
-func TestSessionConfig_Validate(t *testing.T) {
+func Test_SessionConfig_Validate(t *testing.T) {
 	validConfig := SessionConfig{
 		Duration:        168 * time.Hour,
 		CleanupInterval: 10 * time.Minute,
@@ -722,7 +722,7 @@ func TestSessionConfig_Validate(t *testing.T) {
 }
 
 // T102: Test LoggingConfig validation catches invalid values.
-func TestLoggingConfig_Validate(t *testing.T) {
+func Test_LoggingConfig_Validate(t *testing.T) {
 	validConfig := LoggingConfig{
 		Level:  "info",
 		Format: "json",
@@ -771,7 +771,7 @@ func TestLoggingConfig_Validate(t *testing.T) {
 }
 
 // T105: Test SSLMode.Valid() for all known modes.
-func TestSSLMode_Valid(t *testing.T) {
+func Test_SSLMode_Valid(t *testing.T) {
 	validModes := []SSLMode{
 		SSLModeDisable,
 		SSLModeAllow,
@@ -796,7 +796,7 @@ func TestSSLMode_Valid(t *testing.T) {
 }
 
 // T106: Test LogLevel.Valid() for all known levels.
-func TestLogLevel_Valid(t *testing.T) {
+func Test_LogLevel_Valid(t *testing.T) {
 	validLevels := []LogLevel{
 		LogLevelDebug,
 		LogLevelInfo,
@@ -819,7 +819,7 @@ func TestLogLevel_Valid(t *testing.T) {
 }
 
 // T107: Test LogFormat.Valid() for all known formats.
-func TestLogFormat_Valid(t *testing.T) {
+func Test_LogFormat_Valid(t *testing.T) {
 	validFormats := []LogFormat{
 		LogFormatJSON,
 		LogFormatText,
@@ -840,7 +840,7 @@ func TestLogFormat_Valid(t *testing.T) {
 }
 
 // T103/T104: Test that Load() fails with invalid config values.
-func TestLoad_ValidationFailure(t *testing.T) {
+func Test_Load_ValidationFailure(t *testing.T) {
 	clearLoomioEnvVars(t) // Clear env vars so invalid file values are used
 
 	// Create a config file with invalid values
@@ -877,7 +877,7 @@ server:
 
 // T138: Test that type coercion failures in YAML cause unmarshal errors.
 // For example, setting port to a non-numeric string should fail.
-func TestLoad_UnmarshalError(t *testing.T) {
+func Test_Load_UnmarshalError(t *testing.T) {
 	// Create a temporary file with type mismatch (string for integer field)
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/type_error.yaml"
@@ -911,7 +911,7 @@ server:
 }
 
 // T064: Test for DSN with special characters in password.
-func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
+func Test_DatabaseConfig_DSN_SpecialChars(t *testing.T) {
 	tests := []struct {
 		name     string
 		password string

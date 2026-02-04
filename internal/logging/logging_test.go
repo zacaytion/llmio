@@ -12,7 +12,7 @@ import (
 )
 
 // T036: Test for logging.Setup() with JSON format.
-func TestSetup_JSONFormat(t *testing.T) {
+func Test_Setup_JSONFormat(t *testing.T) {
 	cfg := config.LoggingConfig{
 		Level:  "info",
 		Format: "json",
@@ -46,7 +46,7 @@ func TestSetup_JSONFormat(t *testing.T) {
 }
 
 // T037: Test for log level filtering.
-func TestSetup_LevelFiltering(t *testing.T) {
+func Test_Setup_LevelFiltering(t *testing.T) {
 	tests := []struct {
 		name      string
 		level     string
@@ -112,7 +112,7 @@ func TestSetup_LevelFiltering(t *testing.T) {
 }
 
 // T038: Test for log file fallback to stdout.
-func TestSetup_FileFallbackToStdout(t *testing.T) {
+func Test_Setup_FileFallbackToStdout(t *testing.T) {
 	// Use a path that doesn't exist and can't be created
 	cfg := config.LoggingConfig{
 		Level:  "info",
@@ -134,7 +134,7 @@ func TestSetup_FileFallbackToStdout(t *testing.T) {
 }
 
 // TestSetup_TextFormat verifies text format output.
-func TestSetup_TextFormat(t *testing.T) {
+func Test_Setup_TextFormat(t *testing.T) {
 	cfg := config.LoggingConfig{
 		Level:  "info",
 		Format: "text",
@@ -164,7 +164,7 @@ func TestSetup_TextFormat(t *testing.T) {
 }
 
 // TestSetup_FileOutput verifies file output works.
-func TestSetup_FileOutput(t *testing.T) {
+func Test_Setup_FileOutput(t *testing.T) {
 	tmpFile := t.TempDir() + "/test.log"
 
 	cfg := config.LoggingConfig{
@@ -196,7 +196,7 @@ func TestSetup_FileOutput(t *testing.T) {
 }
 
 // T055: Test that SetupWithCleanup returns a closer for file handles.
-func TestSetupWithCleanup_ReturnsCloser(t *testing.T) {
+func Test_SetupWithCleanup_ReturnsCloser(t *testing.T) {
 	tmpFile := t.TempDir() + "/test_cleanup.log"
 
 	cfg := config.LoggingConfig{
@@ -228,7 +228,7 @@ func TestSetupWithCleanup_ReturnsCloser(t *testing.T) {
 }
 
 // TestSetupWithCleanup_StdoutNoClose verifies stdout doesn't need closing.
-func TestSetupWithCleanup_StdoutNoClose(t *testing.T) {
+func Test_SetupWithCleanup_StdoutNoClose(t *testing.T) {
 	cfg := config.LoggingConfig{
 		Level:  "info",
 		Format: "json",
@@ -256,7 +256,7 @@ func TestSetupWithCleanup_StdoutNoClose(t *testing.T) {
 }
 
 // T080: Test that log file open failure returns an error (not silent fallback).
-func TestSetupWithCleanup_FileOpenFailure_ReturnsError(t *testing.T) {
+func Test_SetupWithCleanup_FileOpenFailure_ReturnsError(t *testing.T) {
 	// Use a path that cannot be created (no permissions or invalid path)
 	cfg := config.LoggingConfig{
 		Level:  "info",
@@ -280,7 +280,7 @@ func TestSetupWithCleanup_FileOpenFailure_ReturnsError(t *testing.T) {
 }
 
 // T092: Test for invalid log level warning.
-func TestParseLevel_InvalidLevel_DefaultsToInfo(t *testing.T) {
+func Test_ParseLevel_InvalidLevel_DefaultsToInfo(t *testing.T) {
 	// Test that invalid levels default to info (behavior test)
 	tests := []struct {
 		level    string
@@ -306,7 +306,7 @@ func TestParseLevel_InvalidLevel_DefaultsToInfo(t *testing.T) {
 }
 
 // T094: Test for invalid log format defaults to JSON.
-func TestCreateHandler_InvalidFormat_DefaultsToJSON(t *testing.T) {
+func Test_CreateHandler_InvalidFormat_DefaultsToJSON(t *testing.T) {
 	var buf bytes.Buffer
 
 	// Invalid format should create JSON handler
@@ -323,7 +323,7 @@ func TestCreateHandler_InvalidFormat_DefaultsToJSON(t *testing.T) {
 }
 
 // T145: Test SetupDefault sets the global logger.
-func TestSetupDefault_SetsGlobalLogger(t *testing.T) {
+func Test_SetupDefault_SetsGlobalLogger(t *testing.T) {
 	// Save the current default logger to restore later
 	originalLogger := slog.Default()
 	defer slog.SetDefault(originalLogger)
@@ -344,7 +344,7 @@ func TestSetupDefault_SetsGlobalLogger(t *testing.T) {
 }
 
 // T146: Test SetupDefaultWithCleanup returns cleanup function.
-func TestSetupDefaultWithCleanup_ReturnsCleanupFunc(t *testing.T) {
+func Test_SetupDefaultWithCleanup_ReturnsCleanupFunc(t *testing.T) {
 	// Save the current default logger to restore later
 	originalLogger := slog.Default()
 	defer slog.SetDefault(originalLogger)
@@ -377,7 +377,7 @@ func TestSetupDefaultWithCleanup_ReturnsCleanupFunc(t *testing.T) {
 }
 
 // T147: Test stderr output path.
-func TestSetup_StderrOutput(t *testing.T) {
+func Test_Setup_StderrOutput(t *testing.T) {
 	cfg := config.LoggingConfig{
 		Level:  "info",
 		Format: "json",
@@ -403,7 +403,7 @@ func TestSetup_StderrOutput(t *testing.T) {
 }
 
 // T098: Test verifying file handle is actually closed after cleanup.
-func TestSetupWithCleanup_FileHandleClosedAfterCleanup(t *testing.T) {
+func Test_SetupWithCleanup_FileHandleClosedAfterCleanup(t *testing.T) {
 	tmpFile := t.TempDir() + "/test_close_verify.log"
 
 	cfg := config.LoggingConfig{

@@ -1,3 +1,5 @@
+//go:build integration
+
 package api
 
 import (
@@ -16,7 +18,7 @@ import (
 
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
-	"github.com/zacaytion/llmio/internal/testutil"
+	"github.com/zacaytion/llmio/internal/db/testutil"
 )
 
 // testMembershipsSetup holds shared test infrastructure for membership tests.
@@ -143,7 +145,7 @@ func (s *testMembershipsSetup) createTestGroup(t *testing.T, token, name string)
 
 // TestInviteMember_TableDriven is the main table-driven test for inviteMember handler.
 // T031: Write table-driven tests for inviteMember handler
-func TestInviteMember_TableDriven(t *testing.T) {
+func Test_InviteMember_TableDriven(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -304,7 +306,7 @@ func TestInviteMember_TableDriven(t *testing.T) {
 
 // TestInviteMember_AlreadyMember tests that inviting an existing member returns 409.
 // T034: Test invite already-member → 409 Conflict
-func TestInviteMember_AlreadyMember(t *testing.T) {
+func Test_InviteMember_AlreadyMember(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -349,7 +351,7 @@ func TestInviteMember_AlreadyMember(t *testing.T) {
 
 // TestAcceptInvitation tests accepting a pending invitation.
 // T035: Test acceptInvitation → membership.accepted_at set
-func TestAcceptInvitation(t *testing.T) {
+func Test_AcceptInvitation(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -405,7 +407,7 @@ func TestAcceptInvitation(t *testing.T) {
 
 // TestAcceptInvitation_NotFound tests accepting a non-existent invitation.
 // T036: Test accept non-existent invitation → 404 Not Found
-func TestAcceptInvitation_NotFound(t *testing.T) {
+func Test_AcceptInvitation_NotFound(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -426,7 +428,7 @@ func TestAcceptInvitation_NotFound(t *testing.T) {
 
 // TestAcceptInvitation_WrongUser tests that a user cannot accept another user's invitation.
 // T037: Test accept someone else's invitation → 403 Forbidden
-func TestAcceptInvitation_WrongUser(t *testing.T) {
+func Test_AcceptInvitation_WrongUser(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -475,7 +477,7 @@ func TestAcceptInvitation_WrongUser(t *testing.T) {
 // TestListMemberships_StatusFilter tests filtering memberships by status.
 // T036b: Test listMemberships with status=pending → returns only pending invitations
 // T036c: Test listMemberships with status=active → returns only accepted memberships
-func TestListMemberships_StatusFilter(t *testing.T) {
+func Test_ListMemberships_StatusFilter(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -568,7 +570,7 @@ func TestListMemberships_StatusFilter(t *testing.T) {
 
 // TestInviteMember_InviterID tests that inviter_id is correctly recorded.
 // T036d: Test inviteMember records correct inviter_id
-func TestInviteMember_InviterID(t *testing.T) {
+func Test_InviteMember_InviterID(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -618,7 +620,7 @@ func TestInviteMember_InviterID(t *testing.T) {
 
 // TestPromoteMember_TableDriven is the main table-driven test for promote/demote handlers.
 // T051: Write table-driven tests for promoteMember handler
-func TestPromoteMember_TableDriven(t *testing.T) {
+func Test_PromoteMember_TableDriven(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -691,7 +693,7 @@ func TestPromoteMember_TableDriven(t *testing.T) {
 
 // TestPromoteMember_NonAdmin tests that non-admins cannot promote.
 // T053: Test non-admin tries to promote → 403 Forbidden
-func TestPromoteMember_NonAdmin(t *testing.T) {
+func Test_PromoteMember_NonAdmin(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -726,7 +728,7 @@ func TestPromoteMember_NonAdmin(t *testing.T) {
 
 // TestDemoteMember tests demoting an admin to member.
 // T054: Test admin demotes other admin → role becomes member
-func TestDemoteMember(t *testing.T) {
+func Test_DemoteMember(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -772,7 +774,7 @@ func TestDemoteMember(t *testing.T) {
 
 // TestDemoteLastAdmin tests that demoting the last admin is blocked.
 // T055: Test demote last admin → 409 Conflict
-func TestDemoteLastAdmin(t *testing.T) {
+func Test_DemoteLastAdmin(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -808,7 +810,7 @@ func TestDemoteLastAdmin(t *testing.T) {
 
 // TestRemoveMember tests removing a member from a group.
 // T056: Test remove member → membership deleted
-func TestRemoveMember(t *testing.T) {
+func Test_RemoveMember(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -843,7 +845,7 @@ func TestRemoveMember(t *testing.T) {
 
 // TestRemoveLastAdmin tests that removing the last admin is blocked.
 // T057: Test remove last admin → 409 Conflict
-func TestRemoveLastAdmin(t *testing.T) {
+func Test_RemoveLastAdmin(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -915,7 +917,7 @@ func (s *testMembershipsSetup) inviteAndAccept(t *testing.T, adminToken, memberT
 }
 
 // TestListMyInvitations tests listing pending invitations for current user.
-func TestListMyInvitations(t *testing.T) {
+func Test_ListMyInvitations(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1000,7 +1002,7 @@ func TestListMyInvitations(t *testing.T) {
 // 4. First succeeds (count goes to 1), second should fail (DB trigger)
 //
 // This test verifies the handler properly catches the DB trigger error.
-func TestDemoteMember_ConcurrentRaceCondition(t *testing.T) {
+func Test_DemoteMember_ConcurrentRaceCondition(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1064,7 +1066,7 @@ func TestDemoteMember_ConcurrentRaceCondition(t *testing.T) {
 // TestRemoveMember_ConcurrentRaceCondition tests that concurrent remove requests
 // are handled correctly when the DB trigger blocks the last admin removal.
 // T118: Write test for concurrent remove race condition
-func TestRemoveMember_ConcurrentRaceCondition(t *testing.T) {
+func Test_RemoveMember_ConcurrentRaceCondition(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1127,7 +1129,7 @@ func TestRemoveMember_ConcurrentRaceCondition(t *testing.T) {
 
 // TestAcceptInvitation_AlreadyAccepted tests that accepting an already-accepted invitation returns 409.
 // T143: Write test for accepting already-accepted invitation returns 409
-func TestAcceptInvitation_AlreadyAccepted(t *testing.T) {
+func Test_AcceptInvitation_AlreadyAccepted(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1159,7 +1161,7 @@ func TestAcceptInvitation_AlreadyAccepted(t *testing.T) {
 
 // TestPromoteMember_AlreadyAdmin tests that promoting an already-admin member returns 409.
 // T144: Write test for promoting already-admin returns 409
-func TestPromoteMember_AlreadyAdmin(t *testing.T) {
+func Test_PromoteMember_AlreadyAdmin(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1200,7 +1202,7 @@ func TestPromoteMember_AlreadyAdmin(t *testing.T) {
 
 // TestDemoteMember_AlreadyMember tests that demoting an already-member returns 409.
 // T145: Write test for demoting already-member returns 409
-func TestDemoteMember_AlreadyMember(t *testing.T) {
+func Test_DemoteMember_AlreadyMember(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1232,7 +1234,7 @@ func TestDemoteMember_AlreadyMember(t *testing.T) {
 
 // TestRemoveMember_NonAdminNonMember tests that non-members cannot remove members.
 // T125/T146: Write test for non-member cannot remove member
-func TestRemoveMember_NonMemberCannotRemove(t *testing.T) {
+func Test_RemoveMember_NonMemberCannotRemove(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1263,7 +1265,7 @@ func TestRemoveMember_NonMemberCannotRemove(t *testing.T) {
 
 // TestRemoveMember_MemberCannotRemoveOther tests that members (non-admin) cannot remove other members.
 // T146: Write test for member (non-admin) cannot remove another member
-func TestRemoveMember_MemberCannotRemoveOther(t *testing.T) {
+func Test_RemoveMember_MemberCannotRemoveOther(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1295,7 +1297,7 @@ func TestRemoveMember_MemberCannotRemoveOther(t *testing.T) {
 
 // TestInviteMember_NonAdminCannotInviteAsAdmin tests that non-admins cannot invite with admin role.
 // T130: Write test for non-admin inviting with admin role returns 403
-func TestInviteMember_NonAdminCannotInviteAsAdmin(t *testing.T) {
+func Test_InviteMember_NonAdminCannotInviteAsAdmin(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1341,7 +1343,7 @@ func TestInviteMember_NonAdminCannotInviteAsAdmin(t *testing.T) {
 
 // TestPendingInvitation_CannotViewGroup tests that pending members cannot view group details.
 // T123: Write test for pending invitation cannot view group
-func TestPendingInvitation_CannotViewGroup(t *testing.T) {
+func Test_PendingInvitation_CannotViewGroup(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1378,7 +1380,7 @@ func TestPendingInvitation_CannotViewGroup(t *testing.T) {
 
 // TestPendingInvitation_CannotInviteMembers tests that pending members cannot invite others.
 // T124: Write test for pending invitation cannot invite members
-func TestPendingInvitation_CannotInviteMembers(t *testing.T) {
+func Test_PendingInvitation_CannotInviteMembers(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1432,7 +1434,7 @@ func TestPendingInvitation_CannotInviteMembers(t *testing.T) {
 
 // TestGetMembership_NonMemberCannot tests that non-members cannot view memberships.
 // T166: Write test for non-member cannot GET /api/v1/memberships/{id} returns 403
-func TestGetMembership_NonMemberCannot(t *testing.T) {
+func Test_GetMembership_NonMemberCannot(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1481,7 +1483,7 @@ func TestGetMembership_NonMemberCannot(t *testing.T) {
 // TestArchivedGroup_MembershipOperations tests that membership operations
 // are blocked on archived groups.
 // T158-T165: Archived group mutation restrictions
-func TestArchivedGroup_MembershipOperations(t *testing.T) {
+func Test_ArchivedGroup_MembershipOperations(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1601,7 +1603,7 @@ func TestArchivedGroup_MembershipOperations(t *testing.T) {
 // TestIsLastAdminTriggerError_ErrorDetection tests that isLastAdminTriggerError
 // correctly identifies the PostgreSQL P0001 error from the last-admin protection trigger.
 // T157: Verify DB trigger error code P0001 detection
-func TestIsLastAdminTriggerError_ErrorDetection(t *testing.T) {
+func Test_IsLastAdminTriggerError_ErrorDetection(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
@@ -1667,7 +1669,7 @@ func TestIsLastAdminTriggerError_ErrorDetection(t *testing.T) {
 
 // TestRemoveMember_NonExistentReturns404 tests that deleting a non-existent membership returns 404.
 // T199: Test DELETE /api/v1/memberships/99999 returns 404
-func TestRemoveMember_NonExistentReturns404(t *testing.T) {
+func Test_RemoveMember_NonExistentReturns404(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1691,7 +1693,7 @@ func TestRemoveMember_NonExistentReturns404(t *testing.T) {
 
 // TestPromoteMember_NonExistentReturns404 tests that promoting a non-existent membership returns 404.
 // T200: Test POST /api/v1/memberships/99999/promote returns 404
-func TestPromoteMember_NonExistentReturns404(t *testing.T) {
+func Test_PromoteMember_NonExistentReturns404(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1715,7 +1717,7 @@ func TestPromoteMember_NonExistentReturns404(t *testing.T) {
 
 // TestDemoteMember_NonExistentReturns404 tests that demoting a non-existent membership returns 404.
 // T201: Test POST /api/v1/memberships/99999/demote returns 404
-func TestDemoteMember_NonExistentReturns404(t *testing.T) {
+func Test_DemoteMember_NonExistentReturns404(t *testing.T) {
 	setup := setupMembershipsTest(t)
 	defer setup.cleanup()
 
@@ -1746,7 +1748,7 @@ func TestDemoteMember_NonExistentReturns404(t *testing.T) {
 // Note: This test requires simulating a database error during inviter fetch, which is difficult in integration tests.
 // The implementation fix (T181) ensures that on fetch error, Inviter is set to nil rather than a half-populated object.
 // This test documents the expected behavior; the actual error path is tested via code review.
-func TestInviteMember_InviterFetchFailure_Documented(t *testing.T) {
+func Test_InviteMember_InviterFetchFailure_Documented(t *testing.T) {
 	// This test documents the expected behavior when inviter fetch fails:
 	// - The membership should be created successfully
 	// - The response should have Inviter = null (not {id: x, name: "", username: ""})

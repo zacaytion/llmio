@@ -8,7 +8,7 @@ import (
 // usernamePattern matches valid usernames per database constraint.
 var usernamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
 
-func TestGenerateUsername(t *testing.T) {
+func Test_GenerateUsername(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -76,7 +76,7 @@ func TestGenerateUsername(t *testing.T) {
 	}
 }
 
-func TestGenerateUsernameUniqueness(t *testing.T) {
+func Test_GenerateUsernameUniqueness(t *testing.T) {
 	// Same input should produce same base, but with suffix for uniqueness
 	name := "John Doe"
 	u1 := GenerateUsername(name)
@@ -91,7 +91,7 @@ func TestGenerateUsernameUniqueness(t *testing.T) {
 	}
 }
 
-func TestMakeUsernameUnique(t *testing.T) {
+func Test_MakeUsernameUnique(t *testing.T) {
 	// Test that MakeUsernameUnique adds suffix correctly
 	base := "john-doe"
 

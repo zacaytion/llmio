@@ -1,3 +1,5 @@
+//go:build integration
+
 package api
 
 import (
@@ -15,7 +17,7 @@ import (
 
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
-	"github.com/zacaytion/llmio/internal/testutil"
+	"github.com/zacaytion/llmio/internal/db/testutil"
 )
 
 // auditRecord represents a row from audit.record_version for test assertions.
@@ -224,7 +226,7 @@ func (s *testAuditSetup) getAuditRecordsByXactID(t *testing.T, xactID int64) []a
 
 // TestAudit_GroupCreation verifies audit records are created for group creation.
 // T110a: Test audit record created for group creation (INSERT)
-func TestAudit_GroupCreation(t *testing.T) {
+func Test_Audit_GroupCreation(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -289,7 +291,7 @@ func TestAudit_GroupCreation(t *testing.T) {
 
 // TestAudit_MembershipInvite verifies audit records are created for membership invitation.
 // T110b: Test audit record created for membership invite (INSERT)
-func TestAudit_MembershipInvite(t *testing.T) {
+func Test_Audit_MembershipInvite(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -359,7 +361,7 @@ func TestAudit_MembershipInvite(t *testing.T) {
 
 // TestAudit_MembershipAccept verifies audit records for accepting an invitation.
 // T110c: Test audit record created for membership accept (UPDATE)
-func TestAudit_MembershipAccept(t *testing.T) {
+func Test_Audit_MembershipAccept(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -441,7 +443,7 @@ func TestAudit_MembershipAccept(t *testing.T) {
 
 // TestAudit_MembershipPromote verifies audit records for promoting a member.
 // T110d: Test audit record created for membership promote (UPDATE)
-func TestAudit_MembershipPromote(t *testing.T) {
+func Test_Audit_MembershipPromote(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -524,7 +526,7 @@ func TestAudit_MembershipPromote(t *testing.T) {
 
 // TestAudit_MembershipDemote verifies audit records for demoting an admin.
 // T110e: Test audit record created for membership demote (UPDATE)
-func TestAudit_MembershipDemote(t *testing.T) {
+func Test_Audit_MembershipDemote(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -602,7 +604,7 @@ func TestAudit_MembershipDemote(t *testing.T) {
 
 // TestAudit_MembershipRemove verifies audit records for removing a member.
 // T110f: Test audit record created for membership remove (DELETE)
-func TestAudit_MembershipRemove(t *testing.T) {
+func Test_Audit_MembershipRemove(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -685,7 +687,7 @@ func TestAudit_MembershipRemove(t *testing.T) {
 
 // TestAudit_TransactionCorrelation verifies xact_id correlates operations in the same transaction.
 // T110h: Test xact_id correlates createGroup + createMembership in same transaction
-func TestAudit_TransactionCorrelation(t *testing.T) {
+func Test_Audit_TransactionCorrelation(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
@@ -744,7 +746,7 @@ func TestAudit_TransactionCorrelation(t *testing.T) {
 
 // TestAudit_RecordJSONBContents verifies record/old_record JSONB contains expected field values.
 // T110i: Test record/old_record JSONB contains expected field values
-func TestAudit_RecordJSONBContents(t *testing.T) {
+func Test_Audit_RecordJSONBContents(t *testing.T) {
 	setup := setupAuditTest(t)
 	defer setup.cleanup()
 
