@@ -6,12 +6,48 @@ import (
 	"github.com/zacaytion/llmio/internal/db"
 )
 
+// Role represents a membership role in a group.
+// T205: Create proper Role type with Valid() method.
+// Valid roles are "admin" and "member".
+type Role string
+
 // Role constants to avoid magic strings scattered across the codebase.
 // T127: Create Role type with constants (RoleAdmin, RoleMember)
 const (
-	RoleAdmin  = "admin"
-	RoleMember = "member"
+	RoleAdmin  Role = "admin"
+	RoleMember Role = "member"
 )
+
+// Valid returns true if the role is one of the known valid roles.
+// T205: Role.Valid() method for validation.
+func (r Role) Valid() bool {
+	return r == RoleAdmin || r == RoleMember
+}
+
+// String returns the string representation of the role.
+func (r Role) String() string {
+	return string(r)
+}
+
+// ParseRole converts a string to a Role if valid, or returns an empty Role if invalid.
+// T206: ParseRole function for safe role parsing.
+// Returns RoleMember if role is empty or invalid (safe default).
+// Returns the parsed Role if valid.
+// Use ParseRoleStrict if you need to detect invalid roles.
+func ParseRole(s string) Role {
+	r := Role(s)
+	if r.Valid() {
+		return r
+	}
+	return RoleMember // Safe default
+}
+
+// ParseRoleStrict converts a string to a Role.
+// T206: Strict version that returns the role as-is for validation.
+// Use with r.Valid() to check if parsing succeeded.
+func ParseRoleStrict(s string) Role {
+	return Role(s)
+}
 
 // AuthorizationContext holds authorization-related data for a request.
 // Note: The fields are exported for read access in handlers.
@@ -50,7 +86,8 @@ func NewAuthorizationContext(ctx context.Context, queries *db.Queries, userID, g
 	if membership != nil && membership.AcceptedAt.Valid {
 		authCtx.Membership = membership
 		authCtx.IsMember = true
-		authCtx.IsAdmin = membership.Role == RoleAdmin
+		// T207: Compare using Role type for type safety
+		authCtx.IsAdmin = Role(membership.Role) == RoleAdmin
 	}
 
 	return authCtx, nil

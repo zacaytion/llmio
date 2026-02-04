@@ -125,7 +125,11 @@ type GroupDetailDTO struct {
 	AdminCount      int64  `json:"admin_count"`
 	CurrentUserRole string `json:"current_user_role"` // T173: "admin", "member", or "" (see type docs)
 	// Parent status (for subgroups)
+	// T182: ParentArchived is nil when group has no parent, true/false when parent exists and status known
 	ParentArchived *bool `json:"parent_archived,omitempty"`
+	// T182: ParentArchiveStatusUnknown is true when parent exists but fetch failed (ambiguous state)
+	// This distinguishes "parent is not archived" (ParentArchived=false) from "couldn't determine" (ParentArchiveStatusUnknown=true)
+	ParentArchiveStatusUnknown *bool `json:"parent_archive_status_unknown,omitempty"`
 }
 
 // GroupDetailDTOFromGroup converts a db.Group to GroupDetailDTO with counts.

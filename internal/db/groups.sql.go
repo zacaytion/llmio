@@ -322,6 +322,98 @@ func (q *Queries) ListGroupsByUser(ctx context.Context, arg ListGroupsByUserPara
 	return items, nil
 }
 
+const listGroupsByUserWithCounts = `-- name: ListGroupsByUserWithCounts :many
+SELECT
+    g.id, g.name, g.handle, g.description, g.parent_id, g.created_by_id, g.archived_at, g.members_can_add_members, g.members_can_add_guests, g.members_can_start_discussions, g.members_can_raise_motions, g.members_can_edit_discussions, g.members_can_edit_comments, g.members_can_delete_comments, g.members_can_announce, g.members_can_create_subgroups, g.admins_can_edit_user_content, g.parent_members_can_see_discussions, g.created_at, g.updated_at,
+    m.role AS current_user_role,
+    (SELECT COUNT(*) FROM memberships sm WHERE sm.group_id = g.id AND sm.accepted_at IS NOT NULL) AS member_count,
+    (SELECT COUNT(*) FROM memberships sm WHERE sm.group_id = g.id AND sm.role = 'admin' AND sm.accepted_at IS NOT NULL) AS admin_count
+FROM groups g
+JOIN memberships m ON m.group_id = g.id
+WHERE m.user_id = $1
+  AND m.accepted_at IS NOT NULL
+  AND ($2::boolean = TRUE OR g.archived_at IS NULL)
+ORDER BY g.name
+`
+
+type ListGroupsByUserWithCountsParams struct {
+	UserID          int64 `json:"user_id"`
+	IncludeArchived bool  `json:"include_archived"`
+}
+
+type ListGroupsByUserWithCountsRow struct {
+	ID                             int64              `json:"id"`
+	Name                           string             `json:"name"`
+	Handle                         string             `json:"handle"`
+	Description                    pgtype.Text        `json:"description"`
+	ParentID                       pgtype.Int8        `json:"parent_id"`
+	CreatedByID                    int64              `json:"created_by_id"`
+	ArchivedAt                     pgtype.Timestamptz `json:"archived_at"`
+	MembersCanAddMembers           bool               `json:"members_can_add_members"`
+	MembersCanAddGuests            bool               `json:"members_can_add_guests"`
+	MembersCanStartDiscussions     bool               `json:"members_can_start_discussions"`
+	MembersCanRaiseMotions         bool               `json:"members_can_raise_motions"`
+	MembersCanEditDiscussions      bool               `json:"members_can_edit_discussions"`
+	MembersCanEditComments         bool               `json:"members_can_edit_comments"`
+	MembersCanDeleteComments       bool               `json:"members_can_delete_comments"`
+	MembersCanAnnounce             bool               `json:"members_can_announce"`
+	MembersCanCreateSubgroups      bool               `json:"members_can_create_subgroups"`
+	AdminsCanEditUserContent       bool               `json:"admins_can_edit_user_content"`
+	ParentMembersCanSeeDiscussions bool               `json:"parent_members_can_see_discussions"`
+	CreatedAt                      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt                      pgtype.Timestamptz `json:"updated_at"`
+	CurrentUserRole                string             `json:"current_user_role"`
+	MemberCount                    int64              `json:"member_count"`
+	AdminCount                     int64              `json:"admin_count"`
+}
+
+// T190-T191: Lists all groups a user is an active member of, with member counts
+// Uses subquery to avoid N+1 queries when fetching groups list
+// Returns group data plus member_count and admin_count for each group
+func (q *Queries) ListGroupsByUserWithCounts(ctx context.Context, arg ListGroupsByUserWithCountsParams) ([]*ListGroupsByUserWithCountsRow, error) {
+	rows, err := q.db.Query(ctx, listGroupsByUserWithCounts, arg.UserID, arg.IncludeArchived)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*ListGroupsByUserWithCountsRow{}
+	for rows.Next() {
+		var i ListGroupsByUserWithCountsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Handle,
+			&i.Description,
+			&i.ParentID,
+			&i.CreatedByID,
+			&i.ArchivedAt,
+			&i.MembersCanAddMembers,
+			&i.MembersCanAddGuests,
+			&i.MembersCanStartDiscussions,
+			&i.MembersCanRaiseMotions,
+			&i.MembersCanEditDiscussions,
+			&i.MembersCanEditComments,
+			&i.MembersCanDeleteComments,
+			&i.MembersCanAnnounce,
+			&i.MembersCanCreateSubgroups,
+			&i.AdminsCanEditUserContent,
+			&i.ParentMembersCanSeeDiscussions,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CurrentUserRole,
+			&i.MemberCount,
+			&i.AdminCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSubgroupsByParent = `-- name: ListSubgroupsByParent :many
 SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM groups
 WHERE parent_id = $1

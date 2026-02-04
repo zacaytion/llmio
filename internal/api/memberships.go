@@ -238,7 +238,8 @@ func (h *MembershipHandler) handleInviteMember(ctx context.Context, input *Invit
 
 	// Non-admins cannot invite with admin role (privilege escalation prevention)
 	// T131: Only admins can grant admin role
-	if input.Body.Role == RoleAdmin && !authCtx.IsAdmin {
+	// T207: Compare using Role type
+	if Role(input.Body.Role) == RoleAdmin && !authCtx.IsAdmin {
 		return nil, huma.Error403Forbidden("Only admins can invite with admin role")
 	}
 
@@ -253,9 +254,10 @@ func (h *MembershipHandler) handleInviteMember(ctx context.Context, input *Invit
 	}
 
 	// Default role to "member" if not specified
+	// T207: Use ParseRole for safe default handling
 	role := input.Body.Role
 	if role == "" {
-		role = RoleMember
+		role = RoleMember.String()
 	}
 
 	// Execute in transaction with audit context
@@ -309,22 +311,24 @@ func (h *MembershipHandler) handleInviteMember(ctx context.Context, input *Invit
 			Name:     invitee.Name,
 			Username: invitee.Username,
 		},
-		Inviter: &UserSummaryDTO{
-			ID:       session.UserID,
-			Name:     "", // We don't have the inviter's name handy, but ID is sufficient
-			Username: "",
-		},
+		// T181: Don't initialize Inviter with partial data - set it only if fetch succeeds
+		Inviter: nil,
 	}
 
 	// Get inviter info for complete response
 	// T134: Log warning when inviter fetch fails (non-blocking)
+	// T181: On error, Inviter remains nil (not half-populated {id, name:"", username:""})
 	inviter, err := h.queries.GetUserByID(ctx, session.UserID)
 	if err != nil {
 		// Log but don't fail - inviter info is supplementary
 		LogDBError(ctx, "GetInviterInfo", err)
+		// T181: Inviter stays nil on fetch failure (clearer than half-populated object)
 	} else {
-		output.Body.Membership.Inviter.Name = inviter.Name
-		output.Body.Membership.Inviter.Username = inviter.Username
+		output.Body.Membership.Inviter = &UserSummaryDTO{
+			ID:       inviter.ID,
+			Name:     inviter.Name,
+			Username: inviter.Username,
+		}
 	}
 
 	return output, nil
@@ -584,7 +588,8 @@ func (h *MembershipHandler) handlePromoteMember(ctx context.Context, input *Prom
 	}
 
 	// Check if already admin
-	if membership.Role == RoleAdmin {
+	// T207: Compare using Role type
+	if Role(membership.Role) == RoleAdmin {
 		return nil, huma.Error409Conflict("Member is already an admin")
 	}
 
@@ -599,7 +604,7 @@ func (h *MembershipHandler) handlePromoteMember(ctx context.Context, input *Prom
 		var updateErr error
 		updatedMembership, updateErr = txQueries.UpdateMembershipRole(ctx, db.UpdateMembershipRoleParams{
 			ID:   input.MembershipID,
-			Role: RoleAdmin,
+			Role: RoleAdmin.String(), // T207: Use String() for DB interaction
 		})
 		if updateErr != nil {
 			return fmt.Errorf("UpdateMembershipRole: %w", updateErr)
@@ -671,7 +676,8 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 	}
 
 	// Check if already member
-	if membership.Role == RoleMember {
+	// T207: Compare using Role type
+	if Role(membership.Role) == RoleMember {
 		return nil, huma.Error409Conflict("Member is already a regular member")
 	}
 
@@ -683,6 +689,8 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 	}
 
 	if adminCount <= 1 {
+		// T188: Log pre-check last-admin protection for demote
+		LogLastAdminProtection(ctx, "demote", "pre_check", membership.GroupID)
 		return nil, huma.Error409Conflict("Cannot demote the last admin of a group")
 	}
 
@@ -697,7 +705,7 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 		var updateErr error
 		updatedMembership, updateErr = txQueries.UpdateMembershipRole(ctx, db.UpdateMembershipRoleParams{
 			ID:   input.MembershipID,
-			Role: RoleMember,
+			Role: RoleMember.String(), // T207: Use String() for DB interaction
 		})
 		if updateErr != nil {
 			return fmt.Errorf("UpdateMembershipRole: %w", updateErr)
@@ -708,6 +716,8 @@ func (h *MembershipHandler) handleDemoteMember(ctx context.Context, input *Demot
 	if err != nil {
 		// T157: Check for last-admin trigger error (race condition protection)
 		if isLastAdminTriggerError(err) {
+			// T188: Log DB trigger catch vs pre-check (indicates race condition)
+			LogLastAdminProtection(ctx, "demote", "db_trigger", membership.GroupID)
 			return nil, huma.Error409Conflict("Cannot demote the last admin of a group")
 		}
 		LogDBError(ctx, "DemoteMember", err)
@@ -769,7 +779,8 @@ func (h *MembershipHandler) handleRemoveMember(ctx context.Context, input *Remov
 	}
 
 	// Check if this is the last admin (can't remove last admin)
-	if membership.Role == RoleAdmin {
+	// T207: Compare using Role type
+	if Role(membership.Role) == RoleAdmin {
 		adminCount, countErr := h.queries.CountAdminsByGroup(ctx, membership.GroupID)
 		if countErr != nil {
 			LogDBError(ctx, "CountAdminsByGroup", countErr)
@@ -777,6 +788,8 @@ func (h *MembershipHandler) handleRemoveMember(ctx context.Context, input *Remov
 		}
 
 		if adminCount <= 1 {
+			// T189: Log pre-check last-admin protection for remove
+			LogLastAdminProtection(ctx, "remove", "pre_check", membership.GroupID)
 			return nil, huma.Error409Conflict("Cannot remove the last admin of a group")
 		}
 	}
@@ -797,6 +810,8 @@ func (h *MembershipHandler) handleRemoveMember(ctx context.Context, input *Remov
 	if err != nil {
 		// T157: Check for last-admin trigger error (race condition protection)
 		if isLastAdminTriggerError(err) {
+			// T189: Log DB trigger catch vs pre-check (indicates race condition)
+			LogLastAdminProtection(ctx, "remove", "db_trigger", membership.GroupID)
 			return nil, huma.Error409Conflict("Cannot remove the last admin of a group")
 		}
 		LogDBError(ctx, "RemoveMember", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -251,8 +252,8 @@ func (h *GroupHandler) handleCreateGroup(ctx context.Context, input *CreateGroup
 		_, membershipErr := txQueries.CreateMembership(ctx, db.CreateMembershipParams{
 			GroupID:   group.ID,
 			UserID:    session.UserID,
-			Role:      RoleAdmin,
-			InviterID: session.UserID, // Self-invited
+			Role:      RoleAdmin.String(), // T207: Use String() for DB interaction
+			InviterID: session.UserID,     // Self-invited
 			AcceptedAt: pgtype.Timestamptz{
 				Time:  group.CreatedAt.Time, // Same timestamp as group creation
 				Valid: true,
@@ -330,10 +331,17 @@ func GenerateHandle(name string) string {
 
 	// Step 1: Normalize Unicode (NFD decomposition)
 	// T137: Handle transform.String errors with fallback to original name
+	// T186: Log transform errors for debugging
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	result, _, err := transform.String(t, name)
 	if err != nil {
 		// Fallback to original name on transform error (e.g., invalid UTF-8)
+		// T186: Log warning for transform failures
+		slog.Warn("unicode transform error in handle generation",
+			"event", "HANDLE_GEN_TRANSFORM_ERROR",
+			"name", name,
+			"error", err,
+		)
 		result = name
 	}
 
@@ -404,7 +412,13 @@ func GenerateUniqueHandle(name string, checkExists func(handle string) bool) str
 		}
 	}
 
-	// Extremely unlikely: 1000 collisions
+	// T187: Log warning when 1000-iteration limit hit (potential DoS or DB issue)
+	slog.Warn("handle generation exhausted iterations",
+		"event", "HANDLE_GEN_EXHAUSTED",
+		"base_name", name,
+		"base_handle", base,
+		"max_iterations", 1000,
+	)
 	return ""
 }
 
@@ -476,14 +490,22 @@ func (h *GroupHandler) handleGetGroup(ctx context.Context, input *GetGroupInput)
 
 	// Check if parent is archived (for subgroups - T103a)
 	// T121: Log error when parent fetch fails, don't silently suppress
+	// T183: Set ParentArchiveStatusUnknown=true when parent fetch fails (ambiguous state)
 	if authCtx.Group.ParentID.Valid {
 		parentGroup, err := h.queries.GetGroupByID(ctx, authCtx.Group.ParentID.Int64)
 		if err != nil {
 			// Log the error but don't fail the request - parent info is supplementary
 			LogDBError(ctx, "GetParentGroup", err)
+			// T183: Indicate ambiguous state - can't determine if parent is archived
+			t := true
+			output.Body.Group.ParentArchiveStatusUnknown = &t
 		} else if parentGroup.ArchivedAt.Valid {
 			t := true
 			output.Body.Group.ParentArchived = &t
+		} else {
+			// T183: Explicitly set to false when parent exists and is not archived
+			f := false
+			output.Body.Group.ParentArchived = &f
 		}
 	}
 
@@ -696,6 +718,11 @@ func (h *GroupHandler) handleCreateSubgroup(ctx context.Context, input *CreateSu
 		return nil, huma.Error403Forbidden("Permission to create subgroups required")
 	}
 
+	// T203: Block creating subgroups under archived parents
+	if authCtx.Group.ArchivedAt.Valid {
+		return nil, huma.Error409Conflict("Cannot create subgroup under archived group")
+	}
+
 	// Validate and prepare name
 	name := strings.TrimSpace(input.Body.Name)
 	if name == "" {
@@ -804,7 +831,7 @@ func (h *GroupHandler) handleCreateSubgroup(ctx context.Context, input *CreateSu
 		_, membershipErr := txQueries.CreateMembership(ctx, db.CreateMembershipParams{
 			GroupID:   group.ID,
 			UserID:    session.UserID,
-			Role:      RoleAdmin,
+			Role:      RoleAdmin.String(), // T207: Use String() for DB interaction
 			InviterID: session.UserID,
 			AcceptedAt: pgtype.Timestamptz{
 				Time:  group.CreatedAt.Time,
@@ -827,7 +854,7 @@ func (h *GroupHandler) handleCreateSubgroup(ctx context.Context, input *CreateSu
 
 	// Build response - new subgroup has 1 member (creator) who is admin
 	output := &CreateSubgroupOutput{}
-	output.Body.Group = GroupDetailDTOFromGroup(group, 1, 1, RoleAdmin)
+	output.Body.Group = GroupDetailDTOFromGroup(group, 1, 1, RoleAdmin.String()) // T207
 	return output, nil
 }
 
@@ -1122,14 +1149,22 @@ func (h *GroupHandler) handleGetGroupByHandle(ctx context.Context, input *GetGro
 
 	// Check if parent is archived (for subgroups)
 	// T122: Log error when parent fetch fails, don't silently suppress
+	// T184: Set ParentArchiveStatusUnknown=true when parent fetch fails (ambiguous state)
 	if group.ParentID.Valid {
 		parentGroup, err := h.queries.GetGroupByID(ctx, group.ParentID.Int64)
 		if err != nil {
 			// Log the error but don't fail the request - parent info is supplementary
 			LogDBError(ctx, "GetParentGroup", err)
+			// T184: Indicate ambiguous state - can't determine if parent is archived
+			t := true
+			output.Body.Group.ParentArchiveStatusUnknown = &t
 		} else if parentGroup.ArchivedAt.Valid {
 			t := true
 			output.Body.Group.ParentArchived = &t
+		} else {
+			// T184: Explicitly set to false when parent exists and is not archived
+			f := false
+			output.Body.Group.ParentArchived = &f
 		}
 	}
 

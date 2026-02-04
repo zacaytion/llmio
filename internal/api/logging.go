@@ -76,6 +76,39 @@ func LogLogout(ctx context.Context, userID int64, r *http.Request) {
 	)
 }
 
+// LogHandleGenerationError logs a warning when handle generation encounters issues.
+// T186: Log unicode transform errors for debugging
+// T187: Log when handle generation exhausts retry iterations
+func LogHandleGenerationError(ctx context.Context, operation string, name string, err error) {
+	slog.WarnContext(ctx, "handle generation issue",
+		"event", "HANDLE_GEN_ERROR",
+		"operation", operation,
+		"name", name,
+		"error", err,
+	)
+}
+
+// LogHandleGenerationExhausted logs a warning when handle suffix iterations are exhausted.
+// T187: Log warning when 1000-iteration limit hit (potential DoS or DB issue)
+func LogHandleGenerationExhausted(ctx context.Context, baseName string) {
+	slog.WarnContext(ctx, "handle generation exhausted iterations",
+		"event", "HANDLE_GEN_EXHAUSTED",
+		"base_name", baseName,
+		"max_iterations", 1000,
+	)
+}
+
+// LogLastAdminProtection logs when last-admin protection is triggered.
+// T188-T189: Differentiate between pre-check and DB trigger catch
+func LogLastAdminProtection(ctx context.Context, operation string, source string, groupID int64) {
+	slog.WarnContext(ctx, "last admin protection triggered",
+		"event", "LAST_ADMIN_PROTECTION",
+		"operation", operation,
+		"source", source, // "pre_check" or "db_trigger"
+		"group_id", groupID,
+	)
+}
+
 // getClientIP extracts the client IP from the request.
 // Checks X-Forwarded-For first (for proxied requests), then falls back to RemoteAddr.
 func getClientIP(r *http.Request) string {
