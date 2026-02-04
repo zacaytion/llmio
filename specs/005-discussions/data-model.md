@@ -145,10 +145,12 @@
 
 | Parent | Child | ON DELETE |
 |--------|-------|-----------|
-| groups | discussions | CASCADE (archive group archives discussions) |
+| groups | discussions | CASCADE |
 | discussions | comments | CASCADE |
 | discussions | discussion_readers | CASCADE |
 | comments | comments (parent) | CASCADE (delete parent deletes subtree) |
 | users | discussions (author) | SET NULL |
 | users | comments (author) | SET NULL |
 | users | discussion_readers | CASCADE |
+
+**Note**: Group archiving (setting `archived_at` on groups) is a separate concern from CASCADE delete. Archived groups make discussions read-only via application logic; deleting a group removes all its discussions via CASCADE.

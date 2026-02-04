@@ -23,7 +23,7 @@
 - [ ] T000 Verify Feature 004 migrations exist: `ls migrations/003_create_groups.sql migrations/004_create_memberships.sql` - if missing, sync worktree with 004-groups-memberships branch or complete Feature 004 first
 
 - [ ] T001 Create `internal/discussion/` directory for domain logic
-- [ ] T002 [P] Create `internal/db/queries/` directory for sqlc query files
+- [ ] T002 [P] Verify `internal/db/queries/` directory exists (created by Feature 004)
 - [ ] T003 [P] Create placeholder files: `internal/discussion/service.go`, `internal/discussion/comment_service.go`, `internal/discussion/permissions.go`
 
 ---
@@ -36,15 +36,15 @@
 
 ### Schema Tests (pgTap) - Write First, Must Fail
 
-- [ ] T004 [P] Create pgTap test for discussions table schema in `tests/pgtap/006_discussions_test.sql`
-- [ ] T005 [P] Create pgTap test for comments table schema in `tests/pgtap/007_comments_test.sql`
-- [ ] T006 [P] Create pgTap test for discussion_readers table schema in `tests/pgtap/008_discussion_readers_test.sql`
+- [ ] T004 [P] Create pgTap test for discussions table schema in `tests/pgtap/007_discussions_test.sql`
+- [ ] T005 [P] Create pgTap test for comments table schema in `tests/pgtap/008_comments_test.sql`
+- [ ] T006 [P] Create pgTap test for discussion_readers table schema in `tests/pgtap/009_discussion_readers_test.sql`
 
 ### Migrations - Make Schema Tests Pass
 
-- [ ] T007 Create migration `migrations/006_create_discussions.sql` (discussions table per data-model.md)
-- [ ] T008 Create migration `migrations/007_create_comments.sql` (comments table with self-referential FK)
-- [ ] T009 Create migration `migrations/008_create_discussion_readers.sql` (read tracking table)
+- [ ] T007 Create migration `migrations/007_create_discussions.sql` (discussions table per data-model.md)
+- [ ] T008 Create migration `migrations/008_create_comments.sql` (comments table with self-referential FK)
+- [ ] T009 Create migration `migrations/009_create_discussion_readers.sql` (read tracking table)
 - [ ] T010 Run `make test-pgtap` to verify all schema tests pass
 
 ### sqlc Queries - Foundational
@@ -299,9 +299,9 @@
 
 ```bash
 # Launch all pgTap tests together:
-Task: "Create pgTap test for discussions table schema in tests/pgtap/004_discussions_test.sql"
-Task: "Create pgTap test for comments table schema in tests/pgtap/005_comments_test.sql"
-Task: "Create pgTap test for discussion_readers table schema in tests/pgtap/006_discussion_readers_test.sql"
+Task: "Create pgTap test for discussions table schema in tests/pgtap/007_discussions_test.sql"
+Task: "Create pgTap test for comments table schema in tests/pgtap/008_comments_test.sql"
+Task: "Create pgTap test for discussion_readers table schema in tests/pgtap/009_discussion_readers_test.sql"
 
 # After migrations, launch all sqlc query files together:
 Task: "Create internal/db/queries/discussions.sql with basic CRUD queries"

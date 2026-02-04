@@ -188,9 +188,9 @@ func runMigration(command string) error {
 func findMigrationsDir() (string, error) {
 	// Try common locations
 	candidates := []string{
-		"migrations",
-		"./migrations",
-		"../../migrations", // When running from cmd/migrate
+		"db/migrations",
+		"./db/migrations",
+		"../../db/migrations", // When running from cmd/migrate
 	}
 
 	for _, dir := range candidates {

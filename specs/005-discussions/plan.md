@@ -66,17 +66,18 @@ migrations/
 ├── 003_create_groups.sql              # Feature 004 (dependency)
 ├── 004_create_memberships.sql         # Feature 004 (dependency)
 ├── 005_enable_auditing.sql            # Feature 004 (dependency)
-├── 006_create_discussions.sql         # This feature
-├── 007_create_comments.sql            # This feature
-└── 008_create_discussion_readers.sql  # This feature
+├── 006_add_membership_composite_indexes.sql  # Feature 004 (dependency)
+├── 007_create_discussions.sql         # This feature
+├── 008_create_comments.sql            # This feature
+└── 009_create_discussion_readers.sql  # This feature
 
 tests/pgtap/
-├── 006_discussions_test.sql           # Schema constraints
-├── 007_comments_test.sql              # Comment threading tests
-└── 008_discussion_readers_test.sql    # Read tracking tests
+├── 007_discussions_test.sql           # Schema constraints
+├── 008_comments_test.sql              # Comment threading tests
+└── 009_discussion_readers_test.sql    # Read tracking tests
 ```
 
-**Structure Decision**: Follows existing `internal/` layout from Features 001-003. Adds `internal/discussion/` for domain logic, keeping API handlers thin.
+**Structure Decision**: Follows existing `internal/` layout from Features 001-004. Creates new `internal/discussion/` package for domain logic (service layer, permissions), keeping API handlers in `internal/api/` thin. This differs from Feature 004 which placed service logic directly in API handlers—Feature 005 introduces explicit service layer separation for the more complex discussion/comment domain.
 
 ## Complexity Tracking
 

@@ -8,8 +8,11 @@ ls:
   .json: kebab-case
   .ini: kebab-case
 
-  migrations:
+  db/migrations:
     .sql: regex:^\d{3}_[a-z_]+$   # Validates filename without extension
+
+  db/tests:
+    .sql: regex:^\d{3}_[a-z_]+_test$   # pgTap test files
 
 ignore:
   - .git

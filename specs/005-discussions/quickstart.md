@@ -105,4 +105,4 @@ make test-pgtap
 | `internal/api/comments.go` | Huma operations for comments |
 | `internal/discussion/service.go` | Discussion domain logic |
 | `internal/discussion/permissions.go` | Permission checks |
-| `migrations/004_create_discussions.sql` | Schema |
+| `migrations/007_create_discussions.sql` | Schema |

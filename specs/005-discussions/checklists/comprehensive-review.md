@@ -202,6 +202,7 @@
 **Total Items**: 81
 **Verified**: 81/81 (100%)
 **Remediations Applied**: 5 (referenced from prior analysis: C1, C2, C3, CHK008, CHK027)
+**Post-Rebase Remediations**: 7 (2026-02-04: migration numbers 007-009, pgTap test numbers, archive vs delete clarification, package structure)
 **Status**: ✅ **PASS - Ready for PR Submission**
 
 ---
@@ -211,3 +212,4 @@
 - All items verified against spec.md, plan.md, data-model.md, contracts/*.yaml, tasks.md, and research.md
 - PostgreSQL best practices confirmed: nullable FKs with SET NULL, proper CASCADE behavior, UNIQUE constraints for upsert patterns
 - Constitution alignment verified: TDD workflow in tasks, Huma-first API design, security-first permission checks
+- **Post-rebase update (2026-02-04)**: Migration numbers updated from 006-008 to 007-009 after Feature 004 merge added 006_add_membership_composite_indexes.sql

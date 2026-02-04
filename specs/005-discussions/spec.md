@@ -93,7 +93,7 @@ As a discussion participant, I want the system to track what I have read so that
 
 - What happens when a comment's parent is soft-deleted? → The reply remains visible as a top-level reply in its subtree
 - How does system handle concurrent edits to the same comment? → Last write wins; consider adding optimistic locking in future
-- What happens when a group is archived? → Discussions remain accessible but read-only; no new discussions can be created
+- What happens when a group is archived? → Discussions remain accessible but read-only; no new discussions can be created (enforcement is Feature 004 responsibility via `archived_at` check)
 - How are @mentions in discussion/comment bodies handled? → Captured as part of rich text; mention events are a future feature (006-events)
 - What if max_depth is set to 0? → All comments appear at root level (flat discussion)
 - What if parent_id references a comment in a different discussion? → Returns 404 (parent not found in this discussion)
