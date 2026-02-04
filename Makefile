@@ -15,7 +15,7 @@ IMAGE_NAME := ghcr.io/zacaytion/llmio-pg-tap
 
 .PHONY: all help up down logs clean-volumes \
         build build-server build-migrate run-server run-migrate server migrate install tidy \
-        test coverage-view psql test-pgtap lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
+        test test-unit test-pgtap test-integration test-all coverage-view psql lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
         clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all \
         docker-test-build docker-test-tag docker-test-push docker-test-image
 
@@ -95,13 +95,23 @@ node_modules: package.json pnpm-lock.yaml
 .var/coverage:
 	@mkdir -p .var/coverage || (echo "ERROR: Cannot create .var/coverage directory" >&2; exit 1)
 
-test: .var/coverage ## Run tests with coverage
+test-unit: .var/coverage ## Run unit tests (no containers, fast)
 	go test -coverprofile=.var/coverage/coverage.out ./...
 
-.var/coverage/coverage.out: test
+test-pgtap: ## Run pgTap schema validation tests (requires container)
+	go test -v -tags=pgtap ./internal/db/...
+
+test-integration: ## Run API/DB integration tests (requires container)
+	go test -v -tags=integration ./...
+
+test-all: test-pgtap test-integration ## Run all tests (pgTap first, then integration)
+
+test: test-unit ## Alias for test-unit (default test target)
+
+.var/coverage/coverage.out: test-unit
 
 coverage-view: .var/coverage/coverage.out ## View coverage report in browser
-	@test -s .var/coverage/coverage.out || (echo "ERROR: No coverage data. Run 'make test' first." >&2; exit 1)
+	@test -s .var/coverage/coverage.out || (echo "ERROR: No coverage data. Run 'make test-unit' first." >&2; exit 1)
 	go tool cover -html=.var/coverage/coverage.out
 
 ##@ Database
@@ -115,9 +125,6 @@ DB_PASSWORD ?= postgres
 
 psql: ## Connect to PostgreSQL via psql (usage: make psql or make psql DB_NAME=loomio_test)
 	PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME)
-
-test-pgtap: ## Run pgTap tests via testcontainers (requires Podman)
-	go test -v -run TestPgTap ./internal/db/...
 
 ##@ Quality
 
