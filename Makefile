@@ -8,10 +8,16 @@ VOLUMES := llmio_postgres_data llmio_pgadmin_data
 # Go source files for dependency tracking
 GO_SRC := $(shell find . -name '*.go' -not -path './vendor/*')
 
+# Docker test image configuration
+GIT_SHA    := $(shell git rev-parse --short HEAD)
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD | sed 's/\//-/g')
+IMAGE_NAME := ghcr.io/zacaytion/llmio-pg-tap
+
 .PHONY: all help up down logs clean-volumes \
         build build-server build-migrate run-server run-migrate server migrate install tidy \
         test coverage-view psql test-pgtap lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
-        clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all
+        clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all \
+        docker-test-build docker-test-tag docker-test-push docker-test-image
 
 # Default target (required by checkmake)
 all: build
@@ -110,13 +116,8 @@ DB_PASSWORD ?= postgres
 psql: ## Connect to PostgreSQL via psql (usage: make psql or make psql DB_NAME=loomio_test)
 	PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME)
 
-test-pgtap: ## Run pgTap database tests (requires pgtap extension)
-	@echo "Running pgTap tests..."
-	@for f in tests/pgtap/*.sql; do \
-		echo "Testing: $$f"; \
-		PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f "$$f" || exit 1; \
-	done
-	@echo "All pgTap tests passed!"
+test-pgtap: ## Run pgTap tests via testcontainers (requires Podman)
+	go test -v -run TestPgTap ./internal/db/...
 
 ##@ Quality
 
@@ -139,7 +140,7 @@ lint-makefile: ## Lint Makefile
 	go tool checkmake --config .config/checkmake.ini Makefile
 
 lint-migrations: ## Lint SQL migrations for safety
-	mise exec -- squawk --config .config/squawk.toml migrations/*.sql
+	mise exec -- squawk --config .config/squawk.toml db/migrations/*.sql
 
 lint-all: lint lint-files lint-md lint-makefile lint-migrations ## Run all linters
 
@@ -171,6 +172,22 @@ clean: clean-volumes ## Clean everything (volumes, caches, binaries, artifacts)
 	@echo "Cleaning Go build and test caches..."
 	go clean -cache -testcache
 	@echo "Done."
+
+##@ Docker Test Image
+
+docker-test-build: ## Build llmio-pg-tap image locally
+	docker build --load -t $(IMAGE_NAME):latest -f db/Dockerfile.pgtap db/
+
+docker-test-tag: docker-test-build ## Tag image with branch and SHA
+	docker tag $(IMAGE_NAME):latest $(IMAGE_NAME):br-$(GIT_BRANCH)
+	docker tag $(IMAGE_NAME):latest $(IMAGE_NAME):$(GIT_SHA)
+
+docker-test-push: docker-test-tag ## Push image to ghcr.io (requires auth)
+	docker push $(IMAGE_NAME):latest
+	docker push $(IMAGE_NAME):br-$(GIT_BRANCH)
+	docker push $(IMAGE_NAME):$(GIT_SHA)
+
+docker-test-image: docker-test-push ## Build, tag, and push image
 
 ##@ Help
 
