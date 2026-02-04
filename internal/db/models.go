@@ -5,8 +5,116 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type AuditOperation string
+
+const (
+	AuditOperationINSERT   AuditOperation = "INSERT"
+	AuditOperationUPDATE   AuditOperation = "UPDATE"
+	AuditOperationDELETE   AuditOperation = "DELETE"
+	AuditOperationTRUNCATE AuditOperation = "TRUNCATE"
+	AuditOperationSNAPSHOT AuditOperation = "SNAPSHOT"
+)
+
+func (e *AuditOperation) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditOperation(s)
+	case string:
+		*e = AuditOperation(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditOperation: %T", src)
+	}
+	return nil
+}
+
+type NullAuditOperation struct {
+	AuditOperation AuditOperation `json:"audit_operation"`
+	Valid          bool           `json:"valid"` // Valid is true if AuditOperation is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuditOperation) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuditOperation, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuditOperation.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuditOperation) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuditOperation), nil
+}
+
+// Immutable audit log storing JSONB snapshots of record changes
+type AuditRecordVersion struct {
+	ID          int64              `json:"id"`
+	RecordID    pgtype.Text        `json:"record_id"`
+	OldRecordID pgtype.Text        `json:"old_record_id"`
+	Op          AuditOperation     `json:"op"`
+	Ts          pgtype.Timestamptz `json:"ts"`
+	// Transaction ID for correlating changes in the same transaction
+	XactID      int64         `json:"xact_id"`
+	TableOid    pgtype.Uint32 `json:"table_oid"`
+	TableSchema string        `json:"table_schema"`
+	TableName   string        `json:"table_name"`
+	Record      []byte        `json:"record"`
+	OldRecord   []byte        `json:"old_record"`
+	// User ID from app.current_user_id session variable
+	ActorID pgtype.Int8 `json:"actor_id"`
+}
+
+// Organizational containers with permission-based membership
+type Group struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	// URL-safe identifier, case-insensitive unique
+	Handle      string      `json:"handle"`
+	Description pgtype.Text `json:"description"`
+	// FK to parent group for hierarchy support
+	ParentID    pgtype.Int8 `json:"parent_id"`
+	CreatedByID int64       `json:"created_by_id"`
+	// Soft deletion timestamp; non-null means archived
+	ArchivedAt                     pgtype.Timestamptz `json:"archived_at"`
+	MembersCanAddMembers           bool               `json:"members_can_add_members"`
+	MembersCanAddGuests            bool               `json:"members_can_add_guests"`
+	MembersCanStartDiscussions     bool               `json:"members_can_start_discussions"`
+	MembersCanRaiseMotions         bool               `json:"members_can_raise_motions"`
+	MembersCanEditDiscussions      bool               `json:"members_can_edit_discussions"`
+	MembersCanEditComments         bool               `json:"members_can_edit_comments"`
+	MembersCanDeleteComments       bool               `json:"members_can_delete_comments"`
+	MembersCanAnnounce             bool               `json:"members_can_announce"`
+	MembersCanCreateSubgroups      bool               `json:"members_can_create_subgroups"`
+	AdminsCanEditUserContent       bool               `json:"admins_can_edit_user_content"`
+	ParentMembersCanSeeDiscussions bool               `json:"parent_members_can_see_discussions"`
+	CreatedAt                      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt                      pgtype.Timestamptz `json:"updated_at"`
+}
+
+// User-group relationships with role and invitation status
+type Membership struct {
+	ID      int64 `json:"id"`
+	GroupID int64 `json:"group_id"`
+	UserID  int64 `json:"user_id"`
+	// Either admin or member
+	Role string `json:"role"`
+	// User who created this membership/invitation
+	InviterID int64 `json:"inviter_id"`
+	// NULL means pending invitation; non-null means active member
+	AcceptedAt pgtype.Timestamptz `json:"accepted_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+}
 
 type User struct {
 	ID            int64              `json:"id"`

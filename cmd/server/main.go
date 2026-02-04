@@ -13,6 +13,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -194,6 +195,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// Create app with dependencies
 	app := &App{
+		Pool:         pool,
 		Queries:      queries,
 		SessionStore: sessionStore,
 	}
@@ -265,6 +267,7 @@ func startSessionCleanup(ctx context.Context, store *auth.SessionStore, interval
 
 // App holds application dependencies for handler registration.
 type App struct {
+	Pool         *pgxpool.Pool
 	Queries      *db.Queries
 	SessionStore *auth.SessionStore
 }
@@ -289,6 +292,14 @@ func (a *App) RegisterRoutes(humaAPI huma.API) {
 	// Auth routes
 	authHandler := api.NewAuthHandler(a.Queries, a.SessionStore)
 	authHandler.RegisterRoutes(humaAPI)
+
+	// Group routes (Feature 004)
+	groupHandler := api.NewGroupHandler(a.Pool, a.Queries, a.SessionStore)
+	groupHandler.RegisterRoutes(humaAPI)
+
+	// Membership routes (Feature 004)
+	membershipHandler := api.NewMembershipHandler(a.Pool, a.Queries, a.SessionStore)
+	membershipHandler.RegisterRoutes(humaAPI)
 
 	slog.Debug("routes registered")
 }
