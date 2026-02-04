@@ -4,12 +4,20 @@ package db_test
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
 	dbtestutil "github.com/zacaytion/llmio/internal/db/testutil"
 	"github.com/zacaytion/llmio/internal/testutil"
 )
+
+func TestMain(m *testing.M) {
+	os.Exit(testutil.RunIntegrationTests(m,
+		testutil.WithMigrations(),
+		// No snapshot needed - pgTap tests are read-only schema checks
+	))
+}
 
 // Test_PgTap_SchemaValidation runs all pgTap schema tests.
 // Each test file in db/tests/*.sql is executed as a subtest.

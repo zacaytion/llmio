@@ -361,8 +361,14 @@ func (p *PostgresContainer) DiscoverPgTapTests() ([]string, error) {
 // SetupTestDB is a helper for Go tests that need a database connection.
 // It creates a container, runs migrations, and returns a connection string.
 // The cleanup function should be deferred to terminate the container.
+//
+// Deprecated: SetupTestDB creates a new container per test which is slow and
+// resource-intensive. For integration tests, use internal/testutil.RunIntegrationTests
+// in TestMain with testutil.GetPool() for the shared container pattern. This provides
+// much faster test execution via snapshot/restore between tests.
 func SetupTestDB(ctx context.Context, t *testing.T) (connStr string, cleanup func()) {
 	t.Helper()
+	t.Log("DEPRECATED: SetupTestDB creates a new container per test. Use internal/testutil shared container pattern instead.")
 
 	pg, err := NewPostgresContainer(ctx)
 	if err != nil {
@@ -440,7 +446,17 @@ func SetupTestDBWithSnapshot(ctx context.Context, t *testing.T) (connStr string,
 	return connStr, restore, cleanup
 }
 
-// NewPoolFromConnStr creates a pgxpool.Pool from a connection string.
+// NewPoolFromConnStr creates a pgxpool.Pool from a connection string with sensible test defaults.
+// Pool is configured with limited connections appropriate for test environments.
 func NewPoolFromConnStr(ctx context.Context, connStr string) (*pgxpool.Pool, error) {
-	return pgxpool.New(ctx, connStr)
+	config, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse connection string: %w", err)
+	}
+
+	// Configure pool for test environment - limited connections to avoid resource exhaustion
+	config.MaxConns = 10
+	config.MinConns = 2
+
+	return pgxpool.NewWithConfig(ctx, config)
 }

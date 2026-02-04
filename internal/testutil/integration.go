@@ -95,8 +95,8 @@ func RunIntegrationTests(m *testing.M, opts ...Option) int {
 	sharedConnStr = connStr
 	containerMu.Unlock()
 
-	// Create shared pool
-	pool, err := pgxpool.New(ctx, connStr)
+	// Create shared pool with test-appropriate limits
+	pool, err := dbtestutil.NewPoolFromConnStr(ctx, connStr)
 	if err != nil {
 		_, _ = os.Stderr.WriteString("failed to create pool: " + err.Error() + "\n")
 		return 1
@@ -136,38 +136,41 @@ func GetConnectionString() string {
 
 // Restore restores the database to the last snapshot.
 // Use in t.Cleanup() at the start of each top-level test.
+//
+// Note: This function holds the mutex for the entire restore operation.
+// Tests must not run in parallel (t.Parallel()) when using Restore, as each
+// test needs exclusive access during cleanup. Future parallel support would
+// require per-test databases or transaction rollback isolation.
 func Restore(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 
+	// Hold mutex for entire restore operation to prevent race conditions
+	// if tests were to run concurrently in the future
 	containerMu.Lock()
-	container := sharedContainer
-	pool := sharedPool
-	containerMu.Unlock()
+	defer containerMu.Unlock()
 
-	if container == nil {
+	if sharedContainer == nil {
 		t.Fatal("Restore called but no container is running")
 	}
 
 	// Close existing pool connections before restore
-	if pool != nil {
-		pool.Close()
+	if sharedPool != nil {
+		sharedPool.Close()
+		sharedPool = nil
 	}
 
-	if err := container.Restore(ctx); err != nil {
+	if err := sharedContainer.Restore(ctx); err != nil {
 		t.Fatalf("failed to restore snapshot: %v", err)
 	}
 
-	// Recreate pool after restore
-	connStr := GetConnectionString()
-	newPool, err := pgxpool.New(ctx, connStr)
+	// Recreate pool after restore with test-appropriate limits
+	newPool, err := dbtestutil.NewPoolFromConnStr(ctx, sharedConnStr)
 	if err != nil {
 		t.Fatalf("failed to recreate pool after restore: %v", err)
 	}
 
-	containerMu.Lock()
 	sharedPool = newPool
-	containerMu.Unlock()
 }
 
 // ParallelEnabled returns true if parallel database mode is enabled.

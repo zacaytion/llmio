@@ -23,7 +23,9 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### Go Gotchas
 
-- testcontainers-go: Use `internal/db/testutil` for isolated DB tests; `SetupTestDBWithSnapshot()` for fast reset
+- testcontainers-go: Use `internal/testutil.RunIntegrationTests()` in TestMain for shared container pattern (preferred)
+- testcontainers-go: Tests should use `testutil.GetPool()` and `t.Cleanup(func() { testutil.Restore(t) })`
+- testcontainers-go: `internal/db/testutil.SetupTestDB()` is DEPRECATED - creates per-test containers (slow)
 - testcontainers-go: Requires Docker/Podman running; tests auto-skip if unavailable
 - sqlc queries: Use struct params, e.g., `queries.GetMembershipByGroupAndUser(ctx, db.GetMembershipByGroupAndUserParams{GroupID: id, UserID: uid})`
 - Audit context: Use `db.SetAuditContext(ctx, tx, userID)` or `db.WithAuditContext()` for mutations that need actor tracking

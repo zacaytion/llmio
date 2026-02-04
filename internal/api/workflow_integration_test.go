@@ -1,6 +1,6 @@
 //go:build integration
 
-package api
+package api_test
 
 import (
 	"bytes"
@@ -13,40 +13,36 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
-	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/zacaytion/llmio/internal/api"
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
-	"github.com/zacaytion/llmio/internal/db/testutil"
+	"github.com/zacaytion/llmio/internal/testutil"
 )
 
 // T109: Integration test - full group creation → invite → accept → promote workflow
 // This test verifies the complete user journey through the groups and memberships API.
 func Test_Integration_FullGroupWorkflow(t *testing.T) {
+	t.Cleanup(func() { testutil.Restore(t) })
+
 	ctx := context.Background()
-
-	// Setup test infrastructure
-	connStr, cleanup := testutil.SetupTestDB(ctx, t)
-	defer cleanup()
-
-	pool, err := pgxpool.New(ctx, connStr)
-	if err != nil {
-		t.Fatalf("failed to create pool: %v", err)
+	pool := testutil.GetPool()
+	if pool == nil {
+		t.Fatal("pool not initialized - TestMain may have failed")
 	}
-	defer pool.Close()
 
 	queries := db.New(pool)
 	sessions := auth.NewSessionStore()
 
 	// Create handlers
-	groupHandler := NewGroupHandler(pool, queries, sessions)
-	membershipHandler := NewMembershipHandler(pool, queries, sessions)
+	groupHandler := api.NewGroupHandler(pool, queries, sessions)
+	membershipHandler := api.NewMembershipHandler(pool, queries, sessions)
 
 	// Create Huma API
 	mux := http.NewServeMux()
-	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
-	groupHandler.RegisterRoutes(api)
-	membershipHandler.RegisterRoutes(api)
+	humaAPI := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
+	groupHandler.RegisterRoutes(humaAPI)
+	membershipHandler.RegisterRoutes(humaAPI)
 
 	// Helper to make requests
 	makeRequest := func(method, path string, body any, token string) *httptest.ResponseRecorder {

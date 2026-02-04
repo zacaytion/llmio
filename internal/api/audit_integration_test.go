@@ -1,6 +1,6 @@
 //go:build integration
 
-package api
+package api_test
 
 import (
 	"bytes"
@@ -15,9 +15,10 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/zacaytion/llmio/internal/api"
 	"github.com/zacaytion/llmio/internal/auth"
 	"github.com/zacaytion/llmio/internal/db"
-	"github.com/zacaytion/llmio/internal/db/testutil"
+	"github.com/zacaytion/llmio/internal/testutil"
 )
 
 // auditRecord represents a row from audit.record_version for test assertions.
@@ -35,50 +36,37 @@ type auditRecord struct {
 
 // testAuditSetup holds shared test infrastructure for audit tests.
 type testAuditSetup struct {
-	pool              *pgxpool.Pool
-	queries           *db.Queries
-	sessions          *auth.SessionStore
-	groupHandler      *GroupHandler
-	membershipHandler *MembershipHandler
-	mux               *http.ServeMux
-	cleanup           func()
+	pool     *pgxpool.Pool
+	queries  *db.Queries
+	sessions *auth.SessionStore
+	mux      *http.ServeMux
 }
 
-// setupAuditTest creates a test environment for audit tests.
+// setupAuditTest creates a test environment for audit tests using shared container.
 func setupAuditTest(t *testing.T) *testAuditSetup {
 	t.Helper()
-	ctx := context.Background()
 
-	connStr, cleanup := testutil.SetupTestDB(ctx, t)
-
-	pool, err := pgxpool.New(ctx, connStr)
-	if err != nil {
-		cleanup()
-		t.Fatalf("failed to create pool: %v", err)
+	pool := testutil.GetPool()
+	if pool == nil {
+		t.Fatal("pool not initialized - TestMain may have failed")
 	}
 
 	queries := db.New(pool)
 	sessions := auth.NewSessionStore()
 
-	groupHandler := NewGroupHandler(pool, queries, sessions)
-	membershipHandler := NewMembershipHandler(pool, queries, sessions)
+	groupHandler := api.NewGroupHandler(pool, queries, sessions)
+	membershipHandler := api.NewMembershipHandler(pool, queries, sessions)
 
 	mux := http.NewServeMux()
-	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
-	groupHandler.RegisterRoutes(api)
-	membershipHandler.RegisterRoutes(api)
+	humaAPI := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
+	groupHandler.RegisterRoutes(humaAPI)
+	membershipHandler.RegisterRoutes(humaAPI)
 
 	return &testAuditSetup{
-		pool:              pool,
-		queries:           queries,
-		sessions:          sessions,
-		groupHandler:      groupHandler,
-		membershipHandler: membershipHandler,
-		mux:               mux,
-		cleanup: func() {
-			pool.Close()
-			cleanup()
-		},
+		pool:     pool,
+		queries:  queries,
+		sessions: sessions,
+		mux:      mux,
 	}
 }
 
@@ -227,9 +215,9 @@ func (s *testAuditSetup) getAuditRecordsByXactID(t *testing.T, xactID int64) []a
 // TestAudit_GroupCreation verifies audit records are created for group creation.
 // T110a: Test audit record created for group creation (INSERT)
 func Test_Audit_GroupCreation(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	user := setup.createTestUser(t, "alice@example.com", "Alice")
 	token := setup.createTestSession(t, user.ID)
 
@@ -292,9 +280,9 @@ func Test_Audit_GroupCreation(t *testing.T) {
 // TestAudit_MembershipInvite verifies audit records are created for membership invitation.
 // T110b: Test audit record created for membership invite (INSERT)
 func Test_Audit_MembershipInvite(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin := setup.createTestUser(t, "admin@example.com", "Admin")
 	adminToken := setup.createTestSession(t, admin.ID)
 	invitee := setup.createTestUser(t, "invitee@example.com", "Invitee")
@@ -362,9 +350,9 @@ func Test_Audit_MembershipInvite(t *testing.T) {
 // TestAudit_MembershipAccept verifies audit records for accepting an invitation.
 // T110c: Test audit record created for membership accept (UPDATE)
 func Test_Audit_MembershipAccept(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin := setup.createTestUser(t, "admin@example.com", "Admin")
 	adminToken := setup.createTestSession(t, admin.ID)
 	invitee := setup.createTestUser(t, "invitee@example.com", "Invitee")
@@ -444,9 +432,9 @@ func Test_Audit_MembershipAccept(t *testing.T) {
 // TestAudit_MembershipPromote verifies audit records for promoting a member.
 // T110d: Test audit record created for membership promote (UPDATE)
 func Test_Audit_MembershipPromote(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin := setup.createTestUser(t, "admin@example.com", "Admin")
 	adminToken := setup.createTestSession(t, admin.ID)
 	member := setup.createTestUser(t, "member@example.com", "Member")
@@ -527,9 +515,9 @@ func Test_Audit_MembershipPromote(t *testing.T) {
 // TestAudit_MembershipDemote verifies audit records for demoting an admin.
 // T110e: Test audit record created for membership demote (UPDATE)
 func Test_Audit_MembershipDemote(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin1 := setup.createTestUser(t, "admin1@example.com", "Admin1")
 	admin1Token := setup.createTestSession(t, admin1.ID)
 	admin2 := setup.createTestUser(t, "admin2@example.com", "Admin2")
@@ -605,9 +593,9 @@ func Test_Audit_MembershipDemote(t *testing.T) {
 // TestAudit_MembershipRemove verifies audit records for removing a member.
 // T110f: Test audit record created for membership remove (DELETE)
 func Test_Audit_MembershipRemove(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin := setup.createTestUser(t, "admin@example.com", "Admin")
 	adminToken := setup.createTestSession(t, admin.ID)
 	member := setup.createTestUser(t, "member@example.com", "Member")
@@ -688,9 +676,9 @@ func Test_Audit_MembershipRemove(t *testing.T) {
 // TestAudit_TransactionCorrelation verifies xact_id correlates operations in the same transaction.
 // T110h: Test xact_id correlates createGroup + createMembership in same transaction
 func Test_Audit_TransactionCorrelation(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin := setup.createTestUser(t, "admin@example.com", "Admin")
 	adminToken := setup.createTestSession(t, admin.ID)
 
@@ -747,9 +735,9 @@ func Test_Audit_TransactionCorrelation(t *testing.T) {
 // TestAudit_RecordJSONBContents verifies record/old_record JSONB contains expected field values.
 // T110i: Test record/old_record JSONB contains expected field values
 func Test_Audit_RecordJSONBContents(t *testing.T) {
-	setup := setupAuditTest(t)
-	defer setup.cleanup()
+	t.Cleanup(func() { testutil.Restore(t) })
 
+	setup := setupAuditTest(t)
 	admin := setup.createTestUser(t, "admin@example.com", "Admin User")
 	adminToken := setup.createTestSession(t, admin.ID)
 
