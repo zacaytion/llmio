@@ -40,7 +40,14 @@ func RunIntegrationTests(m *testing.M, opts ...Option) int {
 	container, err := dbtestutil.NewPostgresContainer(ctx)
 	if err != nil {
 		if cfg.SkipIfNoDocker {
-			// Can't easily skip from TestMain, so just return success
+			// Can't easily skip from TestMain, so return success but warn clearly
+			// that tests were SKIPPED (not passed). This prevents CI false positives.
+			_, _ = os.Stderr.WriteString("\n" +
+				"╔════════════════════════════════════════════════════════════════╗\n" +
+				"║  SKIPPED: Integration tests skipped - Docker/Podman unavailable ║\n" +
+				"║  Error: " + err.Error() + "\n" +
+				"║  No tests were executed. This is NOT a passing test run.       ║\n" +
+				"╚════════════════════════════════════════════════════════════════╝\n\n")
 			return 0
 		}
 		_, _ = os.Stderr.WriteString("failed to create postgres container: " + err.Error() + "\n")

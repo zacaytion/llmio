@@ -30,7 +30,7 @@ sqlc generate                 # Regenerate DB types from queries
 - sqlc queries: Use struct params, e.g., `queries.GetMembershipByGroupAndUser(ctx, db.GetMembershipByGroupAndUserParams{GroupID: id, UserID: uid})`
 - Audit context: Use `db.SetAuditContext(ctx, tx, userID)` or `db.WithAuditContext()` for mutations that need actor tracking
 - Group handles: 3-100 chars, `^[a-z0-9][a-z0-9-]*[a-z0-9]$`, case-insensitive via CITEXT
-- Config tests: Use `clearLoomioEnvVars(t)` helper to isolate tests from shell env vars
+- Config tests: Use `clearLlmioEnvVars(t)` helper to isolate tests from shell env vars
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
 - golangci-lint autofix: use `golangci-lint run ./... --fix` to auto-fix gofmt/goimports issues
 - Import ordering: stdlib first, blank line, then third-party (goimports enforces this)
@@ -51,7 +51,7 @@ sqlc generate                 # Regenerate DB types from queries
 - testcontainers + Podman: Use `tc.WithProvider(tc.ProviderPodman)` or set `DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock`
 - testcontainers extensions: Use `testcontainers.WithFiles()` to copy extension SQL to `/docker-entrypoint-initdb.d/`
 - pgtap in tests: Requires debian image (not alpine) or custom image with pgtap installed; alpine lacks pgtap package
-- API tests: Each test creates fresh container via `testutil.SetupTestDB()` - slow but isolated; use `SetupTestDBWithSnapshot()` for shared container with reset
+- API integration tests: Use `testutil.RunIntegrationTests()` in TestMain with `testutil.GetPool()` and `t.Cleanup(func() { testutil.Restore(t) })`
 - DB triggers fire on testcontainers: audit.record_version populated during API tests - can verify audit trail in integration tests
 - GroupDetailDTO vs GroupDTO: `current_user_role` only available in detail DTO (returned from getGroup, not createGroup)
 - Last-admin protection: DB trigger raises "Cannot remove or demote the last administrator" - catch PostgreSQL error and return 409

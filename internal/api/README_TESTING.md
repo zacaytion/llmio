@@ -1,13 +1,14 @@
 # API Integration Testing Patterns
 
-This directory contains two patterns of integration tests. The **NEW pattern** should be used for all new tests.
+This directory contains integration tests using a shared container pattern for fast execution.
 
-## NEW Pattern (Recommended)
+## Integration Test Pattern
 
-Files using the new pattern:
+Files using the shared container pattern:
 - `setup_integration_test.go` - TestMain with shared container
-- `groups_integration_test.go` - Example tests using shared pattern
-- `audit_integration_test.go` - Audit tests using shared pattern
+- `groups_integration_test.go` - Group API integration tests
+- `memberships_integration_test.go` - Membership API integration tests
+- `audit_integration_test.go` - Audit trail verification tests
 - `workflow_integration_test.go` - Full workflow test
 
 ### Characteristics
@@ -38,38 +39,26 @@ func Test_Example(t *testing.T) {
 }
 ```
 
-## OLD Pattern (Deprecated)
+## Companion Unit Tests
 
-Files using the old pattern:
-- `groups_test.go`
-- `memberships_test.go`
+Files containing unit tests (no database required):
+- `groups_test.go` - Unit tests for helper functions (e.g., `isUniqueViolation`)
+- `memberships_test.go` - Unit tests for error detection functions (e.g., `isLastAdminTriggerError`)
 
-### Characteristics
-- Uses `package api` (internal access)
-- Creates new container per test via `testutil.SetupTestDB()`
-- Slow: container + migrations run for EVERY test function
-- Uses `defer setup.cleanup()` pattern
-
-### Migration Guide
-
-To migrate a test from OLD to NEW pattern:
-
-1. Change `package api` to `package api_test`
-2. Add `import "github.com/zacaytion/llmio/internal/api"`
-3. Replace `testutil.SetupTestDB(ctx, t)` with `testutil.GetPool()`
-4. Replace `defer setup.cleanup()` with `t.Cleanup(func() { testutil.Restore(t) })`
-5. Prefix internal types with `api.` (e.g., `NewGroupHandler` → `api.NewGroupHandler`)
-6. Remove container creation code from setup functions
+These run with the standard `go test` command without any build tags.
 
 ## Running Tests
 
 ```bash
 # Unit tests only (no database required)
-go test ./internal/...
+go test ./internal/api/...
 
 # Integration tests (requires Podman/Docker)
 go test -tags=integration ./internal/api/...
 
 # Specific test pattern
 go test -tags=integration -run Test_CreateGroup ./internal/api/...
+
+# All tests (unit + integration)
+go test -tags=integration ./internal/api/...
 ```
