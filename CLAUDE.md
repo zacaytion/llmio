@@ -45,7 +45,7 @@ sqlc generate                 # Regenerate DB types from queries
 - PostgreSQL DSN passwords: single-quote and escape (`\\` then `\'`) for special chars
 - Dead code removal: Check test files (`*_test.go`) before removing package-level vars - tests may depend on them
 - Import cycle: `internal/validation` can't import `internal/config` (config imports validation); duplicate switch logic is intentional
-- Viper env prefix: Go app uses `LOOMIO_DATABASE_*` env vars (e.g., `LOOMIO_DATABASE_PASSWORD`), not `DB_*`
+- Viper env prefix: Go app uses `LLMIO_*` env vars with `LLMIO_PG_*` for PostgreSQL (e.g., `LLMIO_PG_HOST`, `LLMIO_PG_PASS_APP`)
 - SET LOCAL alternative: Use `SELECT set_config('app.var', @value, true)` instead of `SET LOCAL` - sqlc can't parse SET with bind params
 - sqlc nullable booleans: Use `sqlc.narg(field)::boolean` cast in queries to get `pgtype.Bool` (not `interface{}`)
 - testcontainers + Podman: Use `tc.WithProvider(tc.ProviderPodman)` or set `DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock`
@@ -81,6 +81,9 @@ sqlc generate                 # Regenerate DB types from queries
 - Goose treats ALL `*.sql` files in `db/migrations/` as migrations based on numeric prefix
 - pgTap schema tests are in `db/tests/` and run via `go test -run TestPgTap ./internal/db/...`
 - supa_audit pattern: `record_id` is TEXT (not UUID) for tables with BIGSERIAL PKs; cast with `::TEXT`
+- search_path: Use `ALTER ROLE postgres SET search_path TO ...` for persistent cross-connection settings (not `set_config()` which is session-only, or `ALTER DATABASE` which requires DB to exist)
+- goose envsub: Use `-- +goose ENVSUB ON` for env var substitution in SQL; goose reads OS env vars directly, not Viper, so `cmd/migrate/main.go` bridges config→env via `setGooseEnvVars()`
+- goose envsub syntax: `${VAR:-default}` provides shell-style defaults; role passwords use `LLMIO_PG_PASS_MIGRATION` and `LLMIO_PG_PASS_APP`
 
 ### Makefile & Containers
 
@@ -89,7 +92,7 @@ sqlc generate                 # Regenerate DB types from queries
 - pgTap tests depend on their migration completing first; not truly parallel with migration writes
 - `make up/down/logs` - Container lifecycle; `make server/migrate ARGS="..."` - Run binaries with args
 - `make clean` - Remove everything (volumes, binaries, caches); `make clean-go-{build,test,mod,fuzz,all}` - Go caches
-- Container env vars (`POSTGRES_*`) differ from Go app env vars (`LOOMIO_DATABASE_*`); both documented in `.env.example`
+- Container env vars (`POSTGRES_*`) differ from Go app env vars (`LLMIO_PG_*`); both documented in `.env.example`
 - PostgreSQL 18 volume mount: use `/var/lib/postgresql` (not `/var/lib/postgresql/data`) for `pg_upgrade --link` compatibility
 - Podman Compose volumes: prefixed with project directory name (e.g., `llmio_postgres_data`)
 
@@ -101,8 +104,9 @@ sqlc generate                 # Regenerate DB types from queries
 - Credentials match `.env.example` defaults: `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=postgres`
 
 **Go app connection:**
-- Uses `LOOMIO_DATABASE_*` env vars (Viper prefix), not `POSTGRES_*`
-- Example: `LOOMIO_DATABASE_USER=postgres LOOMIO_DATABASE_PASSWORD=postgres make server`
+- Uses `LLMIO_PG_*` env vars (Viper prefix), not `POSTGRES_*`
+- Three-role model: `LLMIO_PG_USER_ADMIN`/`PASS_ADMIN` (superuser), `LLMIO_PG_USER_MIGRATION`/`PASS_MIGRATION` (DDL), `LLMIO_PG_USER_APP`/`PASS_APP` (DML)
+- Example: `LLMIO_PG_USER_ADMIN=postgres LLMIO_PG_PASS_ADMIN=postgres make server`
 
 ### Version Management (mise)
 

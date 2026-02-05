@@ -2,7 +2,7 @@ version: "2"
 sql:
   - engine: "postgresql"
     queries: "internal/db/queries/"
-    schema: "migrations/"
+    schema: "db/migrations/"
     gen:
       go:
         package: "db"
@@ -12,3 +12,11 @@ sql:
         emit_empty_slices: true
         emit_result_struct_pointers: true
         emit_params_struct_pointers: false
+        # Rename generated types to strip schema prefix (DataUser -> User, etc.)
+        rename:
+          data_user: User
+          data_users: User
+          data_group: Group
+          data_groups: Group
+          data_membership: Membership
+          data_memberships: Membership

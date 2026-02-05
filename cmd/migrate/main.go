@@ -57,15 +57,22 @@ func main() {
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file path")
 
-	// Database flags (shared across all subcommands)
-	rootCmd.PersistentFlags().String("db-host", "localhost", "database host")
-	rootCmd.PersistentFlags().Int("db-port", 5432, "database port")
-	rootCmd.PersistentFlags().String("db-user", "postgres", "database user")
-	rootCmd.PersistentFlags().String("db-password", "", "database password")
-	rootCmd.PersistentFlags().String("db-name", "loomio_development", "database name")
-	rootCmd.PersistentFlags().String("db-sslmode", "disable", "database SSL mode")
+	// PostgreSQL flags (shared across all subcommands)
+	// These match the LLMIO_PG_* environment variable names
+	rootCmd.PersistentFlags().String("pg-host", "localhost", "PostgreSQL host")
+	rootCmd.PersistentFlags().Int("pg-port", 5432, "PostgreSQL port")
+	rootCmd.PersistentFlags().String("pg-database", "loomio_development", "PostgreSQL database name")
+	rootCmd.PersistentFlags().String("pg-sslmode", "disable", "PostgreSQL SSL mode")
 
-	// Bind database flags to viper
+	// Admin credentials (superuser for role creation)
+	rootCmd.PersistentFlags().String("pg-user-admin", "postgres", "PostgreSQL admin user")
+	rootCmd.PersistentFlags().String("pg-pass-admin", "", "PostgreSQL admin password")
+
+	// Migration role credentials (for connecting as migration user)
+	rootCmd.PersistentFlags().String("pg-user-migration", "", "PostgreSQL migration user")
+	rootCmd.PersistentFlags().String("pg-pass-migration", "", "PostgreSQL migration password")
+
+	// Bind flags to viper
 	if err := bindFlags(rootCmd); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -149,14 +156,19 @@ func runMigration(command string) error {
 		return fmt.Errorf("cannot locate migrations: %w", err)
 	}
 
-	// Build DSN from config
-	dsn := cfg.Database.DSN()
+	// Bridge config values to goose envsub environment variables.
+	// Goose reads directly from OS env vars, not from Viper config,
+	// so we need to set these before running migrations.
+	setGooseEnvVars()
+
+	// Build DSN from config - migrations run as admin user
+	dsn := cfg.PG.AdminDSN()
 
 	slog.Info("connecting to database",
-		"host", cfg.Database.Host,
-		"port", cfg.Database.Port,
-		"name", cfg.Database.Name,
-		"user", cfg.Database.User,
+		"host", cfg.PG.Host,
+		"port", cfg.PG.Port,
+		"database", cfg.PG.Database,
+		"user", cfg.PG.UserAdmin,
 	)
 
 	// Open database connection using pgx stdlib driver
@@ -181,6 +193,20 @@ func runMigration(command string) error {
 	}
 
 	return nil
+}
+
+// setGooseEnvVars bridges Viper config to OS environment variables for goose envsub.
+// Goose's ENVSUB directive reads directly from OS env vars, not from Viper,
+// so this function must be called before running any migrations.
+//
+// The env var names match LLMIO_PG_* pattern used by the app config.
+func setGooseEnvVars() {
+	if cfg.PG.PassMigration != "" {
+		_ = os.Setenv("LLMIO_PG_PASS_MIGRATION", cfg.PG.PassMigration)
+	}
+	if cfg.PG.PassApp != "" {
+		_ = os.Setenv("LLMIO_PG_PASS_APP", cfg.PG.PassApp)
+	}
 }
 
 // findMigrationsDir looks for the migrations directory.
@@ -210,12 +236,14 @@ func bindFlags(cmd *cobra.Command) error {
 	// flagBinder collects BindPFlag errors to catch flag name typos at startup
 	b := &flagBinder{v: v, cmd: cmd}
 
-	b.bind("database.host", "db-host")
-	b.bind("database.port", "db-port")
-	b.bind("database.user", "db-user")
-	b.bind("database.password", "db-password")
-	b.bind("database.name", "db-name")
-	b.bind("database.sslmode", "db-sslmode")
+	b.bind("pg.host", "pg-host")
+	b.bind("pg.port", "pg-port")
+	b.bind("pg.database", "pg-database")
+	b.bind("pg.sslmode", "pg-sslmode")
+	b.bind("pg.user_admin", "pg-user-admin")
+	b.bind("pg.pass_admin", "pg-pass-admin")
+	b.bind("pg.user_migration", "pg-user-migration")
+	b.bind("pg.pass_migration", "pg-pass-migration")
 
 	return b.err()
 }

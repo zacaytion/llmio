@@ -58,18 +58,20 @@ func main() {
 	rootCmd.Flags().Duration("http-write-timeout", 15*time.Second, "HTTP write timeout")
 	rootCmd.Flags().Duration("http-idle-timeout", 60*time.Second, "HTTP idle timeout")
 
-	// Database flags
-	rootCmd.Flags().String("db-host", "localhost", "database host")
-	rootCmd.Flags().Int("db-port", 5432, "database port")
-	rootCmd.Flags().String("db-user", "postgres", "database user")
-	rootCmd.Flags().String("db-password", "", "database password")
-	rootCmd.Flags().String("db-name", "loomio_development", "database name")
-	rootCmd.Flags().String("db-sslmode", "disable", "database SSL mode")
-	rootCmd.Flags().Int32("db-max-conns", 25, "max database connections")
-	rootCmd.Flags().Int32("db-min-conns", 2, "min database connections")
-	rootCmd.Flags().Duration("db-max-conn-lifetime", time.Hour, "max connection lifetime")
-	rootCmd.Flags().Duration("db-max-conn-idle-time", 30*time.Minute, "max connection idle time")
-	rootCmd.Flags().Duration("db-health-check-period", time.Minute, "health check period")
+	// PostgreSQL flags (match LLMIO_PG_* env vars)
+	rootCmd.Flags().String("pg-host", "localhost", "PostgreSQL host")
+	rootCmd.Flags().Int("pg-port", 5432, "PostgreSQL port")
+	rootCmd.Flags().String("pg-database", "loomio_development", "PostgreSQL database name")
+	rootCmd.Flags().String("pg-sslmode", "disable", "PostgreSQL SSL mode")
+	rootCmd.Flags().Int32("pg-max-conns", 25, "max database connections")
+	rootCmd.Flags().Int32("pg-min-conns", 2, "min database connections")
+	rootCmd.Flags().Duration("pg-max-conn-lifetime", time.Hour, "max connection lifetime")
+	rootCmd.Flags().Duration("pg-max-conn-idle-time", 30*time.Minute, "max connection idle time")
+	rootCmd.Flags().Duration("pg-health-check-period", time.Minute, "health check period")
+
+	// App credentials (for runtime queries)
+	rootCmd.Flags().String("pg-user-app", "", "PostgreSQL app user")
+	rootCmd.Flags().String("pg-pass-app", "", "PostgreSQL app password")
 
 	// Session flags
 	rootCmd.Flags().Duration("session-duration", 168*time.Hour, "session duration")
@@ -104,18 +106,18 @@ func bindFlags(cmd *cobra.Command) error {
 	b.bind("server.write_timeout", "http-write-timeout")
 	b.bind("server.idle_timeout", "http-idle-timeout")
 
-	// Bind database flags
-	b.bind("database.host", "db-host")
-	b.bind("database.port", "db-port")
-	b.bind("database.user", "db-user")
-	b.bind("database.password", "db-password")
-	b.bind("database.name", "db-name")
-	b.bind("database.sslmode", "db-sslmode")
-	b.bind("database.max_conns", "db-max-conns")
-	b.bind("database.min_conns", "db-min-conns")
-	b.bind("database.max_conn_lifetime", "db-max-conn-lifetime")
-	b.bind("database.max_conn_idle_time", "db-max-conn-idle-time")
-	b.bind("database.health_check_period", "db-health-check-period")
+	// Bind PostgreSQL flags
+	b.bind("pg.host", "pg-host")
+	b.bind("pg.port", "pg-port")
+	b.bind("pg.database", "pg-database")
+	b.bind("pg.sslmode", "pg-sslmode")
+	b.bind("pg.max_conns", "pg-max-conns")
+	b.bind("pg.min_conns", "pg-min-conns")
+	b.bind("pg.max_conn_lifetime", "pg-max-conn-lifetime")
+	b.bind("pg.max_conn_idle_time", "pg-max-conn-idle-time")
+	b.bind("pg.health_check_period", "pg-health-check-period")
+	b.bind("pg.user_app", "pg-user-app")
+	b.bind("pg.pass_app", "pg-pass-app")
 
 	// Bind session flags
 	b.bind("session.duration", "session-duration")
@@ -170,7 +172,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 	}()
 
 	// Connect to database using config
-	pool, err := db.NewPoolFromConfig(ctx, cfg.Database)
+	pool, err := db.NewPoolFromConfig(ctx, cfg.PG)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}

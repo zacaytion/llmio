@@ -81,9 +81,10 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// NewPoolFromConfig creates a new database connection pool using config.DatabaseConfig.
-func NewPoolFromConfig(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
-	poolConfig, err := pgxpool.ParseConfig(cfg.DSN())
+// NewPoolFromConfig creates a new database connection pool using config.PGConfig.
+// Uses AppDSN() to connect as the app user for runtime queries.
+func NewPoolFromConfig(ctx context.Context, cfg config.PGConfig) (*pgxpool.Pool, error) {
+	poolConfig, err := pgxpool.ParseConfig(cfg.AppDSN())
 	if err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}

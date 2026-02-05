@@ -161,7 +161,7 @@ func (p *PostgresContainer) Snapshot(ctx context.Context) error {
 	}
 
 	// Drop existing template if it exists (separate command to avoid transaction issues)
-	exitCode, reader, err = p.container.Exec(ctx, []string{
+	_, reader, err = p.container.Exec(ctx, []string{
 		"psql",
 		"-U", "postgres",
 		"-c", "DROP DATABASE IF EXISTS loomio_test_template;",
@@ -459,4 +459,60 @@ func NewPoolFromConnStr(ctx context.Context, connStr string) (*pgxpool.Pool, err
 	config.MinConns = 2
 
 	return pgxpool.NewWithConfig(ctx, config)
+}
+
+// ConnectionStringForRole returns a connection string for the specified role.
+// The role must have been created by running migrations (specifically 010_create_app_roles.sql).
+// Available roles after migrations: loomio_app (DML), loomio_migration (DDL)
+func (p *PostgresContainer) ConnectionStringForRole(ctx context.Context, role, password string, opts ...string) (string, error) {
+	host, err := p.container.Host(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get container host: %w", err)
+	}
+
+	port, err := p.container.MappedPort(ctx, "5432")
+	if err != nil {
+		return "", fmt.Errorf("failed to get container port: %w", err)
+	}
+
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/loomio_test", role, password, host, port.Port())
+	if len(opts) > 0 {
+		connStr += "?" + strings.Join(opts, "&")
+	}
+	return connStr, nil
+}
+
+// SetupTestRoles creates the application roles with test passwords.
+// This is called automatically by RunMigrations (via migration 010), but can be
+// called separately if you need to set up roles before running all migrations.
+// The roles are: loomio_migration (DDL) and loomio_app (DML).
+func (p *PostgresContainer) SetupTestRoles(ctx context.Context) error {
+	// Roles are created by migration 010_create_app_roles.sql with placeholder passwords.
+	// For tests, we update the passwords to known values.
+	sql := `
+DO $$
+BEGIN
+    -- Update passwords for test environment
+    IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'loomio_migration') THEN
+        ALTER ROLE loomio_migration WITH PASSWORD 'migration_test_pass';
+    END IF;
+    IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'loomio_app') THEN
+        ALTER ROLE loomio_app WITH PASSWORD 'app_test_pass';
+    END IF;
+END $$;
+`
+	return p.ExecSQL(ctx, sql)
+}
+
+// TestRoleCredentials contains the test passwords for application roles.
+var TestRoleCredentials = struct {
+	MigrationUser     string
+	MigrationPassword string
+	AppUser           string
+	AppPassword       string
+}{
+	MigrationUser:     "loomio_migration",
+	MigrationPassword: "migration_test_pass",
+	AppUser:           "loomio_app",
+	AppPassword:       "app_test_pass",
 }

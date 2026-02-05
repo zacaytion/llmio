@@ -13,18 +13,18 @@ func Test_NewPoolFromConfig(t *testing.T) {
 	// This test verifies the function signature and config mapping.
 	// It does NOT actually connect to a database (that would be an integration test).
 
-	cfg := config.DatabaseConfig{
+	cfg := config.PGConfig{
 		Host:              "testhost",
 		Port:              5433,
-		User:              "testuser",
-		Password:          "testpass",
-		Name:              "testdb",
+		Database:          "testdb",
 		SSLMode:           "disable",
 		MaxConns:          10,
 		MinConns:          1,
 		MaxConnLifetime:   2 * time.Hour,
 		MaxConnIdleTime:   15 * time.Minute,
 		HealthCheckPeriod: 30 * time.Second,
+		UserApp:           "testuser",
+		PassApp:           "testpass",
 	}
 
 	// We can't actually connect without a real database,
@@ -34,8 +34,8 @@ func Test_NewPoolFromConfig(t *testing.T) {
 	// For unit testing, we verify the DSN is correctly built from config
 	// Note: Passwords are now single-quoted for special character support
 	expectedDSN := "host=testhost port=5433 user=testuser dbname=testdb sslmode=disable password='testpass'"
-	if cfg.DSN() != expectedDSN {
-		t.Errorf("Config DSN = %q, want %q", cfg.DSN(), expectedDSN)
+	if cfg.AppDSN() != expectedDSN {
+		t.Errorf("Config AppDSN = %q, want %q", cfg.AppDSN(), expectedDSN)
 	}
 
 	// Verify pool settings are accessible
@@ -67,18 +67,18 @@ func Test_NewPoolFromConfig_FunctionExists(t *testing.T) {
 // T137: Test that NewPoolFromConfig returns error for invalid connection.
 // This is an integration test that verifies error handling for unreachable hosts.
 func Test_NewPoolFromConfig_ConnectionError(t *testing.T) {
-	cfg := config.DatabaseConfig{
+	cfg := config.PGConfig{
 		Host:              "nonexistent.invalid.host.example.com",
 		Port:              5432,
-		User:              "testuser",
-		Password:          "testpass",
-		Name:              "testdb",
+		Database:          "testdb",
 		SSLMode:           "disable",
 		MaxConns:          10,
 		MinConns:          1,
 		MaxConnLifetime:   time.Hour,
 		MaxConnIdleTime:   15 * time.Minute,
 		HealthCheckPeriod: 30 * time.Second,
+		UserApp:           "testuser",
+		PassApp:           "testpass",
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
