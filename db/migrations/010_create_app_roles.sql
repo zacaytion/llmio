@@ -22,12 +22,12 @@
 --   LLMIO_PG_PASS_APP       - Password for loomio_app role
 -- Defaults are placeholder values for development only.
 
-DO $$
+DO $$$$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'loomio_migration') THEN
         CREATE ROLE loomio_migration WITH LOGIN PASSWORD '${LLMIO_PG_PASS_MIGRATION:-change_me_migration}';
     END IF;
-END $$;
+END $$$$;
 
 -- Grant schema usage and creation
 GRANT USAGE ON SCHEMA data TO loomio_migration;
@@ -64,12 +64,12 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA audit
 -- Application Role: Runtime DML only
 -- ============================================================
 
-DO $$
+DO $$$$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'loomio_app') THEN
         CREATE ROLE loomio_app WITH LOGIN PASSWORD '${LLMIO_PG_PASS_APP:-change_me_app}';
     END IF;
-END $$;
+END $$$$;
 
 -- +goose ENVSUB OFF
 

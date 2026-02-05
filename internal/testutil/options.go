@@ -1,3 +1,5 @@
+//go:build integration || pgtap
+
 // Package testutil provides integration test orchestration.
 package testutil
 
