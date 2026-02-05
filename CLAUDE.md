@@ -23,12 +23,14 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### Go Gotchas
 
-- testcontainers-go: Use `internal/testutil` for isolated DB tests; `SetupTestDBWithSnapshot()` for fast reset
+- testcontainers-go: Use `internal/testutil.RunIntegrationTests()` in TestMain for shared container pattern (preferred)
+- testcontainers-go: Tests should use `testutil.GetPool()` and `t.Cleanup(func() { testutil.Restore(t) })`
+- testcontainers-go: `internal/db/testutil.SetupTestDB()` is DEPRECATED - creates per-test containers (slow)
 - testcontainers-go: Requires Docker/Podman running; tests auto-skip if unavailable
 - sqlc queries: Use struct params, e.g., `queries.GetMembershipByGroupAndUser(ctx, db.GetMembershipByGroupAndUserParams{GroupID: id, UserID: uid})`
 - Audit context: Use `db.SetAuditContext(ctx, tx, userID)` or `db.WithAuditContext()` for mutations that need actor tracking
 - Group handles: 3-100 chars, `^[a-z0-9][a-z0-9-]*[a-z0-9]$`, case-insensitive via CITEXT
-- Config tests (`internal/config`) have pre-existing failures; don't block on them for unrelated work
+- Config tests: Use `clearLlmioEnvVars(t)` helper to isolate tests from shell env vars
 - golangci-lint v2 writes to `.var/log/golangci-lint.log` (see `.golangci.yml` output.formats.tab.path)
 - golangci-lint autofix: use `golangci-lint run ./... --fix` to auto-fix gofmt/goimports issues
 - Import ordering: stdlib first, blank line, then third-party (goimports enforces this)
@@ -43,13 +45,13 @@ sqlc generate                 # Regenerate DB types from queries
 - PostgreSQL DSN passwords: single-quote and escape (`\\` then `\'`) for special chars
 - Dead code removal: Check test files (`*_test.go`) before removing package-level vars - tests may depend on them
 - Import cycle: `internal/validation` can't import `internal/config` (config imports validation); duplicate switch logic is intentional
-- Viper env prefix: Go app uses `LOOMIO_DATABASE_*` env vars (e.g., `LOOMIO_DATABASE_PASSWORD`), not `DB_*`
+- Viper env prefix: Go app uses `LLMIO_*` env vars with `LLMIO_PG_*` for PostgreSQL (e.g., `LLMIO_PG_HOST`, `LLMIO_PG_PASS_APP`)
 - SET LOCAL alternative: Use `SELECT set_config('app.var', @value, true)` instead of `SET LOCAL` - sqlc can't parse SET with bind params
 - sqlc nullable booleans: Use `sqlc.narg(field)::boolean` cast in queries to get `pgtype.Bool` (not `interface{}`)
 - testcontainers + Podman: Use `tc.WithProvider(tc.ProviderPodman)` or set `DOCKER_HOST=unix://$XDG_RUNTIME_DIR/podman/podman.sock`
 - testcontainers extensions: Use `testcontainers.WithFiles()` to copy extension SQL to `/docker-entrypoint-initdb.d/`
 - pgtap in tests: Requires debian image (not alpine) or custom image with pgtap installed; alpine lacks pgtap package
-- API tests: Each test creates fresh container via `testutil.SetupTestDB()` - slow but isolated; use `SetupTestDBWithSnapshot()` for shared container with reset
+- API integration tests: Use `testutil.RunIntegrationTests()` in TestMain with `testutil.GetPool()` and `t.Cleanup(func() { testutil.Restore(t) })`
 - DB triggers fire on testcontainers: audit.record_version populated during API tests - can verify audit trail in integration tests
 - GroupDetailDTO vs GroupDTO: `current_user_role` only available in detail DTO (returned from getGroup, not createGroup)
 - Last-admin protection: DB trigger raises "Cannot remove or demote the last administrator" - catch PostgreSQL error and return 409
@@ -76,9 +78,12 @@ sqlc generate                 # Regenerate DB types from queries
 
 ### Goose Migrations
 
-- Goose treats ALL `*.sql` files in `migrations/` as migrations based on numeric prefix
-- pgTap schema tests belong in `tests/pgtap/`, NOT in migrations directory
+- Goose treats ALL `*.sql` files in `db/migrations/` as migrations based on numeric prefix
+- pgTap schema tests are in `db/tests/` and run via `go test -run TestPgTap ./internal/db/...`
 - supa_audit pattern: `record_id` is TEXT (not UUID) for tables with BIGSERIAL PKs; cast with `::TEXT`
+- search_path: Use `ALTER ROLE postgres SET search_path TO ...` for persistent cross-connection settings (not `set_config()` which is session-only, or `ALTER DATABASE` which requires DB to exist)
+- goose envsub: Use `-- +goose ENVSUB ON` for env var substitution in SQL; goose reads OS env vars directly, not Viper, so `cmd/migrate/main.go` bridges config→env via `setGooseEnvVars()`
+- goose envsub syntax: `${VAR:-default}` provides shell-style defaults; role passwords use `LLMIO_PG_PASS_MIGRATION` and `LLMIO_PG_PASS_APP`
 
 ### Makefile & Containers
 
@@ -87,7 +92,7 @@ sqlc generate                 # Regenerate DB types from queries
 - pgTap tests depend on their migration completing first; not truly parallel with migration writes
 - `make up/down/logs` - Container lifecycle; `make server/migrate ARGS="..."` - Run binaries with args
 - `make clean` - Remove everything (volumes, binaries, caches); `make clean-go-{build,test,mod,fuzz,all}` - Go caches
-- Container env vars (`POSTGRES_*`) differ from Go app env vars (`LOOMIO_DATABASE_*`); both documented in `.env.example`
+- Container env vars (`POSTGRES_*`) differ from Go app env vars (`LLMIO_PG_*`); both documented in `.env.example`
 - PostgreSQL 18 volume mount: use `/var/lib/postgresql` (not `/var/lib/postgresql/data`) for `pg_upgrade --link` compatibility
 - Podman Compose volumes: prefixed with project directory name (e.g., `llmio_postgres_data`)
 
@@ -99,8 +104,9 @@ sqlc generate                 # Regenerate DB types from queries
 - Credentials match `.env.example` defaults: `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=postgres`
 
 **Go app connection:**
-- Uses `LOOMIO_DATABASE_*` env vars (Viper prefix), not `POSTGRES_*`
-- Example: `LOOMIO_DATABASE_USER=postgres LOOMIO_DATABASE_PASSWORD=postgres make server`
+- Uses `LLMIO_PG_*` env vars (Viper prefix), not `POSTGRES_*`
+- Three-role model: `LLMIO_PG_USER_ADMIN`/`PASS_ADMIN` (superuser), `LLMIO_PG_USER_MIGRATION`/`PASS_MIGRATION` (DDL), `LLMIO_PG_USER_APP`/`PASS_APP` (DML)
+- Example: `LLMIO_PG_USER_ADMIN=postgres LLMIO_PG_PASS_ADMIN=postgres make server`
 
 ### Version Management (mise)
 
@@ -330,6 +336,7 @@ func Load() (*Config, error) {
 **Cross-field validation**: Use `ltefield`/`gtefield` tags (e.g., `validate:"ltefield=MaxConns"` ensures MinConns ≤ MaxConns).
 
 ## Recent Changes
+- 005-discussions: Added Go 1.25+ + Huma (API), pgx/v5 (database), sqlc (type-safe queries)
 - 004-groups-memberships: Added Go 1.25+ (matches existing codebase) + Huma web framework, pgx/v5, sqlc, go-playground/validator/v10
 - 003-dev-workflow: Added N/A (shell scripts, Makefile, YAML configuration) + Podman, Podman Compose, golangci-lint, goimports
 - 001-user-auth: Added Go 1.25+ with Huma web framework + Huma, pgx/v5, sqlc, golang.org/x/crypto/argon2

@@ -1,0 +1,166 @@
+# Comments API Contract
+# Design documentation for Huma implementation
+# Huma Go types are the source of truth; this file aids design review
+
+openapi: 3.1.0
+info:
+  title: Comments API
+  version: 1.0.0
+
+paths:
+  /comments:
+    post:
+      operationId: createComment
+      summary: Add a comment to a discussion
+      description: |
+        Creates a comment in an open discussion. User must have access.
+        If parent_id is provided, nesting depth is validated against max_depth.
+      tags: [comments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid request (empty body, invalid parent_id)
+        '401':
+          description: Not authenticated
+        '403':
+          description: Access denied or discussion closed
+        '404':
+          description: Discussion not found, or parent comment not found in the specified discussion
+        '422':
+          description: Validation error (nesting depth exceeded, empty body)
+
+  /comments/{id}:
+    patch:
+      operationId: updateComment
+      summary: Edit a comment
+      description: |
+        Only the comment author can edit. Records edited_at timestamp.
+        Cannot edit soft-deleted comments (returns 404).
+      tags: [comments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid request (empty body)
+        '403':
+          description: Not the author
+        '404':
+          description: Comment not found
+        '422':
+          description: Validation error (empty body)
+
+    delete:
+      operationId: deleteComment
+      summary: Soft-delete a comment
+      description: |
+        Author or group admin can delete. Sets discarded_at timestamp.
+        Body becomes "[deleted]" in API responses. Children remain visible.
+      tags: [comments]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Comment soft-deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '403':
+          description: Not the author or admin
+        '404':
+          description: Comment not found
+        '409':
+          description: Already deleted
+
+components:
+  schemas:
+    CreateCommentRequest:
+      type: object
+      required: [discussion_id, body]
+      properties:
+        discussion_id:
+          type: integer
+          format: int64
+        parent_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Omit or null for top-level comment
+        body:
+          type: string
+          minLength: 1
+
+    UpdateCommentRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        discussion_id:
+          type: integer
+          format: int64
+        author_id:
+          type: integer
+          format: int64
+          nullable: true
+        parent_id:
+          type: integer
+          format: int64
+          nullable: true
+        body:
+          type: string
+          description: Returns "[deleted]" for soft-deleted comments
+        depth:
+          type: integer
+        edited_at:
+          type: string
+          format: date-time
+          nullable: true
+        discarded_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time

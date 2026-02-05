@@ -8,10 +8,16 @@ VOLUMES := llmio_postgres_data llmio_pgadmin_data
 # Go source files for dependency tracking
 GO_SRC := $(shell find . -name '*.go' -not -path './vendor/*')
 
+# Docker test image configuration
+GIT_SHA    := $(shell git rev-parse --short HEAD)
+GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD | sed 's/\//-/g')
+IMAGE_NAME := ghcr.io/zacaytion/llmio-pg-tap
+
 .PHONY: all help up down logs clean-volumes \
         build build-server build-migrate run-server run-migrate server migrate install tidy \
-        test coverage-view psql test-pgtap lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
-        clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all
+        test test-unit test-pgtap test-integration test-all coverage-view psql lint lint-fix lint-files lint-md lint-makefile lint-migrations lint-all fmt \
+        clean clean-go-build clean-go-test clean-go-mod clean-go-fuzz clean-go-all \
+        docker-test-build docker-test-tag docker-test-push docker-test-image
 
 # Default target (required by checkmake)
 all: build
@@ -80,18 +86,32 @@ install: ## Download Go dependencies
 tidy: ## Tidy Go modules
 	go mod tidy
 
+node_modules: package.json pnpm-lock.yaml
+	@pnpm install
+
+
 ##@ Testing
 
 .var/coverage:
 	@mkdir -p .var/coverage || (echo "ERROR: Cannot create .var/coverage directory" >&2; exit 1)
 
-test: .var/coverage ## Run tests with coverage
+test-unit: .var/coverage ## Run unit tests (no containers, fast)
 	go test -coverprofile=.var/coverage/coverage.out ./...
 
-.var/coverage/coverage.out: test
+test-pgtap: ## Run pgTap schema validation tests (requires container)
+	go test -v -tags=pgtap ./internal/db/...
+
+test-integration: ## Run API/DB integration tests (requires container)
+	go test -v -tags=integration ./...
+
+test-all: test-pgtap test-integration ## Run all tests (pgTap first, then integration)
+
+test: test-unit ## Alias for test-unit (default test target)
+
+.var/coverage/coverage.out: test-unit
 
 coverage-view: .var/coverage/coverage.out ## View coverage report in browser
-	@test -s .var/coverage/coverage.out || (echo "ERROR: No coverage data. Run 'make test' first." >&2; exit 1)
+	@test -s .var/coverage/coverage.out || (echo "ERROR: No coverage data. Run 'make test-unit' first." >&2; exit 1)
 	go tool cover -html=.var/coverage/coverage.out
 
 ##@ Database
@@ -106,14 +126,6 @@ DB_PASSWORD ?= postgres
 psql: ## Connect to PostgreSQL via psql (usage: make psql or make psql DB_NAME=loomio_test)
 	PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME)
 
-test-pgtap: ## Run pgTap database tests (requires pgtap extension)
-	@echo "Running pgTap tests..."
-	@for f in tests/pgtap/*.sql; do \
-		echo "Testing: $$f"; \
-		PGPASSWORD=$(DB_PASSWORD) psql-18 -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f "$$f" || exit 1; \
-	done
-	@echo "All pgTap tests passed!"
-
 ##@ Quality
 
 .var/log:
@@ -125,17 +137,17 @@ lint: .var/log ## Run Go linter (exit code preserved via pipefail)
 lint-fix: ## Run Go linter with auto-fix
 	golangci-lint run --config .config/golangci.yml ./... --fix
 
-lint-files: ## Lint file/directory naming conventions
-	pnpm exec ls-lint -config .config/ls-lint.yml
+lint-files: node_modules ## Lint file/directory naming conventions
+	@node_modules/.bin/ls-lint -config .config/ls-lint.yml
 
-lint-md: ## Lint markdown files
-	pnpm exec markdownlint-cli2
+lint-md: node_modules ## Lint markdown files
+	@node_modules/.bin/markdownlint-cli2
 
 lint-makefile: ## Lint Makefile
 	go tool checkmake --config .config/checkmake.ini Makefile
 
 lint-migrations: ## Lint SQL migrations for safety
-	mise exec -- squawk --config .config/squawk.toml migrations/*.sql
+	mise exec -- squawk --config .config/squawk.toml db/migrations/*.sql
 
 lint-all: lint lint-files lint-md lint-makefile lint-migrations ## Run all linters
 
@@ -167,6 +179,22 @@ clean: clean-volumes ## Clean everything (volumes, caches, binaries, artifacts)
 	@echo "Cleaning Go build and test caches..."
 	go clean -cache -testcache
 	@echo "Done."
+
+##@ Docker Test Image
+
+docker-test-build: ## Build llmio-pg-tap image locally
+	docker build --load -t $(IMAGE_NAME):latest -f db/Dockerfile.pgtap db/
+
+docker-test-tag: docker-test-build ## Tag image with branch and SHA
+	docker tag $(IMAGE_NAME):latest $(IMAGE_NAME):br-$(GIT_BRANCH)
+	docker tag $(IMAGE_NAME):latest $(IMAGE_NAME):$(GIT_SHA)
+
+docker-test-push: docker-test-tag ## Push image to ghcr.io (requires auth)
+	docker push $(IMAGE_NAME):latest
+	docker push $(IMAGE_NAME):br-$(GIT_BRANCH)
+	docker push $(IMAGE_NAME):$(GIT_SHA)
+
+docker-test-image: docker-test-push ## Build, tag, and push image
 
 ##@ Help
 

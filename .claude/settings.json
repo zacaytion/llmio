@@ -23,6 +23,8 @@
     "sharp-edges@trailofbits": true,
     "superpowers@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "variant-analysis@trailofbits": true
+    "variant-analysis@trailofbits": true,
+    "pg@aiguide": true,
+    "superpowers@superpowers-marketplace": true
   }
 }

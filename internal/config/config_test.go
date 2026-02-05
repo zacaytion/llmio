@@ -10,21 +10,21 @@ import (
 )
 
 // T005: Test for Config struct existence.
-func TestConfigStructs(t *testing.T) {
+func Test_ConfigStructs(t *testing.T) {
 	// Verify structs can be instantiated with expected fields
 	cfg := Config{
-		Database: DatabaseConfig{
+		PG: PGConfig{
 			Host:              "localhost",
 			Port:              5432,
-			User:              "postgres",
-			Password:          "secret",
-			Name:              "testdb",
+			Database:          "testdb",
 			SSLMode:           "disable",
 			MaxConns:          25,
 			MinConns:          2,
 			MaxConnLifetime:   time.Hour,
 			MaxConnIdleTime:   30 * time.Minute,
 			HealthCheckPeriod: time.Minute,
+			UserAdmin:         "postgres",
+			PassAdmin:         "secret",
 		},
 		Server: ServerConfig{
 			Port:         8080,
@@ -43,8 +43,8 @@ func TestConfigStructs(t *testing.T) {
 		},
 	}
 
-	if cfg.Database.Host != "localhost" {
-		t.Errorf("expected localhost, got %s", cfg.Database.Host)
+	if cfg.PG.Host != "localhost" {
+		t.Errorf("expected localhost, got %s", cfg.PG.Host)
 	}
 	if cfg.Server.Port != 8080 {
 		t.Errorf("expected 8080, got %d", cfg.Server.Port)
@@ -57,45 +57,82 @@ func TestConfigStructs(t *testing.T) {
 	}
 }
 
+// clearLlmioEnvVars clears all LLMIO_* environment variables for the duration of the test.
+// This ensures tests for defaults aren't affected by env vars set in the shell.
+func clearLlmioEnvVars(t *testing.T) {
+	t.Helper()
+	envVars := []string{
+		"LLMIO_PG_HOST",
+		"LLMIO_PG_PORT",
+		"LLMIO_PG_DATABASE",
+		"LLMIO_PG_SSLMODE",
+		"LLMIO_PG_MAX_CONNS",
+		"LLMIO_PG_MIN_CONNS",
+		"LLMIO_PG_MAX_CONN_LIFETIME",
+		"LLMIO_PG_MAX_CONN_IDLE_TIME",
+		"LLMIO_PG_HEALTH_CHECK_PERIOD",
+		"LLMIO_PG_USER_ADMIN",
+		"LLMIO_PG_PASS_ADMIN",
+		"LLMIO_PG_USER_MIGRATION",
+		"LLMIO_PG_PASS_MIGRATION",
+		"LLMIO_PG_USER_APP",
+		"LLMIO_PG_PASS_APP",
+		"LLMIO_SERVER_PORT",
+		"LLMIO_SERVER_READ_TIMEOUT",
+		"LLMIO_SERVER_WRITE_TIMEOUT",
+		"LLMIO_SERVER_IDLE_TIMEOUT",
+		"LLMIO_SESSION_DURATION",
+		"LLMIO_SESSION_CLEANUP_INTERVAL",
+		"LLMIO_LOGGING_LEVEL",
+		"LLMIO_LOGGING_FORMAT",
+		"LLMIO_LOGGING_OUTPUT",
+	}
+	for _, env := range envVars {
+		t.Setenv(env, "")
+	}
+}
+
 // T006: Test for Load() with defaults.
 //
 //nolint:gocyclo // Test function validating many config defaults - complexity is intentional
-func TestLoad_Defaults(t *testing.T) {
+func Test_Load_Defaults(t *testing.T) {
+	clearLlmioEnvVars(t) // Clear any env vars that might override defaults
+
 	cfg, err := Load("")
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
 
-	// Database defaults
-	if cfg.Database.Host != "localhost" {
-		t.Errorf("expected localhost, got %s", cfg.Database.Host)
+	// PostgreSQL defaults
+	if cfg.PG.Host != "localhost" {
+		t.Errorf("expected localhost, got %s", cfg.PG.Host)
 	}
-	if cfg.Database.Port != 5432 {
-		t.Errorf("expected 5432, got %d", cfg.Database.Port)
+	if cfg.PG.Port != 5432 {
+		t.Errorf("expected 5432, got %d", cfg.PG.Port)
 	}
-	if cfg.Database.User != "postgres" {
-		t.Errorf("expected postgres, got %s", cfg.Database.User)
+	if cfg.PG.UserAdmin != "postgres" {
+		t.Errorf("expected postgres, got %s", cfg.PG.UserAdmin)
 	}
-	if cfg.Database.Name != "loomio_development" {
-		t.Errorf("expected loomio_development, got %s", cfg.Database.Name)
+	if cfg.PG.Database != "loomio_development" {
+		t.Errorf("expected loomio_development, got %s", cfg.PG.Database)
 	}
-	if cfg.Database.SSLMode != "disable" {
-		t.Errorf("expected disable, got %s", cfg.Database.SSLMode)
+	if cfg.PG.SSLMode != "disable" {
+		t.Errorf("expected disable, got %s", cfg.PG.SSLMode)
 	}
-	if cfg.Database.MaxConns != 25 {
-		t.Errorf("expected 25, got %d", cfg.Database.MaxConns)
+	if cfg.PG.MaxConns != 25 {
+		t.Errorf("expected 25, got %d", cfg.PG.MaxConns)
 	}
-	if cfg.Database.MinConns != 2 {
-		t.Errorf("expected 2, got %d", cfg.Database.MinConns)
+	if cfg.PG.MinConns != 2 {
+		t.Errorf("expected 2, got %d", cfg.PG.MinConns)
 	}
-	if cfg.Database.MaxConnLifetime != time.Hour {
-		t.Errorf("expected 1h, got %v", cfg.Database.MaxConnLifetime)
+	if cfg.PG.MaxConnLifetime != time.Hour {
+		t.Errorf("expected 1h, got %v", cfg.PG.MaxConnLifetime)
 	}
-	if cfg.Database.MaxConnIdleTime != 30*time.Minute {
-		t.Errorf("expected 30m, got %v", cfg.Database.MaxConnIdleTime)
+	if cfg.PG.MaxConnIdleTime != 30*time.Minute {
+		t.Errorf("expected 30m, got %v", cfg.PG.MaxConnIdleTime)
 	}
-	if cfg.Database.HealthCheckPeriod != time.Minute {
-		t.Errorf("expected 1m, got %v", cfg.Database.HealthCheckPeriod)
+	if cfg.PG.HealthCheckPeriod != time.Minute {
+		t.Errorf("expected 1m, got %v", cfg.PG.HealthCheckPeriod)
 	}
 
 	// Server defaults
@@ -132,11 +169,11 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 }
 
-// T033: Test for environment variable override (LOOMIO_*).
-func TestLoad_EnvVarOverride(t *testing.T) {
+// T033: Test for environment variable override (LLMIO_*).
+func Test_Load_EnvVarOverride(t *testing.T) {
 	// Set environment variable
-	t.Setenv("LOOMIO_SERVER_PORT", "9001")
-	t.Setenv("LOOMIO_DATABASE_NAME", "loomio_from_env")
+	t.Setenv("LLMIO_SERVER_PORT", "9001")
+	t.Setenv("LLMIO_PG_DATABASE", "loomio_from_env")
 
 	cfg, err := Load("")
 	if err != nil {
@@ -145,15 +182,15 @@ func TestLoad_EnvVarOverride(t *testing.T) {
 
 	// Env var should override default
 	if cfg.Server.Port != 9001 {
-		t.Errorf("expected 9001 (from LOOMIO_SERVER_PORT), got %d", cfg.Server.Port)
+		t.Errorf("expected 9001 (from LLMIO_SERVER_PORT), got %d", cfg.Server.Port)
 	}
-	if cfg.Database.Name != "loomio_from_env" {
-		t.Errorf("expected loomio_from_env (from LOOMIO_DATABASE_NAME), got %s", cfg.Database.Name)
+	if cfg.PG.Database != "loomio_from_env" {
+		t.Errorf("expected loomio_from_env (from LLMIO_PG_DATABASE), got %s", cfg.PG.Database)
 	}
 }
 
 // T028: Test for CLI flag override of config file value.
-func TestLoadWithViper_CLIOverride(t *testing.T) {
+func Test_LoadWithViper_CLIOverride(t *testing.T) {
 	// Create a temporary YAML config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
@@ -161,8 +198,8 @@ func TestLoadWithViper_CLIOverride(t *testing.T) {
 	yamlContent := `
 server:
   port: 8080
-database:
-  name: loomio_development
+pg:
+  database: loomio_development
 `
 	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
 		t.Fatalf("Failed to write temp config: %v", err)
@@ -185,24 +222,26 @@ database:
 	}
 
 	// Config file value should still apply where not overridden
-	if cfg.Database.Name != "loomio_development" {
-		t.Errorf("expected loomio_development, got %s", cfg.Database.Name)
+	if cfg.PG.Database != "loomio_development" {
+		t.Errorf("expected loomio_development, got %s", cfg.PG.Database)
 	}
 }
 
 // T023: Test for config.test.yaml loading different database name.
-func TestLoad_TestConfig(t *testing.T) {
+func Test_Load_TestConfig(t *testing.T) {
+	clearLlmioEnvVars(t) // Clear env vars so file values are used
+
 	// Create a temporary test config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.test.yaml"
 
 	yamlContent := `
-database:
+pg:
   host: localhost
   port: 5432
-  user: testuser
-  password: testpass
-  name: loomio_test
+  user_admin: testuser
+  pass_admin: testpass
+  database: loomio_test
   max_conns: 5
   min_conns: 1
 server:
@@ -224,16 +263,16 @@ logging:
 	}
 
 	// Verify test database name is different from development
-	if cfg.Database.Name != "loomio_test" {
-		t.Errorf("expected loomio_test, got %s", cfg.Database.Name)
+	if cfg.PG.Database != "loomio_test" {
+		t.Errorf("expected loomio_test, got %s", cfg.PG.Database)
 	}
-	if cfg.Database.Name == "loomio_development" {
+	if cfg.PG.Database == "loomio_development" {
 		t.Error("test config should NOT use development database")
 	}
 
 	// Verify other test-specific settings
-	if cfg.Database.MaxConns != 5 {
-		t.Errorf("expected 5, got %d", cfg.Database.MaxConns)
+	if cfg.PG.MaxConns != 5 {
+		t.Errorf("expected 5, got %d", cfg.PG.MaxConns)
 	}
 	if cfg.Server.Port != 8081 {
 		t.Errorf("expected 8081, got %d", cfg.Server.Port)
@@ -247,18 +286,20 @@ logging:
 }
 
 // T013: Test for YAML file loading.
-func TestLoad_YAMLFile(t *testing.T) {
+func Test_Load_YAMLFile(t *testing.T) {
+	clearLlmioEnvVars(t) // Clear env vars so file values are used
+
 	// Create a temporary YAML config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
 
 	yamlContent := `
-database:
+pg:
   host: testhost
   port: 5433
-  user: testuser
-  password: testpass
-  name: testdb
+  user_admin: testuser
+  pass_admin: testpass
+  database: testdb
 server:
   port: 9000
 `
@@ -272,28 +313,28 @@ server:
 	}
 
 	// Verify YAML values override defaults
-	if cfg.Database.Host != "testhost" {
-		t.Errorf("expected testhost, got %s", cfg.Database.Host)
+	if cfg.PG.Host != "testhost" {
+		t.Errorf("expected testhost, got %s", cfg.PG.Host)
 	}
-	if cfg.Database.Port != 5433 {
-		t.Errorf("expected 5433, got %d", cfg.Database.Port)
+	if cfg.PG.Port != 5433 {
+		t.Errorf("expected 5433, got %d", cfg.PG.Port)
 	}
-	if cfg.Database.User != "testuser" {
-		t.Errorf("expected testuser, got %s", cfg.Database.User)
+	if cfg.PG.UserAdmin != "testuser" {
+		t.Errorf("expected testuser, got %s", cfg.PG.UserAdmin)
 	}
-	if cfg.Database.Password != "testpass" {
-		t.Errorf("expected testpass, got %s", cfg.Database.Password)
+	if cfg.PG.PassAdmin != "testpass" {
+		t.Errorf("expected testpass, got %s", cfg.PG.PassAdmin)
 	}
-	if cfg.Database.Name != "testdb" {
-		t.Errorf("expected testdb, got %s", cfg.Database.Name)
+	if cfg.PG.Database != "testdb" {
+		t.Errorf("expected testdb, got %s", cfg.PG.Database)
 	}
 	if cfg.Server.Port != 9000 {
 		t.Errorf("expected 9000, got %d", cfg.Server.Port)
 	}
 
 	// Verify defaults still apply for unspecified values
-	if cfg.Database.SSLMode != "disable" {
-		t.Errorf("expected disable (default), got %s", cfg.Database.SSLMode)
+	if cfg.PG.SSLMode != "disable" {
+		t.Errorf("expected disable (default), got %s", cfg.PG.SSLMode)
 	}
 	if cfg.Logging.Format != "json" {
 		t.Errorf("expected json (default), got %s", cfg.Logging.Format)
@@ -301,13 +342,13 @@ server:
 }
 
 // T058: Test that invalid YAML returns error with file information.
-func TestLoad_InvalidYAML(t *testing.T) {
+func Test_Load_InvalidYAML(t *testing.T) {
 	// Create a temporary file with invalid YAML
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/invalid.yaml"
 
 	invalidYAML := `
-database:
+pg:
   host: localhost
   port: invalid_not_a_number
   user testuser  # Missing colon - syntax error
@@ -339,50 +380,103 @@ func containsAny(s string, substrings []string) bool {
 	return false
 }
 
-// T007: Test for DatabaseConfig.DSN() method.
-func TestDatabaseConfig_DSN(t *testing.T) {
+// T007: Test for PGConfig DSN methods.
+func Test_PGConfig_DSN(t *testing.T) {
 	tests := []struct {
 		name     string
-		config   DatabaseConfig
+		config   PGConfig
+		method   string // "admin", "app", or "migration"
 		expected string
 	}{
 		{
-			name: "without password",
-			config: DatabaseConfig{
-				Host:    "localhost",
-				Port:    5432,
-				User:    "postgres",
-				Name:    "testdb",
-				SSLMode: "disable",
+			name: "admin without password",
+			config: PGConfig{
+				Host:      "localhost",
+				Port:      5432,
+				Database:  "testdb",
+				SSLMode:   "disable",
+				UserAdmin: "postgres",
 			},
+			method:   "admin",
 			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable",
 		},
 		{
-			name: "with password",
-			config: DatabaseConfig{
-				Host:     "db.example.com",
-				Port:     5433,
-				User:     "admin",
-				Password: "secret",
-				Name:     "proddb",
-				SSLMode:  "require",
+			name: "admin with password",
+			config: PGConfig{
+				Host:      "db.example.com",
+				Port:      5433,
+				Database:  "proddb",
+				SSLMode:   "require",
+				UserAdmin: "admin",
+				PassAdmin: "secret",
 			},
+			method:   "admin",
 			expected: "host=db.example.com port=5433 user=admin dbname=proddb sslmode=require password='secret'",
+		},
+		{
+			name: "app credentials",
+			config: PGConfig{
+				Host:     "localhost",
+				Port:     5432,
+				Database: "testdb",
+				SSLMode:  "disable",
+				UserApp:  "loomio_app",
+				PassApp:  "apppass",
+			},
+			method:   "app",
+			expected: "host=localhost port=5432 user=loomio_app dbname=testdb sslmode=disable password='apppass'",
+		},
+		{
+			name: "migration credentials",
+			config: PGConfig{
+				Host:          "localhost",
+				Port:          5432,
+				Database:      "testdb",
+				SSLMode:       "disable",
+				UserMigration: "loomio_migration",
+				PassMigration: "migratepass",
+			},
+			method:   "migration",
+			expected: "host=localhost port=5432 user=loomio_migration dbname=testdb sslmode=disable password='migratepass'",
+		},
+		{
+			name: "migration falls back to admin",
+			config: PGConfig{
+				Host:      "localhost",
+				Port:      5432,
+				Database:  "testdb",
+				SSLMode:   "disable",
+				UserAdmin: "postgres",
+				PassAdmin: "adminpass",
+				// UserMigration not set
+			},
+			method:   "migration",
+			expected: "host=localhost port=5432 user=postgres dbname=testdb sslmode=disable password='adminpass'",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.config.DSN()
+			var got string
+			switch tt.method {
+			case "admin":
+				got = tt.config.AdminDSN()
+			case "app":
+				got = tt.config.AppDSN()
+			case "migration":
+				got = tt.config.MigrationDSN()
+			}
 			if got != tt.expected {
-				t.Errorf("DSN() = %q, want %q", got, tt.expected)
+				t.Errorf("%sDSN() = %q, want %q", tt.method, got, tt.expected)
 			}
 		})
 	}
 }
 
 // T096: Test the full priority chain: CLI > env > file > defaults.
-func TestLoad_FullPriorityChain(t *testing.T) {
+func Test_Load_FullPriorityChain(t *testing.T) {
+	clearLlmioEnvVars(t) // Clear all env vars first
+
 	// Create a temporary YAML config file with specific values
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
@@ -390,16 +484,16 @@ func TestLoad_FullPriorityChain(t *testing.T) {
 	yamlContent := `
 server:
   port: 8000
-database:
-  name: loomio_from_file
+pg:
+  database: loomio_from_file
   host: filehost
 `
 	if err := os.WriteFile(configPath, []byte(yamlContent), 0600); err != nil {
 		t.Fatalf("Failed to write temp config: %v", err)
 	}
 
-	// Set environment variable to override file
-	t.Setenv("LOOMIO_DATABASE_NAME", "loomio_from_env")
+	// Set environment variable to override file (after clearing)
+	t.Setenv("LLMIO_PG_DATABASE", "loomio_from_env")
 
 	// Create a viper instance with CLI flag to override env
 	v := NewViper()
@@ -418,32 +512,34 @@ database:
 		t.Errorf("expected server.port=9999 (CLI override), got %d", cfg.Server.Port)
 	}
 
-	// 2. Env (database.name) should override file value
-	if cfg.Database.Name != "loomio_from_env" {
-		t.Errorf("expected database.name='loomio_from_env' (env override), got %s", cfg.Database.Name)
+	// 2. Env (pg.database) should override file value
+	if cfg.PG.Database != "loomio_from_env" {
+		t.Errorf("expected pg.database='loomio_from_env' (env override), got %s", cfg.PG.Database)
 	}
 
-	// 3. File (database.host) should override default
-	if cfg.Database.Host != "filehost" {
-		t.Errorf("expected database.host='filehost' (file), got %s", cfg.Database.Host)
+	// 3. File (pg.host) should override default
+	if cfg.PG.Host != "filehost" {
+		t.Errorf("expected pg.host='filehost' (file), got %s", cfg.PG.Host)
 	}
 
-	// 4. Default (database.port) should apply when nothing else specified
-	if cfg.Database.Port != 5432 {
-		t.Errorf("expected database.port=5432 (default), got %d", cfg.Database.Port)
+	// 4. Default (pg.port) should apply when nothing else specified
+	if cfg.PG.Port != 5432 {
+		t.Errorf("expected pg.port=5432 (default), got %d", cfg.PG.Port)
 	}
 }
 
 // T097: Test that environment variables override config file values.
-func TestLoad_EnvOverridesConfigFile(t *testing.T) {
+func Test_Load_EnvOverridesConfigFile(t *testing.T) {
+	clearLlmioEnvVars(t) // Clear all env vars first
+
 	// Create a temporary YAML config file
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/config.yaml"
 
 	yamlContent := `
-database:
+pg:
   host: config-file-host
-  name: config-file-db
+  database: config-file-db
 server:
   port: 7000
 `
@@ -451,9 +547,9 @@ server:
 		t.Fatalf("Failed to write temp config: %v", err)
 	}
 
-	// Set env vars to override config file
-	t.Setenv("LOOMIO_DATABASE_HOST", "env-host")
-	t.Setenv("LOOMIO_SERVER_PORT", "7777")
+	// Set env vars to override config file (after clearing)
+	t.Setenv("LLMIO_PG_HOST", "env-host")
+	t.Setenv("LLMIO_SERVER_PORT", "7777")
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -461,27 +557,26 @@ server:
 	}
 
 	// Env should override file
-	if cfg.Database.Host != "env-host" {
-		t.Errorf("expected database.host='env-host' (env override), got %s", cfg.Database.Host)
+	if cfg.PG.Host != "env-host" {
+		t.Errorf("expected pg.host='env-host' (env override), got %s", cfg.PG.Host)
 	}
 	if cfg.Server.Port != 7777 {
 		t.Errorf("expected server.port=7777 (env override), got %d", cfg.Server.Port)
 	}
 
 	// File value should still apply where env not set
-	if cfg.Database.Name != "config-file-db" {
-		t.Errorf("expected database.name='config-file-db' (file), got %s", cfg.Database.Name)
+	if cfg.PG.Database != "config-file-db" {
+		t.Errorf("expected pg.database='config-file-db' (file), got %s", cfg.PG.Database)
 	}
 }
 
-// T099: Test DatabaseConfig validation catches invalid values.
+// T099: Test PGConfig validation catches invalid values.
 // Uses go-playground/validator; tests check for field name in error.
-func TestDatabaseConfig_Validate(t *testing.T) {
-	validConfig := DatabaseConfig{
+func Test_PGConfig_Validate(t *testing.T) {
+	validConfig := PGConfig{
 		Host:              "localhost",
 		Port:              5432,
-		User:              "postgres",
-		Name:              "testdb",
+		Database:          "testdb",
 		SSLMode:           "disable",
 		MaxConns:          25,
 		MinConns:          2,
@@ -497,72 +592,67 @@ func TestDatabaseConfig_Validate(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		modify    func(*DatabaseConfig)
+		modify    func(*PGConfig)
 		wantField string // field name expected in validation error
 	}{
 		{
 			name:      "empty host",
-			modify:    func(c *DatabaseConfig) { c.Host = "" },
+			modify:    func(c *PGConfig) { c.Host = "" },
 			wantField: "Host",
 		},
 		{
 			name:      "invalid port zero",
-			modify:    func(c *DatabaseConfig) { c.Port = 0 },
+			modify:    func(c *PGConfig) { c.Port = 0 },
 			wantField: "Port",
 		},
 		{
 			name:      "invalid port negative",
-			modify:    func(c *DatabaseConfig) { c.Port = -1 },
+			modify:    func(c *PGConfig) { c.Port = -1 },
 			wantField: "Port",
 		},
 		{
 			name:      "invalid port too high",
-			modify:    func(c *DatabaseConfig) { c.Port = 65536 },
+			modify:    func(c *PGConfig) { c.Port = 65536 },
 			wantField: "Port",
 		},
 		{
-			name:      "empty user",
-			modify:    func(c *DatabaseConfig) { c.User = "" },
-			wantField: "User",
-		},
-		{
-			name:      "empty name",
-			modify:    func(c *DatabaseConfig) { c.Name = "" },
-			wantField: "Name",
+			name:      "empty database",
+			modify:    func(c *PGConfig) { c.Database = "" },
+			wantField: "Database",
 		},
 		{
 			name:      "invalid sslmode",
-			modify:    func(c *DatabaseConfig) { c.SSLMode = "invalid" },
+			modify:    func(c *PGConfig) { c.SSLMode = "invalid" },
 			wantField: "SSLMode",
 		},
 		{
 			name:      "max_conns zero",
-			modify:    func(c *DatabaseConfig) { c.MaxConns = 0 },
+			modify:    func(c *PGConfig) { c.MaxConns = 0 },
 			wantField: "MaxConns",
 		},
 		{
 			name:      "min_conns negative",
-			modify:    func(c *DatabaseConfig) { c.MinConns = -1 },
+			modify:    func(c *PGConfig) { c.MinConns = -1 },
 			wantField: "MinConns",
 		},
 		{
 			name:      "min_conns exceeds max_conns",
-			modify:    func(c *DatabaseConfig) { c.MinConns = 30; c.MaxConns = 25 },
+			modify:    func(c *PGConfig) { c.MinConns = 30; c.MaxConns = 25 },
 			wantField: "MinConns",
 		},
 		{
 			name:      "max_conn_lifetime zero",
-			modify:    func(c *DatabaseConfig) { c.MaxConnLifetime = 0 },
+			modify:    func(c *PGConfig) { c.MaxConnLifetime = 0 },
 			wantField: "MaxConnLifetime",
 		},
 		{
 			name:      "max_conn_idle_time negative",
-			modify:    func(c *DatabaseConfig) { c.MaxConnIdleTime = -time.Second },
+			modify:    func(c *PGConfig) { c.MaxConnIdleTime = -time.Second },
 			wantField: "MaxConnIdleTime",
 		},
 		{
 			name:      "health_check_period zero",
-			modify:    func(c *DatabaseConfig) { c.HealthCheckPeriod = 0 },
+			modify:    func(c *PGConfig) { c.HealthCheckPeriod = 0 },
 			wantField: "HealthCheckPeriod",
 		},
 	}
@@ -583,7 +673,7 @@ func TestDatabaseConfig_Validate(t *testing.T) {
 }
 
 // T100: Test ServerConfig validation catches invalid values.
-func TestServerConfig_Validate(t *testing.T) {
+func Test_ServerConfig_Validate(t *testing.T) {
 	validConfig := ServerConfig{
 		Port:         8080,
 		ReadTimeout:  15 * time.Second,
@@ -638,7 +728,7 @@ func TestServerConfig_Validate(t *testing.T) {
 }
 
 // T101: Test SessionConfig validation catches invalid values.
-func TestSessionConfig_Validate(t *testing.T) {
+func Test_SessionConfig_Validate(t *testing.T) {
 	validConfig := SessionConfig{
 		Duration:        168 * time.Hour,
 		CleanupInterval: 10 * time.Minute,
@@ -681,7 +771,7 @@ func TestSessionConfig_Validate(t *testing.T) {
 }
 
 // T102: Test LoggingConfig validation catches invalid values.
-func TestLoggingConfig_Validate(t *testing.T) {
+func Test_LoggingConfig_Validate(t *testing.T) {
 	validConfig := LoggingConfig{
 		Level:  "info",
 		Format: "json",
@@ -730,7 +820,7 @@ func TestLoggingConfig_Validate(t *testing.T) {
 }
 
 // T105: Test SSLMode.Valid() for all known modes.
-func TestSSLMode_Valid(t *testing.T) {
+func Test_SSLMode_Valid(t *testing.T) {
 	validModes := []SSLMode{
 		SSLModeDisable,
 		SSLModeAllow,
@@ -755,7 +845,7 @@ func TestSSLMode_Valid(t *testing.T) {
 }
 
 // T106: Test LogLevel.Valid() for all known levels.
-func TestLogLevel_Valid(t *testing.T) {
+func Test_LogLevel_Valid(t *testing.T) {
 	validLevels := []LogLevel{
 		LogLevelDebug,
 		LogLevelInfo,
@@ -778,7 +868,7 @@ func TestLogLevel_Valid(t *testing.T) {
 }
 
 // T107: Test LogFormat.Valid() for all known formats.
-func TestLogFormat_Valid(t *testing.T) {
+func Test_LogFormat_Valid(t *testing.T) {
 	validFormats := []LogFormat{
 		LogFormatJSON,
 		LogFormatText,
@@ -799,17 +889,18 @@ func TestLogFormat_Valid(t *testing.T) {
 }
 
 // T103/T104: Test that Load() fails with invalid config values.
-func TestLoad_ValidationFailure(t *testing.T) {
+func Test_Load_ValidationFailure(t *testing.T) {
+	clearLlmioEnvVars(t) // Clear env vars so invalid file values are used
+
 	// Create a config file with invalid values
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/invalid_config.yaml"
 
 	yamlContent := `
-database:
+pg:
   host: localhost
   port: 0  # Invalid: must be 1-65535
-  user: postgres
-  name: testdb
+  database: testdb
   sslmode: disable
 server:
   port: 8080
@@ -834,18 +925,17 @@ server:
 
 // T138: Test that type coercion failures in YAML cause unmarshal errors.
 // For example, setting port to a non-numeric string should fail.
-func TestLoad_UnmarshalError(t *testing.T) {
+func Test_Load_UnmarshalError(t *testing.T) {
 	// Create a temporary file with type mismatch (string for integer field)
 	tmpDir := t.TempDir()
 	configPath := tmpDir + "/type_error.yaml"
 
 	// Duration fields expect duration strings, but we'll provide invalid format
 	invalidYAML := `
-database:
+pg:
   host: localhost
   port: 5432
-  user: postgres
-  name: testdb
+  database: testdb
   sslmode: disable
   max_conn_lifetime: "not_a_duration"  # Invalid duration format
 server:
@@ -868,7 +958,7 @@ server:
 }
 
 // T064: Test for DSN with special characters in password.
-func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
+func Test_PGConfig_DSN_SpecialChars(t *testing.T) {
 	tests := []struct {
 		name     string
 		password string
@@ -903,17 +993,17 @@ func TestDatabaseConfig_DSN_SpecialChars(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := DatabaseConfig{
-				Host:     "localhost",
-				Port:     5432,
-				User:     "postgres",
-				Password: tt.password,
-				Name:     "testdb",
-				SSLMode:  "disable",
+			cfg := PGConfig{
+				Host:      "localhost",
+				Port:      5432,
+				Database:  "testdb",
+				SSLMode:   "disable",
+				UserAdmin: "postgres",
+				PassAdmin: tt.password,
 			}
-			got := cfg.DSN()
+			got := cfg.AdminDSN()
 			if got != tt.expected {
-				t.Errorf("DSN() = %q, want %q", got, tt.expected)
+				t.Errorf("AdminDSN() = %q, want %q", got, tt.expected)
 			}
 		})
 	}

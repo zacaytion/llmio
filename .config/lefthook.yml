@@ -7,10 +7,10 @@ pre-commit:
       stage_fixed: true
 
     - name: lint files
-      run: pnpm exec ls-lint -config .config/ls-lint.yml
+      run: ./node_modules/.bin/ls-lint -config .config/ls-lint.yml
 
     - name: lint markdown
-      run: pnpm exec markdownlint-cli2 --fix
+      run: ./node_modules/.bin/markdownlint-cli2 --fix
       glob: "*.md"
       stage_fixed: true
 
@@ -25,4 +25,4 @@ pre-commit:
 commit-msg:
   commands:
     commitlint:
-      run: pnpx commitlint --config .config/commitlintrc.yml --edit {1}
+      run: ./node_modules/.bin/commitlint --config .config/commitlintrc.yml --edit {1}

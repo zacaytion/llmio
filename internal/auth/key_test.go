@@ -9,7 +9,7 @@ import (
 // keyPattern matches valid public keys (22 chars, base64url safe).
 var keyPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{22}$`)
 
-func TestGeneratePublicKey(t *testing.T) {
+func Test_GeneratePublicKey(t *testing.T) {
 	key := GeneratePublicKey()
 
 	// Must be exactly 22 characters (128 bits encoded in base64url)
@@ -23,7 +23,7 @@ func TestGeneratePublicKey(t *testing.T) {
 	}
 }
 
-func TestGeneratePublicKeyUniqueness(t *testing.T) {
+func Test_GeneratePublicKeyUniqueness(t *testing.T) {
 	seen := make(map[string]bool)
 	collisions := 0
 
@@ -41,7 +41,7 @@ func TestGeneratePublicKeyUniqueness(t *testing.T) {
 	}
 }
 
-func TestMakePublicKeyUnique(t *testing.T) {
+func Test_MakePublicKeyUnique(t *testing.T) {
 	// First key is always "taken"
 	takenKey := GeneratePublicKey()
 
@@ -65,7 +65,7 @@ func TestMakePublicKeyUnique(t *testing.T) {
 	}
 }
 
-func TestMakePublicKeyUnique_ErrorAfterMaxAttempts(t *testing.T) {
+func Test_MakePublicKeyUnique_ErrorAfterMaxAttempts(t *testing.T) {
 	// Checker always returns true (key always "taken")
 	checker := func(key string) bool {
 		return true

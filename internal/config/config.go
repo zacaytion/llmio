@@ -13,10 +13,10 @@ import (
 
 // Config holds all application configuration.
 type Config struct {
-	Database DatabaseConfig `mapstructure:"database"`
-	Server   ServerConfig   `mapstructure:"server"`
-	Session  SessionConfig  `mapstructure:"session"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
+	PG      PGConfig      `mapstructure:"pg"`
+	Server  ServerConfig  `mapstructure:"server"`
+	Session SessionConfig `mapstructure:"session"`
+	Logging LoggingConfig `mapstructure:"logging"`
 }
 
 // Validate checks if all configuration sections have valid values.
@@ -25,24 +25,74 @@ func (c Config) Validate() error {
 	return validation.Validate(c)
 }
 
-// DatabaseConfig holds database connection settings.
-type DatabaseConfig struct {
-	Host              string        `mapstructure:"host" validate:"required"`
-	Port              int           `mapstructure:"port" validate:"required,min=1,max=65535"`
-	User              string        `mapstructure:"user" validate:"required"`
-	Password          string        `mapstructure:"password"`
-	Name              string        `mapstructure:"name" validate:"required"`
-	SSLMode           string        `mapstructure:"sslmode" validate:"required,sslmode"`
+// PGConfig holds PostgreSQL connection settings.
+// Environment variables use LLMIO_PG_* prefix (e.g., LLMIO_PG_HOST, LLMIO_PG_PORT).
+type PGConfig struct {
+	Host     string `mapstructure:"host" validate:"required"`
+	Port     int    `mapstructure:"port" validate:"required,min=1,max=65535"`
+	Database string `mapstructure:"database" validate:"required"`
+	SSLMode  string `mapstructure:"sslmode" validate:"required,sslmode"`
+
+	// Connection pool settings
 	MaxConns          int32         `mapstructure:"max_conns" validate:"required,min=1"`
 	MinConns          int32         `mapstructure:"min_conns" validate:"min=0,ltefield=MaxConns"`
 	MaxConnLifetime   time.Duration `mapstructure:"max_conn_lifetime" validate:"required,gt=0"`
 	MaxConnIdleTime   time.Duration `mapstructure:"max_conn_idle_time" validate:"required,gt=0"`
 	HealthCheckPeriod time.Duration `mapstructure:"health_check_period" validate:"required,gt=0"`
+
+	// Three-role credential model:
+	// - Admin: superuser for initial setup (postgres)
+	// - Migration: DDL privileges for schema changes (loomio_migration)
+	// - App: DML privileges for runtime queries (loomio_app)
+
+	// Admin credentials (superuser, used for role creation in migrations)
+	UserAdmin string `mapstructure:"user_admin"`
+	PassAdmin string `mapstructure:"pass_admin"`
+
+	// Migration credentials (used by cmd/migrate for DDL operations)
+	UserMigration string `mapstructure:"user_migration"`
+	PassMigration string `mapstructure:"pass_migration"`
+
+	// App credentials (used by cmd/server for runtime queries)
+	UserApp string `mapstructure:"user_app"`
+	PassApp string `mapstructure:"pass_app"`
+}
+
+// AdminDSN returns the PostgreSQL connection string for admin operations.
+// Uses UserAdmin/PassAdmin credentials (superuser for role creation).
+func (c PGConfig) AdminDSN() string {
+	return c.buildDSN(c.UserAdmin, c.PassAdmin)
+}
+
+// MigrationDSN returns the PostgreSQL connection string for migrations.
+// Uses UserMigration/PassMigration credentials (DDL privileges).
+// Falls back to AdminDSN if migration credentials not set.
+func (c PGConfig) MigrationDSN() string {
+	if c.UserMigration == "" {
+		return c.AdminDSN()
+	}
+	return c.buildDSN(c.UserMigration, c.PassMigration)
+}
+
+// AppDSN returns the PostgreSQL connection string for runtime queries.
+// Uses UserApp/PassApp credentials (DML privileges only).
+func (c PGConfig) AppDSN() string {
+	return c.buildDSN(c.UserApp, c.PassApp)
+}
+
+// buildDSN constructs a PostgreSQL connection string with the given credentials.
+func (c PGConfig) buildDSN(user, password string) string {
+	dsn := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
+		c.Host, c.Port, user, c.Database, c.SSLMode)
+	if password != "" {
+		dsn += fmt.Sprintf(" password='%s'", escapePassword(password))
+	}
+	return dsn
 }
 
 // SSLMode represents valid PostgreSQL SSL modes.
 // Note: This type is defined for documentation and type-safe usage in code,
-// but DatabaseConfig uses string for SSLMode to simplify Viper unmarshaling.
+// but PGConfig uses string for SSLMode to simplify Viper unmarshaling.
 // Validation is handled by the "sslmode" custom validator in internal/validation.
 type SSLMode string
 
@@ -69,18 +119,6 @@ func (m SSLMode) Valid() bool {
 // String returns the string representation of the SSLMode.
 func (m SSLMode) String() string {
 	return string(m)
-}
-
-// DSN returns the PostgreSQL connection string.
-// Passwords are single-quoted to handle special characters (spaces, equals signs).
-// Backslashes and single quotes within the password are escaped.
-func (c DatabaseConfig) DSN() string {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
-		c.Host, c.Port, c.User, c.Name, c.SSLMode)
-	if c.Password != "" {
-		dsn += fmt.Sprintf(" password='%s'", escapePassword(c.Password))
-	}
-	return dsn
 }
 
 // escapePassword escapes special characters in passwords for PostgreSQL DSN.
@@ -207,7 +245,7 @@ func LoadWithViper(v *viper.Viper, configPath string) (*Config, error) {
 		}
 	}
 
-	v.SetEnvPrefix("LOOMIO")
+	v.SetEnvPrefix("LLMIO")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
@@ -225,18 +263,29 @@ func LoadWithViper(v *viper.Viper, configPath string) (*Config, error) {
 }
 
 func setDefaults(v *viper.Viper) {
-	// Database defaults
-	v.SetDefault("database.host", "localhost")
-	v.SetDefault("database.port", 5432)
-	v.SetDefault("database.user", "postgres")
-	v.SetDefault("database.password", "")
-	v.SetDefault("database.name", "loomio_development")
-	v.SetDefault("database.sslmode", "disable")
-	v.SetDefault("database.max_conns", 25)
-	v.SetDefault("database.min_conns", 2)
-	v.SetDefault("database.max_conn_lifetime", time.Hour)
-	v.SetDefault("database.max_conn_idle_time", 30*time.Minute)
-	v.SetDefault("database.health_check_period", time.Minute)
+	// PostgreSQL defaults (env vars: LLMIO_PG_*)
+	v.SetDefault("pg.host", "localhost")
+	v.SetDefault("pg.port", 5432)
+	v.SetDefault("pg.database", "loomio_development")
+	v.SetDefault("pg.sslmode", "disable")
+
+	// Connection pool defaults
+	v.SetDefault("pg.max_conns", 25)
+	v.SetDefault("pg.min_conns", 2)
+	v.SetDefault("pg.max_conn_lifetime", time.Hour)
+	v.SetDefault("pg.max_conn_idle_time", 30*time.Minute)
+	v.SetDefault("pg.health_check_period", time.Minute)
+
+	// Three-role credential model defaults
+	// Admin: superuser for initial setup and role creation
+	v.SetDefault("pg.user_admin", "postgres")
+	v.SetDefault("pg.pass_admin", "")
+	// Migration: DDL privileges for schema changes (used by cmd/migrate)
+	v.SetDefault("pg.user_migration", "")
+	v.SetDefault("pg.pass_migration", "")
+	// App: DML privileges for runtime queries (used by cmd/server)
+	v.SetDefault("pg.user_app", "")
+	v.SetDefault("pg.pass_app", "")
 
 	// Server defaults
 	v.SetDefault("server.port", 8080)

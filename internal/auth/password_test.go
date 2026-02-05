@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestHashPassword(t *testing.T) {
+func Test_HashPassword(t *testing.T) {
 	tests := []struct {
 		name     string
 		password string
@@ -51,7 +51,7 @@ func TestHashPassword(t *testing.T) {
 	}
 }
 
-func TestHashPasswordUniqueness(t *testing.T) {
+func Test_HashPasswordUniqueness(t *testing.T) {
 	password := "samepassword"
 	hash1, err := HashPassword(password)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestHashPasswordUniqueness(t *testing.T) {
 	}
 }
 
-func TestVerifyPassword(t *testing.T) {
+func Test_VerifyPassword(t *testing.T) {
 	password := "secretpassword123"
 	hash, err := HashPassword(password)
 	if err != nil {
@@ -115,7 +115,7 @@ func TestVerifyPassword(t *testing.T) {
 	}
 }
 
-func TestVerifyPasswordTiming(t *testing.T) {
+func Test_VerifyPasswordTiming(t *testing.T) {
 	// Verify that verification takes consistent time regardless of result
 	// This prevents timing attacks for account enumeration
 	password := "secretpassword123"

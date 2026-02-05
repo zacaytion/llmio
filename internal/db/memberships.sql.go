@@ -12,7 +12,7 @@ import (
 )
 
 const acceptMembership = `-- name: AcceptMembership :one
-UPDATE memberships SET accepted_at = NOW(), updated_at = NOW()
+UPDATE data.memberships SET accepted_at = NOW(), updated_at = NOW()
 WHERE id = $1
 RETURNING id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at
 `
@@ -35,7 +35,7 @@ func (q *Queries) AcceptMembership(ctx context.Context, id int64) (*Membership, 
 }
 
 const countAdminsByGroup = `-- name: CountAdminsByGroup :one
-SELECT COUNT(*) AS admin_count FROM memberships
+SELECT COUNT(*) AS admin_count FROM data.memberships
 WHERE group_id = $1 AND role = 'admin' AND accepted_at IS NOT NULL
 `
 
@@ -49,7 +49,7 @@ func (q *Queries) CountAdminsByGroup(ctx context.Context, groupID int64) (int64,
 
 const createMembership = `-- name: CreateMembership :one
 
-INSERT INTO memberships (group_id, user_id, role, inviter_id, accepted_at)
+INSERT INTO data.memberships (group_id, user_id, role, inviter_id, accepted_at)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at
 `
@@ -88,7 +88,7 @@ func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipPara
 }
 
 const deleteMembership = `-- name: DeleteMembership :exec
-DELETE FROM memberships WHERE id = $1
+DELETE FROM data.memberships WHERE id = $1
 `
 
 // Removes a membership
@@ -98,7 +98,7 @@ func (q *Queries) DeleteMembership(ctx context.Context, id int64) error {
 }
 
 const getMembershipByGroupAndUser = `-- name: GetMembershipByGroupAndUser :one
-SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM memberships WHERE group_id = $1 AND user_id = $2
+SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM data.memberships WHERE group_id = $1 AND user_id = $2
 `
 
 type GetMembershipByGroupAndUserParams struct {
@@ -124,7 +124,7 @@ func (q *Queries) GetMembershipByGroupAndUser(ctx context.Context, arg GetMember
 }
 
 const getMembershipByID = `-- name: GetMembershipByID :one
-SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM memberships WHERE id = $1
+SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM data.memberships WHERE id = $1
 `
 
 // Retrieves a membership by its ID
@@ -151,9 +151,9 @@ SELECT
     u.username AS user_username,
     i.name AS inviter_name,
     i.username AS inviter_username
-FROM memberships m
-JOIN users u ON u.id = m.user_id
-JOIN users i ON i.id = m.inviter_id
+FROM data.memberships m
+JOIN data.users u ON u.id = m.user_id
+JOIN data.users i ON i.id = m.inviter_id
 WHERE m.id = $1
 `
 
@@ -195,7 +195,7 @@ func (q *Queries) GetMembershipWithUser(ctx context.Context, id int64) (*GetMemb
 
 const isAdmin = `-- name: IsAdmin :one
 SELECT EXISTS(
-    SELECT 1 FROM memberships
+    SELECT 1 FROM data.memberships
     WHERE group_id = $1 AND user_id = $2 AND role = 'admin' AND accepted_at IS NOT NULL
 ) AS is_admin
 `
@@ -215,7 +215,7 @@ func (q *Queries) IsAdmin(ctx context.Context, arg IsAdminParams) (bool, error) 
 
 const isMember = `-- name: IsMember :one
 SELECT EXISTS(
-    SELECT 1 FROM memberships
+    SELECT 1 FROM data.memberships
     WHERE group_id = $1 AND user_id = $2 AND accepted_at IS NOT NULL
 ) AS is_member
 `
@@ -241,9 +241,9 @@ SELECT
     g.description AS group_description,
     i.name AS inviter_name,
     i.username AS inviter_username
-FROM memberships m
-JOIN groups g ON g.id = m.group_id
-JOIN users i ON i.id = m.inviter_id
+FROM data.memberships m
+JOIN data.groups g ON g.id = m.group_id
+JOIN data.users i ON i.id = m.inviter_id
 WHERE m.user_id = $1 AND m.accepted_at IS NULL
 ORDER BY m.created_at DESC
 `
@@ -300,7 +300,7 @@ func (q *Queries) ListInvitationsWithGroups(ctx context.Context, userID int64) (
 }
 
 const listMembershipsByGroup = `-- name: ListMembershipsByGroup :many
-SELECT m.id, m.group_id, m.user_id, m.role, m.inviter_id, m.accepted_at, m.created_at, m.updated_at FROM memberships m
+SELECT m.id, m.group_id, m.user_id, m.role, m.inviter_id, m.accepted_at, m.created_at, m.updated_at FROM data.memberships m
 WHERE m.group_id = $1
   AND (
     $2::text = 'all'
@@ -347,7 +347,7 @@ func (q *Queries) ListMembershipsByGroup(ctx context.Context, arg ListMembership
 }
 
 const listMembershipsByUser = `-- name: ListMembershipsByUser :many
-SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM memberships
+SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM data.memberships
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -389,9 +389,9 @@ SELECT
     u.username AS user_username,
     i.name AS inviter_name,
     i.username AS inviter_username
-FROM memberships m
-JOIN users u ON u.id = m.user_id
-JOIN users i ON i.id = m.inviter_id
+FROM data.memberships m
+JOIN data.users u ON u.id = m.user_id
+JOIN data.users i ON i.id = m.inviter_id
 WHERE m.group_id = $1
   AND (
     $2::text = 'all'
@@ -456,7 +456,7 @@ func (q *Queries) ListMembershipsWithUsers(ctx context.Context, arg ListMembersh
 }
 
 const listPendingInvitationsByUser = `-- name: ListPendingInvitationsByUser :many
-SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM memberships
+SELECT id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at FROM data.memberships
 WHERE user_id = $1 AND accepted_at IS NULL
 ORDER BY created_at DESC
 `
@@ -492,7 +492,7 @@ func (q *Queries) ListPendingInvitationsByUser(ctx context.Context, userID int64
 }
 
 const updateMembershipRole = `-- name: UpdateMembershipRole :one
-UPDATE memberships SET role = $2, updated_at = NOW()
+UPDATE data.memberships SET role = $2, updated_at = NOW()
 WHERE id = $1
 RETURNING id, group_id, user_id, role, inviter_id, accepted_at, created_at, updated_at
 `

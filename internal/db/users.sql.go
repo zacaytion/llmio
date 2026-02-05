@@ -10,7 +10,7 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, name, username, password_hash, key)
+INSERT INTO data.users (email, name, username, password_hash, key)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at
 `
@@ -48,7 +48,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*User, 
 }
 
 const deactivateUser = `-- name: DeactivateUser :exec
-UPDATE users SET deactivated_at = NOW() WHERE id = $1
+UPDATE data.users SET deactivated_at = NOW() WHERE id = $1
 `
 
 func (q *Queries) DeactivateUser(ctx context.Context, id int64) error {
@@ -57,7 +57,7 @@ func (q *Queries) DeactivateUser(ctx context.Context, id int64) error {
 }
 
 const emailExists = `-- name: EmailExists :one
-SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
+SELECT EXISTS(SELECT 1 FROM data.users WHERE email = $1)
 `
 
 func (q *Queries) EmailExists(ctx context.Context, email string) (bool, error) {
@@ -68,7 +68,7 @@ func (q *Queries) EmailExists(ctx context.Context, email string) (bool, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM users WHERE email = $1
+SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM data.users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*User, error) {
@@ -90,7 +90,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*User, erro
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM data.users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (*User, error) {
@@ -112,7 +112,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (*User, error) {
 }
 
 const getUserByKey = `-- name: GetUserByKey :one
-SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM users WHERE key = $1
+SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM data.users WHERE key = $1
 `
 
 func (q *Queries) GetUserByKey(ctx context.Context, key string) (*User, error) {
@@ -134,7 +134,7 @@ func (q *Queries) GetUserByKey(ctx context.Context, key string) (*User, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM users WHERE username = $1
+SELECT id, email, name, username, password_hash, email_verified, deactivated_at, key, created_at, updated_at FROM data.users WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (*User, error) {
@@ -156,7 +156,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (*User
 }
 
 const updateUserEmailVerified = `-- name: UpdateUserEmailVerified :exec
-UPDATE users SET email_verified = $2 WHERE id = $1
+UPDATE data.users SET email_verified = $2 WHERE id = $1
 `
 
 type UpdateUserEmailVerifiedParams struct {
@@ -170,7 +170,7 @@ func (q *Queries) UpdateUserEmailVerified(ctx context.Context, arg UpdateUserEma
 }
 
 const usernameExists = `-- name: UsernameExists :one
-SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)
+SELECT EXISTS(SELECT 1 FROM data.users WHERE username = $1)
 `
 
 func (q *Queries) UsernameExists(ctx context.Context, username string) (bool, error) {

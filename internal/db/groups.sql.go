@@ -12,7 +12,7 @@ import (
 )
 
 const archiveGroup = `-- name: ArchiveGroup :one
-UPDATE groups SET archived_at = NOW(), updated_at = NOW()
+UPDATE data.groups SET archived_at = NOW(), updated_at = NOW()
 WHERE id = $1
 RETURNING id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at
 `
@@ -47,7 +47,7 @@ func (q *Queries) ArchiveGroup(ctx context.Context, id int64) (*Group, error) {
 }
 
 const countGroupAdmins = `-- name: CountGroupAdmins :one
-SELECT COUNT(*) AS admin_count FROM memberships
+SELECT COUNT(*) AS admin_count FROM data.memberships
 WHERE group_id = $1 AND role = 'admin' AND accepted_at IS NOT NULL
 `
 
@@ -60,7 +60,7 @@ func (q *Queries) CountGroupAdmins(ctx context.Context, groupID int64) (int64, e
 }
 
 const countGroupMembers = `-- name: CountGroupMembers :one
-SELECT COUNT(*) AS member_count FROM memberships
+SELECT COUNT(*) AS member_count FROM data.memberships
 WHERE group_id = $1 AND accepted_at IS NOT NULL
 `
 
@@ -76,7 +76,7 @@ const countGroupMembershipStats = `-- name: CountGroupMembershipStats :one
 SELECT
     COUNT(*) AS member_count,
     COUNT(*) FILTER (WHERE role = 'admin') AS admin_count
-FROM memberships
+FROM data.memberships
 WHERE group_id = $1 AND accepted_at IS NOT NULL
 `
 
@@ -96,7 +96,7 @@ func (q *Queries) CountGroupMembershipStats(ctx context.Context, groupID int64) 
 
 const createGroup = `-- name: CreateGroup :one
 
-INSERT INTO groups (
+INSERT INTO data.groups (
     name, handle, description, parent_id, created_by_id,
     members_can_add_members, members_can_add_guests, members_can_start_discussions,
     members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments,
@@ -188,7 +188,7 @@ func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (*Grou
 }
 
 const getGroupByHandle = `-- name: GetGroupByHandle :one
-SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM groups WHERE handle = $1
+SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM data.groups WHERE handle = $1
 `
 
 // Retrieves a group by its URL-safe handle (case-insensitive via CITEXT)
@@ -221,7 +221,7 @@ func (q *Queries) GetGroupByHandle(ctx context.Context, handle string) (*Group, 
 }
 
 const getGroupByID = `-- name: GetGroupByID :one
-SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM groups WHERE id = $1
+SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM data.groups WHERE id = $1
 `
 
 // Retrieves a group by its ID
@@ -254,7 +254,7 @@ func (q *Queries) GetGroupByID(ctx context.Context, id int64) (*Group, error) {
 }
 
 const handleExists = `-- name: HandleExists :one
-SELECT EXISTS(SELECT 1 FROM groups WHERE handle = $1) AS exists
+SELECT EXISTS(SELECT 1 FROM data.groups WHERE handle = $1) AS exists
 `
 
 // Checks if a handle is already taken
@@ -266,8 +266,8 @@ func (q *Queries) HandleExists(ctx context.Context, handle string) (bool, error)
 }
 
 const listGroupsByUser = `-- name: ListGroupsByUser :many
-SELECT g.id, g.name, g.handle, g.description, g.parent_id, g.created_by_id, g.archived_at, g.members_can_add_members, g.members_can_add_guests, g.members_can_start_discussions, g.members_can_raise_motions, g.members_can_edit_discussions, g.members_can_edit_comments, g.members_can_delete_comments, g.members_can_announce, g.members_can_create_subgroups, g.admins_can_edit_user_content, g.parent_members_can_see_discussions, g.created_at, g.updated_at FROM groups g
-JOIN memberships m ON m.group_id = g.id
+SELECT g.id, g.name, g.handle, g.description, g.parent_id, g.created_by_id, g.archived_at, g.members_can_add_members, g.members_can_add_guests, g.members_can_start_discussions, g.members_can_raise_motions, g.members_can_edit_discussions, g.members_can_edit_comments, g.members_can_delete_comments, g.members_can_announce, g.members_can_create_subgroups, g.admins_can_edit_user_content, g.parent_members_can_see_discussions, g.created_at, g.updated_at FROM data.groups g
+JOIN data.memberships m ON m.group_id = g.id
 WHERE m.user_id = $1
   AND m.accepted_at IS NOT NULL
   AND ($2::boolean = TRUE OR g.archived_at IS NULL)
@@ -326,10 +326,10 @@ const listGroupsByUserWithCounts = `-- name: ListGroupsByUserWithCounts :many
 SELECT
     g.id, g.name, g.handle, g.description, g.parent_id, g.created_by_id, g.archived_at, g.members_can_add_members, g.members_can_add_guests, g.members_can_start_discussions, g.members_can_raise_motions, g.members_can_edit_discussions, g.members_can_edit_comments, g.members_can_delete_comments, g.members_can_announce, g.members_can_create_subgroups, g.admins_can_edit_user_content, g.parent_members_can_see_discussions, g.created_at, g.updated_at,
     m.role AS current_user_role,
-    (SELECT COUNT(*) FROM memberships sm WHERE sm.group_id = g.id AND sm.accepted_at IS NOT NULL) AS member_count,
-    (SELECT COUNT(*) FROM memberships sm WHERE sm.group_id = g.id AND sm.role = 'admin' AND sm.accepted_at IS NOT NULL) AS admin_count
-FROM groups g
-JOIN memberships m ON m.group_id = g.id
+    (SELECT COUNT(*) FROM data.memberships sm WHERE sm.group_id = g.id AND sm.accepted_at IS NOT NULL) AS member_count,
+    (SELECT COUNT(*) FROM data.memberships sm WHERE sm.group_id = g.id AND sm.role = 'admin' AND sm.accepted_at IS NOT NULL) AS admin_count
+FROM data.groups g
+JOIN data.memberships m ON m.group_id = g.id
 WHERE m.user_id = $1
   AND m.accepted_at IS NOT NULL
   AND ($2::boolean = TRUE OR g.archived_at IS NULL)
@@ -415,7 +415,7 @@ func (q *Queries) ListGroupsByUserWithCounts(ctx context.Context, arg ListGroups
 }
 
 const listSubgroupsByParent = `-- name: ListSubgroupsByParent :many
-SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM groups
+SELECT id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at FROM data.groups
 WHERE parent_id = $1
   AND ($2::boolean = TRUE OR archived_at IS NULL)
 ORDER BY name
@@ -469,7 +469,7 @@ func (q *Queries) ListSubgroupsByParent(ctx context.Context, arg ListSubgroupsBy
 }
 
 const unarchiveGroup = `-- name: UnarchiveGroup :one
-UPDATE groups SET archived_at = NULL, updated_at = NOW()
+UPDATE data.groups SET archived_at = NULL, updated_at = NOW()
 WHERE id = $1
 RETURNING id, name, handle, description, parent_id, created_by_id, archived_at, members_can_add_members, members_can_add_guests, members_can_start_discussions, members_can_raise_motions, members_can_edit_discussions, members_can_edit_comments, members_can_delete_comments, members_can_announce, members_can_create_subgroups, admins_can_edit_user_content, parent_members_can_see_discussions, created_at, updated_at
 `
@@ -504,7 +504,7 @@ func (q *Queries) UnarchiveGroup(ctx context.Context, id int64) (*Group, error) 
 }
 
 const updateGroup = `-- name: UpdateGroup :one
-UPDATE groups SET
+UPDATE data.groups SET
     name = COALESCE($2, name),
     description = COALESCE($3, description),
     members_can_add_members = COALESCE($4, members_can_add_members),

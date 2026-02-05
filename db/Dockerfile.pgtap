@@ -1,0 +1,13 @@
+# PostgreSQL 18 with pgTap extension and pg_prove for schema testing
+# Used by testcontainers for running pgTap tests via Go tests
+FROM postgres:18
+
+# Install pgTap extension and pg_prove (Perl TAP harness)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-18-pgtap \
+        libtap-parser-sourcehandler-pgtap-perl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy init script to enable pgtap extension on database creation
+COPY init-pgtap.sql /docker-entrypoint-initdb.d/

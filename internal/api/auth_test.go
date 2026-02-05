@@ -30,7 +30,7 @@ func init() {
 }
 
 // TestRegisterSuccess tests successful user registration.
-func TestRegisterSuccess(t *testing.T) {
+func Test_RegisterSuccess(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -82,7 +82,7 @@ func TestRegisterSuccess(t *testing.T) {
 }
 
 // TestRegisterDuplicateEmail tests that duplicate emails are rejected.
-func TestRegisterDuplicateEmail(t *testing.T) {
+func Test_RegisterDuplicateEmail(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -124,7 +124,7 @@ func TestRegisterDuplicateEmail(t *testing.T) {
 }
 
 // TestRegisterPasswordValidation tests password validation rules.
-func TestRegisterPasswordValidation(t *testing.T) {
+func Test_RegisterPasswordValidation(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -170,7 +170,7 @@ func TestRegisterPasswordValidation(t *testing.T) {
 }
 
 // TestRegisterNameRequired tests that name is required.
-func TestRegisterNameRequired(t *testing.T) {
+func Test_RegisterNameRequired(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -365,7 +365,7 @@ func (h *testAuthHandler) handleLogin(ctx context.Context, input *LoginInput) (*
 // ===== Login Tests =====
 
 // TestLoginSuccess tests successful login for verified user.
-func TestLoginSuccess(t *testing.T) {
+func Test_LoginSuccess(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -437,7 +437,7 @@ func TestLoginSuccess(t *testing.T) {
 }
 
 // TestLoginWrongPassword tests login with incorrect password.
-func TestLoginWrongPassword(t *testing.T) {
+func Test_LoginWrongPassword(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -480,7 +480,7 @@ func TestLoginWrongPassword(t *testing.T) {
 }
 
 // TestLoginUnknownEmail tests login with non-existent email.
-func TestLoginUnknownEmail(t *testing.T) {
+func Test_LoginUnknownEmail(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -509,7 +509,7 @@ func TestLoginUnknownEmail(t *testing.T) {
 }
 
 // TestLoginUnverifiedEmail tests login with unverified email.
-func TestLoginUnverifiedEmail(t *testing.T) {
+func Test_LoginUnverifiedEmail(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -543,7 +543,7 @@ func TestLoginUnverifiedEmail(t *testing.T) {
 }
 
 // TestLoginDeactivatedAccount tests login with deactivated account.
-func TestLoginDeactivatedAccount(t *testing.T) {
+func Test_LoginDeactivatedAccount(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -655,7 +655,7 @@ func (h *testAuthHandler) getUserByID(id int64) (*mockUser, bool) {
 // ===== Logout Tests =====
 
 // TestLogoutSuccess tests successful logout for authenticated user.
-func TestLogoutSuccess(t *testing.T) {
+func Test_LogoutSuccess(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -718,7 +718,7 @@ func TestLogoutSuccess(t *testing.T) {
 }
 
 // TestLogoutUnauthenticated tests logout without session.
-func TestLogoutUnauthenticated(t *testing.T) {
+func Test_LogoutUnauthenticated(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -735,7 +735,7 @@ func TestLogoutUnauthenticated(t *testing.T) {
 }
 
 // TestSessionInvalidAfterLogout tests that session is deleted after logout.
-func TestSessionInvalidAfterLogout(t *testing.T) {
+func Test_SessionInvalidAfterLogout(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -787,7 +787,7 @@ func TestSessionInvalidAfterLogout(t *testing.T) {
 // ===== Session Persistence Tests =====
 
 // TestGetCurrentUser tests getting current user with valid session.
-func TestGetCurrentUser(t *testing.T) {
+func Test_GetCurrentUser(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -846,7 +846,7 @@ func TestGetCurrentUser(t *testing.T) {
 }
 
 // TestGetCurrentUserUnauthenticated tests getting user without session.
-func TestGetCurrentUserUnauthenticated(t *testing.T) {
+func Test_GetCurrentUserUnauthenticated(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
@@ -863,7 +863,7 @@ func TestGetCurrentUserUnauthenticated(t *testing.T) {
 }
 
 // TestExpiredSessionRejected tests that expired sessions are rejected.
-func TestExpiredSessionRejected(t *testing.T) {
+func Test_ExpiredSessionRejected(t *testing.T) {
 	handler := newTestAuthHandler()
 	mux := http.NewServeMux()
 	api := humago.New(mux, huma.DefaultConfig("Test API", "1.0.0"))
